@@ -5,7 +5,13 @@ Changelog
 Unreleased
 ==========
 
+-
+
+Version 0.3.3
+=============
+
 - Switch from Travis CI to GitHub Actions
+- Allow plotting from irregular grids (SMOS, ASCAT)
 
 Version 0.3.2
 =============
