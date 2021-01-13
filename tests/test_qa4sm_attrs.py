@@ -17,6 +17,13 @@ def test_tc_attributes():
     ds = xr.open_dataset(testfile)
     return ds.attrs
 
+
+def test_grid_stepsize():
+    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
+                            '0-SMAP.soil_moisture_with_1-C3S.sm.nc')
+    ds = xr.open_dataset(testfile)
+    return ds.attrs
+
 class TestQA4SMAttributes(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -60,6 +67,11 @@ class TestQA4SMAttributes(unittest.TestCase):
         assert other_names[4]['pretty_version'] == 'H113'
 
         return other_names
+
+    def test_grid_stepsize(self):
+        attrs = test_grid_stepsize()
+        assert attrs['val_dc_dataset0_grid_stepsize'] == 0.35
+
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()

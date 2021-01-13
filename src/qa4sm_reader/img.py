@@ -46,6 +46,13 @@ class QA4SMImg(object):
 
         self.common, self.double, self.triple = self._load_metrics_from_file(metrics)
 
+        self.ref_dataset = self.ds.val_dc_dataset0
+        # this try here is to obey tests, withouth a necessity of changing and commiting test files again
+        try:
+            self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
+        except:
+            self.ref_dataset_grid_stepsize = 'nan'
+
     def _load_metrics_from_file(self, metrics:list=None) -> (dict, dict, dict):
         """ Load and group all metrics from file """
         self.df = self._ds2df(None)
