@@ -2,8 +2,8 @@
 qa4sm_reader
 ============
 
-.. image:: https://github.com/TUW-GEO/qa4sm-reader/workflows/Build%20package%20and%20test/badge.svg
-    :target: https://github.com/TUW-GEO/qa4sm-reader/actions?query=workflow%3A"Build+package+and+test"
+.. image:: https://github.com/TUW-GEO/qa4sm-reader/workflows/tests/badge.svg
+    :target: https://github.com/TUW-GEO/qa4sm-reader/actions?query=workflow%3Atests
 
 .. image:: https://coveralls.io/repos/github/TUW-GEO/qa4sm-reader/badge.svg?branch=master
     :target: https://coveralls.io/github/TUW-GEO/qa4sm-reader?branch=master
