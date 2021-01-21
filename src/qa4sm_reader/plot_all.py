@@ -6,7 +6,7 @@ from qa4sm_reader import globals
 import matplotlib.pyplot as plt
 
 def plot_all(filepath, metrics=None, extent=None, out_dir=None, out_type='png',
-             boxplot_kwargs=dict(), mapplot_kwargs=dict()):
+             boxplot_kwargs=dict(), mapplot_kwargs=dict(), table_kwargs=dict()):
     """
     Creates boxplots for all metrics and map plots for all variables. Saves the output in a folder-structure.
 
@@ -54,4 +54,4 @@ def plot_all(filepath, metrics=None, extent=None, out_dir=None, out_type='png',
         for fn in fns_box: fnames_boxes.append(fn)
         for fn in fns_maps: fnames_maps.append(fn)
 
-    return fnames_boxes, fnames_maps
+    return fnames_boxes, fnames_maps, img.stats(**table_kwargs)

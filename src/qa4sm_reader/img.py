@@ -335,4 +335,33 @@ class QA4SMImg(object):
                                 ('triple', triple)])
         else:
             return np.sort(np.array(common + double + triple))
+    
+    def stats(self, quantiles:list=[0.25,0.5,0.75]):
+        """
+        Generate a dataframe with the mean and desired quantiles for each
+        variable
 
+        Parameters
+        ----------
+        quantiles : list, optional
+            Fractions for which the quantile should be found. The default is [0.25,0.5,0.75].
+
+        Returns
+        -------
+        stats_df : pd.DataFrame
+            Dataframe containing the statistics value for each variable.
+        """
+        df = self.ds.to_dataframe()
+        
+        names = [str(int(i*100)) + 'th quantile' for i in quantiles]
+        quantiles = df.quantile(quantiles).transpose()
+        quantiles.columns = names
+        means = pd.Series(df.mean(), name = 'mean')
+        
+        stats_df = pd.concat([quantiles, means], axis = 1)
+        bools = stats_df.index.isin(self.ls_vars(False))
+        stats_df = stats_df[bools]
+        
+        return stats_df
+        
+        
