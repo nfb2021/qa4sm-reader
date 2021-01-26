@@ -269,6 +269,7 @@ class QA4SMPlotter(object):
             title = title + part
         if title[-1:] == '\n':
             title = title[:-1]
+        
         return title
 
     def _box_title_tc(self, ref_meta:dict, mds_meta:dict, metric:str,

@@ -11,6 +11,7 @@ from qa4sm_reader.handlers import QA4SMMetricVariable
 import pandas as pd
 import itertools
 
+
 class QA4SMImg(object):
     """
     A QA4SM validation results netcdf image.
@@ -230,6 +231,7 @@ class QA4SMImg(object):
                 if Var.varname == varname:
                     return {Var.metric: Var.get_varmeta()}
 
+
     def metric_meta(self, metric):
         """
         Get the meta values for all variables that describe the passed metric.
@@ -250,7 +252,7 @@ class QA4SMImg(object):
         for Var in group[metric]:
             metvar_meta[Var.varname] = Var.get_varmeta()
         return metvar_meta
-
+            
     def parse_filename(self):
         """
         Parse filename and derive the validation datasets. Relies on the separator
@@ -336,32 +338,59 @@ class QA4SMImg(object):
         else:
             return np.sort(np.array(common + double + triple))
     
-    def stats(self, quantiles:list=[0.25,0.5,0.75]):
+    # add quantiles?
+    def metric_stats(self, metric):
         """
-        Generate a dataframe with the mean and desired quantiles for each
-        variable
+        Provide a dictionary with the metric summary statistics
 
         Parameters
         ----------
-        quantiles : list, optional
-            Fractions for which the quantile should be found. The default is [0.25,0.5,0.75].
+        metric : str
+            A metric that is in the file (e.g. n_obs, R, ...)
+
+        Returns
+        -------
+        statistics : dict
+            Dictionary of variable title as key, with summary stats as values
+        """
+        group = self.find_group(metric)
+        metric_vars = group[metric]
+        statistics = {}
+        metric_pretty = globals._metric_name[metric]
+        for metric_var in metric_vars:
+            values = metric_var.values
+            if metric == 'n_obs':
+                stats = [round(float(i),1) for i in (values.mean(), values.median(), values.std())] 
+            else:
+                stats = [np.format_float_scientific(float(i), 2) for i in (
+                    values.mean(), values.median(), values.std())]
+            stats.append(metric_var.g)
+            ref_ds, other_ds = metric_var.ref_ds, metric_var.other_dss  
+            if other_ds is None:
+                text = ' of {}'.format(ref_ds.pretty_name())
+            else:
+                text = ' between {}'.format(ref_ds.pretty_name()) + ' and ' + ", ".join(
+                    x.pretty_name() for x in other_ds)
+            statistics['{}'.format(metric_pretty) + text] = stats
+        
+        return statistics
+    
+    def stats_df(self):
+        """
+        Create a DataFrame with summary statistics for all the metrics
 
         Returns
         -------
         stats_df : pd.DataFrame
-            Dataframe containing the statistics value for each variable.
+            Quick inspection table of the results.
         """
-        df = self.ds.to_dataframe()
-        
-        names = [str(int(i*100)) + 'th quantile' for i in quantiles]
-        quantiles = df.quantile(quantiles).transpose()
-        quantiles.columns = names
-        means = pd.Series(df.mean(), name = 'mean')
-        
-        stats_df = pd.concat([quantiles, means], axis = 1)
-        bools = stats_df.index.isin(self.ls_vars(False))
-        stats_df = stats_df[bools]
+        stats = {}
+        for metric in self.ls_metrics(False):
+            metric_st = self.metric_stats(metric)
+            stats.update(metric_st)
+        stats_df = pd.DataFrame(stats).transpose()
+        stats_df.columns = ['Mean', 'Median', 'STD', 'Group']
+        stats_df = stats_df.sort_values(by='Group')
         
         return stats_df
-        
         
