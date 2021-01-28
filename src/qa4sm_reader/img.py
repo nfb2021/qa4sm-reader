@@ -341,7 +341,7 @@ class QA4SMImg(object):
     # add quantiles?
     def metric_stats(self, metric):
         """
-        Provide a dictionary with the metric summary statistics
+        Provide a list with the metric summary statistics (for each variable)
 
         Parameters
         ----------
@@ -350,30 +350,30 @@ class QA4SMImg(object):
 
         Returns
         -------
-        statistics : dict
-            Dictionary of variable title as key, with summary stats as values
+        metric_stats : list
+            List of (variable) lists with summary statistics
         """
         group = self.find_group(metric)
         metric_vars = group[metric]
-        statistics = {}
-        metric_pretty = globals._metric_name[metric]
-        for metric_var in metric_vars:
-            values = metric_var.values
-            if metric == 'n_obs':
-                stats = [round(float(i),1) for i in (values.mean(), values.median(), values.std())] 
-            else:
-                stats = [np.format_float_scientific(float(i), 2) for i in (
-                    values.mean(), values.median(), values.std())]
-            stats.append(metric_var.g)
-            ref_ds, other_ds = metric_var.ref_ds, metric_var.other_dss  
-            if other_ds is None:
-                text = ' of {}'.format(ref_ds.pretty_name())
-            else:
-                text = ' between {}'.format(ref_ds.pretty_name()) + ' and ' + ", ".join(
-                    x.pretty_name() for x in other_ds)
-            statistics['{}'.format(metric_pretty) + text] = stats
+        metric_stats = []
         
-        return statistics
+        for n, metric_var in enumerate(metric_vars):
+            values = metric_var.values
+            if metric_var.g == 0:
+                var_stats = [round(float(i),1) for i in (values.mean(), values.median(), values.std())]
+                var_stats.append('All datasets')
+            else:
+                var_stats = [np.format_float_scientific(float(i), 2) for i in (values.mean(), values.median(), values.std())]
+            if metric_var.g == 2:
+                var_stats.append(metric_var.other_dss[0]._names_from_attrs()['short_name'] + ' ({})'.format(
+                    metric_var.other_dss[0]._names_from_attrs()['pretty_version']))
+            elif metric_var.g == 3:
+                var_stats.append(metric_var.other_dss[n]._names_from_attrs()['short_name'] + ' ({})'.format(
+                    metric_var.other_dss[n]._names_from_attrs()['pretty_version']))
+            var_stats.extend([globals._metric_name[metric], metric_var.g])
+            metric_stats.append(var_stats)
+        
+        return metric_stats
     
     def stats_df(self):
         """
@@ -384,13 +384,12 @@ class QA4SMImg(object):
         stats_df : pd.DataFrame
             Quick inspection table of the results.
         """
-        stats = {}
+        stats = []
         for metric in self.ls_metrics(False):
-            metric_st = self.metric_stats(metric)
-            stats.update(metric_st)
-        stats_df = pd.DataFrame(stats).transpose()
-        stats_df.columns = ['Mean', 'Median', 'STD', 'Group']
-        stats_df = stats_df.sort_values(by='Group')
+            stats.extend(self.metric_stats(metric))
+        stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'STD', 'Dataset', 'Metric', 'Group'])
+        stats_df.set_index('Metric', inplace=True)
+        stats_df.sort_values(by='Group', inplace=True)
         
         return stats_df
         
