@@ -338,7 +338,6 @@ class QA4SMImg(object):
         else:
             return np.sort(np.array(common + double + triple))
     
-    # add quantiles?
     def metric_stats(self, metric):
         """
         Provide a list with the metric summary statistics (for each variable)
@@ -359,18 +358,23 @@ class QA4SMImg(object):
         
         for n, metric_var in enumerate(metric_vars):
             values = metric_var.values
+            
             if metric_var.g == 0:
                 var_stats = [round(float(i),1) for i in (values.mean(), values.median(), values.std())]
                 var_stats.append('All datasets')
+                var_stats.extend([globals._metric_name[metric], metric_var.g])
             else:
                 var_stats = [np.format_float_scientific(float(i), 2) for i in (values.mean(), values.median(), values.std())]
-            if metric_var.g == 2:
-                var_stats.append(metric_var.other_dss[0]._names_from_attrs()['short_name'] + ' ({})'.format(
-                    metric_var.other_dss[0]._names_from_attrs()['pretty_version']))
-            elif metric_var.g == 3:
-                var_stats.append(metric_var.other_dss[n]._names_from_attrs()['short_name'] + ' ({})'.format(
-                    metric_var.other_dss[n]._names_from_attrs()['pretty_version']))
-            var_stats.extend([globals._metric_name[metric], metric_var.g])
+                
+                if metric_var.g == 2:
+                    ds_name = metric_var.other_dss[0]._names_from_attrs()
+                    var_stats.append(ds_name['short_name'] + ' ({})'.format(ds_name['pretty_version']))
+                elif metric_var.g == 3:
+                    ds_name = metric_var.other_dss[n]._names_from_attrs()
+                    var_stats.append(ds_name['short_name'] + ' ({})'.format(ds_name['pretty_version']))
+                    
+                var_stats.extend([globals._metric_name[metric] + globals._metric_description_HTML[metric].format(
+                    globals._metric_units_HTML[ds_name['short_name']]), metric_var.g])
             metric_stats.append(var_stats)
         
         return metric_stats

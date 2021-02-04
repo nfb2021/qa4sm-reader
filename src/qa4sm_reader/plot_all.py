@@ -57,16 +57,16 @@ def plot_all(filepath, metrics=None, extent=None, out_dir=None, out_type='png',
         
     return fnames_boxes, fnames_maps
 
-# add kwargs and optional features of the table
 def get_img_stats(filepath, extent=None):
     """
-    Creates the quick inspection table containing summary statistics of the 
-    result metrics values
+    Creates a dataframe containing summary statistics of the result metrics 
+    values which is rendered in the file 
+    qa4sm/validator/templates/validator/results.html
 
     Parameters
     ----------
     filepath : str
-        Path to the *.nc file to be processed..
+        Path to the *.nc file to be processed.
     extent : list, optional
         [x_min,x_max,y_min,y_max] to create a subset of the values. The default is None.
 
@@ -75,7 +75,7 @@ def get_img_stats(filepath, extent=None):
     table : pd.DataFrame
         Quick inspection table of the results.
     """
-    img = QA4SMImg(filepath, extent = extent)
+    img = QA4SMImg(filepath, extent = extent, ignore_empty=True)
     table = img.stats_df()
     
     return table
