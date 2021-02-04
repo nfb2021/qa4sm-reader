@@ -232,3 +232,40 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_V20190904" : "v20190904",
     "ERA5_LAND_TEST": "ERA5-Land test"
 }
+
+# label format for all metrics for HTML rendering
+_metric_description_HTML = {  # from /qa4sm/validator/validation/graphics.py
+    'R': ' ',
+    'p_R': ' ',
+    'rho': ' ',
+    'p_rho': ' ',
+    'tau': ' ',
+    'p_tau': ' ',
+    'RMSD': r' in  \({}\)',
+    'BIAS': r' in  \({}\)',
+    'n_obs': ' ',
+    'urmsd': r' in  \({}\)',
+    'RSS': r' in  \(({})^2\)',
+    'mse': r' in  \(({})^2\)',
+    'mse_corr': r' in  \(({})^2\)',
+    'mse_bias': r' in  \(({})^2\)',
+    'mse_var': r' in  \(({})^2\)',
+    'snr': r' in  \(db\)',
+    'err_std': r' in  \({}\)',
+    'beta': r' in  \({}\)',
+}
+
+# units for all datasets for HTML rendering
+_metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
+    'ISMN': r'{{m^3}/{m^3}}',
+    'C3S': r'{{m^3}/{m^3}}',
+    'GLDAS': r'{m^3}/{m^3}',
+    'ASCAT': r'%_{sat}',
+    'SMAP': r'{m^3}/{m^3}',
+    'ERA5': r'{m^3}/{m^3}',
+    'ERA5_LAND': r'{m^3}/{m^3}',
+    'ESA_CCI_SM_active': r'%_{sat}',
+    'ESA_CCI_SM_combined': r'{m^3}/{m^3}',
+    'ESA_CCI_SM_passive': r'{m^3}/{m^3}',
+    'SMOS': r'{m^3}/{m^3}',
+}

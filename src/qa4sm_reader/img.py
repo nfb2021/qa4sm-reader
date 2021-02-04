@@ -11,6 +11,7 @@ from qa4sm_reader.handlers import QA4SMMetricVariable
 import pandas as pd
 import itertools
 
+
 class QA4SMImg(object):
     """
     A QA4SM validation results netcdf image.
@@ -230,6 +231,7 @@ class QA4SMImg(object):
                 if Var.varname == varname:
                     return {Var.metric: Var.get_varmeta()}
 
+
     def metric_meta(self, metric):
         """
         Get the meta values for all variables that describe the passed metric.
@@ -250,7 +252,7 @@ class QA4SMImg(object):
         for Var in group[metric]:
             metvar_meta[Var.varname] = Var.get_varmeta()
         return metvar_meta
-
+            
     def parse_filename(self):
         """
         Parse filename and derive the validation datasets. Relies on the separator
@@ -335,4 +337,63 @@ class QA4SMImg(object):
                                 ('triple', triple)])
         else:
             return np.sort(np.array(common + double + triple))
+    
+    def metric_stats(self, metric):
+        """
+        Provide a list with the metric summary statistics (for each variable)
 
+        Parameters
+        ----------
+        metric : str
+            A metric that is in the file (e.g. n_obs, R, ...)
+
+        Returns
+        -------
+        metric_stats : list
+            List of (variable) lists with summary statistics
+        """
+        group = self.find_group(metric)
+        metric_vars = group[metric]
+        metric_stats = []
+        
+        for n, metric_var in enumerate(metric_vars):
+            values = metric_var.values
+            
+            if metric_var.g == 0:
+                var_stats = [round(float(i),1) for i in (values.mean(), values.median(), values.std())]
+                var_stats.append('All datasets')
+                var_stats.extend([globals._metric_name[metric], metric_var.g])
+            else:
+                var_stats = [np.format_float_scientific(float(i), 2) for i in (values.mean(), values.median(), values.std())]
+                
+                if metric_var.g == 2:
+                    ds_name = metric_var.other_dss[0]._names_from_attrs()
+                    var_stats.append(ds_name['short_name'] + ' ({})'.format(ds_name['pretty_version']))
+                elif metric_var.g == 3:
+                    ds_name = metric_var.other_dss[n]._names_from_attrs()
+                    var_stats.append(ds_name['short_name'] + ' ({})'.format(ds_name['pretty_version']))
+                    
+                var_stats.extend([globals._metric_name[metric] + globals._metric_description_HTML[metric].format(
+                    globals._metric_units_HTML[ds_name['short_name']]), metric_var.g])
+            metric_stats.append(var_stats)
+        
+        return metric_stats
+    
+    def stats_df(self):
+        """
+        Create a DataFrame with summary statistics for all the metrics
+
+        Returns
+        -------
+        stats_df : pd.DataFrame
+            Quick inspection table of the results.
+        """
+        stats = []
+        for metric in self.ls_metrics(False):
+            stats.extend(self.metric_stats(metric))
+        stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'STD', 'Dataset', 'Metric', 'Group'])
+        stats_df.set_index('Metric', inplace=True)
+        stats_df.sort_values(by='Group', inplace=True)
+        
+        return stats_df
+        

@@ -3,6 +3,7 @@
 from qa4sm_reader.img import QA4SMImg
 import os
 import numpy as np
+import pandas as pd
 import unittest
 from qa4sm_reader import globals
 
@@ -106,8 +107,26 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
         assert ds_meta['short_name'] == 'C3S'
         assert ds_meta['pretty_name'] == 'C3S'
         assert ds_meta['pretty_version'] == 'v201812'
-
-
+    
+    def test_metric_stats(self):
+        # test valid with current input file (2 datasets + 1 reference)
+        for metric in self.img.ls_metrics(as_groups=False):
+            group = self.img.find_group(metric)
+            metric_vars = group[metric]
+            for metric_var in metric_vars:
+                group = metric_var.g
+                if group == 0:
+                    assert len(self.img.metric_stats(metric)) == 1
+                elif group == 2 or group == 3:
+                    assert len(self.img.metric_stats(metric)) == 2
+    
+    def test_stats_df(self):
+        # test valid with current input file (2 datasets + 1 reference)
+        df = self.img.stats_df()
+        assert type(df) is pd.DataFrame
+        metric_types = self.img.ls_metrics()
+        assert len(df) == len(metric_types['common']) + 2*(
+            len(metric_types['double']) + len(metric_types['triple']))
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
