@@ -140,7 +140,7 @@ def mapplot(df, var, metric, ref_short, ref_grid_stepsize=None, plot_extent=None
         else:  # === mapplot ===
             # === coordiniate range ===
             if not plot_extent:
-                plot_extent = get_plot_extent(df, grid=True)
+                plot_extent = get_plot_extent(df, grid_stepsize=ref_grid_stepsize, grid=True)
 
             # === prepare values ===
             zz, zz_extent, origin = geotraj_to_geo2d(df, var, grid_stepsize=ref_grid_stepsize)
@@ -541,7 +541,7 @@ class QA4SMPlotter(object):
         assert len(list(var_meta.keys())) == 1
         metric = list(var_meta.keys())[0]
 
-        ref_short = self.img.ref_dataset
+        ref_short = var_meta[metric][0][1]['short_name']
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
 
         # === plot values ===

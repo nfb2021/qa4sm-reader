@@ -195,7 +195,7 @@ def get_quantiles(ds, quantiles):
     else:
         raise TypeError("Inappropriate argument type. 'ds' must be pandas.Series or pandas.DataFrame.")
 
-def get_plot_extent(df, grid=False):
+def get_plot_extent(df, grid_stepsize=None, grid=False):
     """
     Gets the plot_extent from the values. Uses range of values and
     adds a padding fraction as specified in globals.map_pad
@@ -214,10 +214,14 @@ def get_plot_extent(df, grid=False):
     
     """
     lat, lon = globals.index_names
-    if grid:
+    if grid and grid_stepsize in ['nan', None]:
         x_min, x_max, dx, len_x = _get_grid(df.index.get_level_values(lon))
         y_min, y_max, dy, len_y = _get_grid(df.index.get_level_values(lat))
         extent = [x_min-dx/2., x_max+dx/2., y_min-dx/2., y_max+dx/2.]
+    elif grid and grid_stepsize:
+        x_min, x_max, dx, len_x = _get_grid_for_irregulars(df.index.get_level_values(lon), grid_stepsize)
+        y_min, y_max, dy, len_y = _get_grid_for_irregulars(df.index.get_level_values(lat), grid_stepsize)
+        extent = [x_min - dx / 2., x_max + dx / 2., y_min - dx / 2., y_max + dx / 2.]
     else:
         extent = [df.index.get_level_values(lon).min(), df.index.get_level_values(lon).max(),
                   df.index.get_level_values(lat).min(), df.index.get_level_values(lat).max()]
