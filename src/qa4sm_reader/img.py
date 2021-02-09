@@ -360,7 +360,7 @@ class QA4SMImg(object):
             # get interquartile range 
             values = metric_var.values
             iqr = values.quantile(q=[0.75,0.25]).diff()
-            iqr = abs(float(iqr.dropna().to_numpy()))
+            iqr = abs(float(iqr.loc[0.25]))
             # find the statistics for the metric variable
             if metric_var.g == 0:
                 var_stats = [round(float(i),1) for i in (values.mean(), values.median(), iqr)]

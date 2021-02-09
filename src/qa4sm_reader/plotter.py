@@ -235,7 +235,7 @@ class QA4SMPlotter(object):
         count = ds.count() if count else None
         
         iqr = ds.quantile(q=[0.75,0.25]).diff()
-        iqr = abs(float(iqr.dropna().to_numpy()))
+        iqr = abs(float(iqr.loc[0.25]))
 
         met_str = []
         if med:
