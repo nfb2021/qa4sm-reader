@@ -4,6 +4,7 @@ from qa4sm_reader.img import QA4SMImg
 import os
 import seaborn as sns
 from qa4sm_reader.plot_utils import *
+import pandas as pd
 
 def _make_cbar(fig, im, cax, ref_short, metric):
     try:
@@ -227,18 +228,20 @@ class QA4SMPlotter(object):
         self.img = image
         self.out_dir = out_dir
 
-    def _box_stats(self, ds:pd.Series, med:bool=True, std:bool=True,
+    def _box_stats(self, ds:pd.Series, med:bool=True, iqr:bool=True,
                    count:bool=True) -> str:
         """ Create the metric part with stats of the box caption """
 
-        std = ds.std() if std else None
         count = ds.count() if count else None
+        
+        iqr = ds.quantile(q=[0.75,0.25]).diff()
+        iqr = abs(float(iqr.loc[0.25]))
 
         met_str = []
         if med:
             met_str.append('median: {:.3g}'.format(ds.median()))
-        if std:
-            met_str.append('std. dev.: {:.3g}'.format(ds.std()))
+        if iqr:
+            met_str.append('Interquartile range: {:.3g}'.format(iqr))
         if count:
             met_str.append('N: {:d}'.format(ds.count()))
 
@@ -429,7 +432,7 @@ class QA4SMPlotter(object):
             If None, no file is saved.
             The default is png.
         add_stats : bool, optional (default: from globals)
-            Add stats of median, std and N to the box bottom.
+            Add stats of median, iqr and N to the box bottom.
 
         Returns
         -------

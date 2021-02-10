@@ -355,16 +355,19 @@ class QA4SMImg(object):
         group = self.find_group(metric)
         metric_vars = group[metric]
         metric_stats = []
-        
+        # for all the variables in a metric
         for n, metric_var in enumerate(metric_vars):
+            # get interquartile range 
             values = metric_var.values
-            
+            iqr = values.quantile(q=[0.75,0.25]).diff()
+            iqr = abs(float(iqr.loc[0.25]))
+            # find the statistics for the metric variable
             if metric_var.g == 0:
-                var_stats = [round(float(i),1) for i in (values.mean(), values.median(), values.std())]
+                var_stats = [round(float(i),1) for i in (values.mean(), values.median(), iqr)]
                 var_stats.append('All datasets')
                 var_stats.extend([globals._metric_name[metric], metric_var.g])
             else:
-                var_stats = [np.format_float_scientific(float(i), 2) for i in (values.mean(), values.median(), values.std())]
+                var_stats = [np.format_float_scientific(float(i), 2) for i in (values.mean(), values.median(), iqr)]
                 
                 if metric_var.g == 2:
                     ds_name = metric_var.other_dss[0]._names_from_attrs()
@@ -375,6 +378,7 @@ class QA4SMImg(object):
                     
                 var_stats.extend([globals._metric_name[metric] + globals._metric_description_HTML[metric].format(
                     globals._metric_units_HTML[ds_name['short_name']]), metric_var.g])
+            # put the separate variable statistics in the same list
             metric_stats.append(var_stats)
         
         return metric_stats
@@ -389,9 +393,11 @@ class QA4SMImg(object):
             Quick inspection table of the results.
         """
         stats = []
+        # find stats for all the metrics
         for metric in self.ls_metrics(False):
             stats.extend(self.metric_stats(metric))
-        stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'STD', 'Dataset', 'Metric', 'Group'])
+        # create a dataframe
+        stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'IQ range', 'Dataset', 'Metric', 'Group'])
         stats_df.set_index('Metric', inplace=True)
         stats_df.sort_values(by='Group', inplace=True)
         
