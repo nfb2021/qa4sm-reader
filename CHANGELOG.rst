@@ -7,8 +7,8 @@ Unreleased
 
 -
 
-Version 0.4.0
-=============
+Version 0.4
+===========
 
 - update on plots of datasets with irregular grids
 - Quick inspection table added
