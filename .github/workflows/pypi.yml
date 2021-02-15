@@ -30,7 +30,7 @@ jobs:
           python setup.py --version
           python setup.py sdist
           pip install wheel && python setup.py bdist_wheel
-      - name: Publish distribution to Test PyPI
+      - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.1
         with:
           skip_existing: true
