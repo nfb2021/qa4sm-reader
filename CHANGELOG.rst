@@ -7,6 +7,13 @@ Unreleased
 
 -
 
+Version 0.4.0
+=============
+
+- update on plots of datasets with irregular grids
+- Quick inspection table added
+- IQC instead of StdDev added to plots
+
 Version 0.3.4
 =============
 
