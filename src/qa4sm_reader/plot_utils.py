@@ -13,6 +13,7 @@ from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import warnings
+from pygeogrids.grids import BasicGrid, genreg_grid
 cconfig['data_dir'] = os.path.join(os.path.dirname(__file__), 'cartopy')
 
 def _float_gcd(a, b, atol=1e-08):
@@ -33,11 +34,32 @@ def _get_grid(a):
     len_a = int((a_max - a_min) / da + 1)
     return a_min, a_max, da, len_a
 
+def _get_grid_for_irregulars(a, grid_stepsize):
+    "Find the stepsize of the grid behind a for datasets with predeifned grid stepsize, and return the parameters for that grid axis."
+    a = np.unique(a)
+    a_min = a[0]
+    a_max = a[-1]
+    da = grid_stepsize
+    len_a = int((a_max - a_min) / da + 1)
+    return a_min, a_max, da, len_a
+
 def _value2index(a, a_min, da):
     "Return the indexes corresponding to a. a and the returned index is a numpy array."
     return ((a - a_min) / da).astype('int')
 
-def geotraj_to_geo2d(df, var, index=globals.index_names):
+def oversample(lon, lat, data, extent, dx, dy):
+
+    other = BasicGrid(lon, lat)
+    reg_grid = genreg_grid(dx, dy, minlat=extent[2], maxlat=extent[3],
+                           minlon=extent[0], maxlon=extent[1])
+    max_dist = dx * 111 * 1000 # a mean distance for one degree it's around 111 km
+    lut = reg_grid.calc_lut(other, max_dist=max_dist)
+    img = np.ma.masked_where(lut == -1, data[lut])
+    img[np.isnan(img)] = np.ma.masked
+
+    return img.reshape(-1, reg_grid.shape[1]), reg_grid
+
+def geotraj_to_geo2d(df, var, index=globals.index_names, grid_stepsize=None):
     """
     Converts geotraj (list of lat, lon, value) to a regular grid over lon, lat.
     The values in df needs to be sampled from a regular grid, the order does not matter.
@@ -53,6 +75,8 @@ def geotraj_to_geo2d(df, var, index=globals.index_names):
     index : tuple, optional
         Tuple containing the names of lattitude and longitude index. Usually ('lat','lon')
         The default is globals.index_names
+    grid_stepsize : None or float, optional
+        angular grid stepsize to prepare a regular grid for plotting
 
     Returns
     -------
@@ -62,23 +86,30 @@ def geotraj_to_geo2d(df, var, index=globals.index_names):
         first coordinate is longitude.
     data_extent : tuple
         (x_min, x_max, y_min, y_max) in Data coordinates.
+    origin : string
+        'upper' or 'lower' - define how the plot should be oriented, for irregular grids it should return 'upper'
     """
     xx = df.index.get_level_values(index[1])  # lon
     yy = df.index.get_level_values(index[0])   # lat
     data = df[var]
 
-    x_min, x_max, dx, len_x = _get_grid(xx)
-    y_min, y_max, dy, len_y = _get_grid(yy)
+    if grid_stepsize not in ['nan', None]:
+        x_min, x_max, dx, len_x = _get_grid_for_irregulars(xx, grid_stepsize)
+        y_min, y_max, dy, len_y = _get_grid_for_irregulars(yy, grid_stepsize)
+        data_extent = (x_min - dx/2, x_max + dx/2, y_min - dy/2, y_max + dy/2)
+        zz, grid = oversample(xx, yy, data.values, data_extent, dx, dy)
+        origin = 'upper'
+    else:
+        x_min, x_max, dx, len_x = _get_grid(xx)
+        y_min, y_max, dy, len_y = _get_grid(yy)
+        ii = _value2index(yy, y_min, dy)
+        jj = _value2index(xx, x_min, dx)
+        zz = np.full((len_y, len_x), np.nan, dtype=np.float64)
+        zz[ii, jj] = data
+        data_extent = (x_min - dx / 2, x_max + dx / 2, y_min - dy / 2, y_max + dy / 2)
+        origin = 'lower'
 
-    ii = _value2index(yy, y_min, dy)
-    jj = _value2index(xx, x_min, dx)
-
-    zz = np.full((len_y, len_x), np.nan, dtype=np.float64)
-    zz[ii, jj] = data
-
-    data_extent = (x_min - dx / 2, x_max + dx / 2, y_min - dy / 2, y_max + dy / 2)
-
-    return zz, data_extent
+    return zz, data_extent, origin
 
 def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.975]):
     """
@@ -164,7 +195,7 @@ def get_quantiles(ds, quantiles):
     else:
         raise TypeError("Inappropriate argument type. 'ds' must be pandas.Series or pandas.DataFrame.")
 
-def get_plot_extent(df, grid=False):
+def get_plot_extent(df, grid_stepsize=None, grid=False):
     """
     Gets the plot_extent from the values. Uses range of values and
     adds a padding fraction as specified in globals.map_pad
@@ -183,10 +214,14 @@ def get_plot_extent(df, grid=False):
     
     """
     lat, lon = globals.index_names
-    if grid:
+    if grid and grid_stepsize in ['nan', None]:
         x_min, x_max, dx, len_x = _get_grid(df.index.get_level_values(lon))
         y_min, y_max, dy, len_y = _get_grid(df.index.get_level_values(lat))
         extent = [x_min-dx/2., x_max+dx/2., y_min-dx/2., y_max+dx/2.]
+    elif grid and grid_stepsize:
+        x_min, x_max, dx, len_x = _get_grid_for_irregulars(df.index.get_level_values(lon), grid_stepsize)
+        y_min, y_max, dy, len_y = _get_grid_for_irregulars(df.index.get_level_values(lat), grid_stepsize)
+        extent = [x_min - dx / 2., x_max + dx / 2., y_min - dx / 2., y_max + dx / 2.]
     else:
         extent = [df.index.get_level_values(lon).min(), df.index.get_level_values(lon).max(),
                   df.index.get_level_values(lat).min(), df.index.get_level_values(lat).max()]
@@ -251,7 +286,7 @@ def get_extend_cbar(metric):
 def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturalearth_resolution,
               add_topo=False, add_coastline=True,
               add_land=True, add_borders=True, add_us_states=False):
-    ax.set_extent(plot_extent)
+    ax.set_extent(plot_extent, crs=globals.data_crs)
     ax.outline_patch.set_linewidth(0.4)
     if add_grid:
         # add gridlines. Bcs a bug in cartopy, draw girdlines first and then grid labels.
@@ -282,8 +317,8 @@ def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturaleart
                 yticks = yticks[(yticks >= plot_extent[2]) & (yticks <= plot_extent[3])]
                 gltext.xformatter = LONGITUDE_FORMATTER
                 gltext.yformatter = LATITUDE_FORMATTER
-                gltext.xlabels_top = False
-                gltext.ylabels_left = False
+                gltext.top_labels = False
+                gltext.left_labels = False
                 gltext.xlocator = mticker.FixedLocator(xticks)
                 gltext.ylocator = mticker.FixedLocator(yticks)
             except RuntimeError as e:

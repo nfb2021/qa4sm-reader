@@ -14,3 +14,6 @@ dependencies:
     - parse
     - colorcet
     - seaborn
+    - pygeogrids
+    - pytest
+    - pytest-cov

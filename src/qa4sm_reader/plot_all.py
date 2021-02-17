@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader import globals
@@ -53,5 +54,28 @@ def plot_all(filepath, metrics=None, extent=None, out_dir=None, out_type='png',
         plt.close('all')
         for fn in fns_box: fnames_boxes.append(fn)
         for fn in fns_maps: fnames_maps.append(fn)
-
+        
     return fnames_boxes, fnames_maps
+
+def get_img_stats(filepath, extent=None):
+    """
+    Creates a dataframe containing summary statistics of the result metrics 
+    values which is rendered in the file 
+    qa4sm/validator/templates/validator/results.html
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the *.nc file to be processed.
+    extent : list, optional
+        [x_min,x_max,y_min,y_max] to create a subset of the values. The default is None.
+
+    Returns
+    -------
+    table : pd.DataFrame
+        Quick inspection table of the results.
+    """
+    img = QA4SMImg(filepath, extent = extent, ignore_empty=True)
+    table = img.stats_df()
+    
+    return table

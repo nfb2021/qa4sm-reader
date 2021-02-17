@@ -1,6 +1,13 @@
 ============
 qa4sm_reader
 ============
+
+.. image:: https://github.com/TUW-GEO/qa4sm-reader/workflows/tests/badge.svg
+    :target: https://github.com/TUW-GEO/qa4sm-reader/actions?query=workflow%3Atests
+
+.. image:: https://coveralls.io/repos/github/TUW-GEO/qa4sm-reader/badge.svg?branch=master
+    :target: https://coveralls.io/github/TUW-GEO/qa4sm-reader?branch=master
+
 qa4sm_reader is a python package to read and plot the result files of the `qa4sm service`_.
 
 

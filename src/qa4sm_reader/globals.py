@@ -161,7 +161,7 @@ _metric_units = {  # from /qa4sm/validator/validation/graphics.py
     'ERA5': r'm^3 m^{-3}',
     'ERA5_LAND': r'm^3 m^{-3}',
     'ESA_CCI_SM_active': r'percentage of saturation',
-    'ESA_CCI_SM_combinded': r'm^3 m^{-3}',
+    'ESA_CCI_SM_combined': r'm^3 m^{-3}',
     'ESA_CCI_SM_passive': r'm^3 m^{-3}',
     'SMOS': r'm^3 m^{-3}',
 }
@@ -231,4 +231,41 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_20190613": "v20190613",
     "ERA5_LAND_V20190904" : "v20190904",
     "ERA5_LAND_TEST": "ERA5-Land test"
+}
+
+# label format for all metrics for HTML rendering
+_metric_description_HTML = {  # from /qa4sm/validator/validation/graphics.py
+    'R': ' [-]',
+    'p_R': ' [-]',
+    'rho': ' [-]',
+    'p_rho': ' [-]',
+    'tau': ' [-]',
+    'p_tau': ' [-]',
+    'RMSD': ' [{}]',
+    'BIAS': ' [{}]',
+    'n_obs': ' ',
+    'urmsd': ' [{}]',
+    'RSS': ' [({})²]',
+    'mse': ' [({})²]',
+    'mse_corr': ' [({})²]',
+    'mse_bias': ' [({})²]',
+    'mse_var': ' [({})²]',
+    'snr': ' [db]',
+    'err_std': ' [{}]',
+    'beta': ' [{}]',
+}
+
+# units for all datasets for HTML rendering
+_metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
+    'ISMN': 'm³/m³',
+    'C3S': 'm³/m³',
+    'GLDAS': 'm³/m³',
+    'ASCAT': '% sat',
+    'SMAP': 'm³/m³',
+    'ERA5': 'm³/m³',
+    'ERA5_LAND': 'm³/m³',
+    'ESA_CCI_SM_active': '% sat',
+    'ESA_CCI_SM_combined': 'm³/m³',
+    'ESA_CCI_SM_passive': 'm³/m³',
+    'SMOS': 'm³/m³',
 }
