@@ -355,8 +355,11 @@ class QA4SMImg(object):
         group = self.find_group(metric)
         metric_vars = group[metric]
         metric_stats = []
+        # check whether more than 2 datasets are compared to reference
+        three_or_more = len(metric_vars) > 2
         # for all the variables in a metric
         for n, metric_var in enumerate(metric_vars):
+            ref_meta, dss_meta, mds_meta = metric_var.get_varmeta()
             # get interquartile range 
             values = metric_var.values
             iqr = values.quantile(q=[0.75,0.25]).diff()
@@ -366,16 +369,32 @@ class QA4SMImg(object):
                 var_stats = [round(float(i),1) for i in (values.mean(), values.median(), iqr)]
                 var_stats.append('All datasets')
                 var_stats.extend([globals._metric_name[metric], metric_var.g])
+
             else:
                 var_stats = [np.format_float_scientific(float(i), 2) for i in (values.mean(), values.median(), iqr)]
-                
+
                 if metric_var.g == 2:
-                    ds_name = metric_var.other_dss[0]._names_from_attrs()
-                    var_stats.append(ds_name['short_name'] + ' ({})'.format(ds_name['pretty_version']))
+                    i, ds_name = dss_meta[0]
+                    var_stats.append('{}-{} ({})'.format(i, ds_name['short_name'], ds_name['pretty_version']))
+
                 elif metric_var.g == 3:
-                    ds_name = metric_var.other_dss[n]._names_from_attrs()
-                    var_stats.append(ds_name['short_name'] + ' ({})'.format(ds_name['pretty_version']))
-                    
+                    i, ds_name = mds_meta
+
+                    if not three_or_more:
+                        var_stats.append('{}-{} ({})'.format(i, ds_name['short_name'], ds_name['pretty_version']))
+
+                    else:
+                        for ds in dss_meta:
+                            if not ds == mds_meta:
+                                o, other_ds  = ds
+
+                                break
+
+                        var_stats.append('{}-{} ({}); other ref: {}-{} ({})'.format(i, ds_name['short_name'],
+                                                                                    ds_name['pretty_version'],
+                                                                                    o, other_ds['short_name'],
+                                                                                    other_ds['pretty_version']))
+
                 var_stats.extend([globals._metric_name[metric] + globals._metric_description_HTML[metric].format(
                     globals._metric_units_HTML[ds_name['short_name']]), metric_var.g])
             # put the separate variable statistics in the same list
@@ -402,4 +421,3 @@ class QA4SMImg(object):
         stats_df.sort_values(by='Group', inplace=True)
         
         return stats_df
-        
