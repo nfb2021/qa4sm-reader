@@ -59,7 +59,7 @@ def oversample(lon, lat, data, extent, dx, dy):
 
     return img.reshape(-1, reg_grid.shape[1]), reg_grid
 
-def geotraj_to_geo2d(df, var, index=globals.index_names, grid_stepsize=None):
+def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None): # todo: check that changes do not cause breakages
     """
     Converts geotraj (list of lat, lon, value) to a regular grid over lon, lat.
     The values in df needs to be sampled from a regular grid, the order does not matter.
@@ -70,8 +70,6 @@ def geotraj_to_geo2d(df, var, index=globals.index_names, grid_stepsize=None):
     ----------
     df : pandas.DataFrame
         DataFrame containing 'lat', 'lon' and 'var' Series.
-    var : str
-        variable to be converted.
     index : tuple, optional
         Tuple containing the names of lattitude and longitude index. Usually ('lat','lon')
         The default is globals.index_names
@@ -91,13 +89,12 @@ def geotraj_to_geo2d(df, var, index=globals.index_names, grid_stepsize=None):
     """
     xx = df.index.get_level_values(index[1])  # lon
     yy = df.index.get_level_values(index[0])   # lat
-    data = df[var]
 
     if grid_stepsize not in ['nan', None]:
         x_min, x_max, dx, len_x = _get_grid_for_irregulars(xx, grid_stepsize)
         y_min, y_max, dy, len_y = _get_grid_for_irregulars(yy, grid_stepsize)
         data_extent = (x_min - dx/2, x_max + dx/2, y_min - dy/2, y_max + dy/2)
-        zz, grid = oversample(xx, yy, data.values, data_extent, dx, dy)
+        zz, grid = oversample(xx, yy, df.values, data_extent, dx, dy)
         origin = 'upper'
     else:
         x_min, x_max, dx, len_x = _get_grid(xx)
@@ -105,13 +102,13 @@ def geotraj_to_geo2d(df, var, index=globals.index_names, grid_stepsize=None):
         ii = _value2index(yy, y_min, dy)
         jj = _value2index(xx, x_min, dx)
         zz = np.full((len_y, len_x), np.nan, dtype=np.float64)
-        zz[ii, jj] = data
+        zz[ii, jj] = df
         data_extent = (x_min - dx / 2, x_max + dx / 2, y_min - dy / 2, y_max + dy / 2)
         origin = 'lower'
 
     return zz, data_extent, origin
 
-def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.975]):
+def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.975], type=None):
     """
     Get the value range (v_min, v_max) from globals._metric_value_ranges
     If the range is (None, None), a symmetric range around 0 is created,
@@ -141,10 +138,15 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
     if metric == None:
         force_quantile = True
 
+    if not type == None and type == 'diff':
+        ranges = globals._diff_value_ranges
+    else:
+        ranges = globals._metric_value_ranges
+
     if not force_quantile:  # try to get range from globals
         try:
-            v_min = globals._metric_value_ranges[metric][0]
-            v_max = globals._metric_value_ranges[metric][1]
+            v_min = ranges[metric][0]
+            v_max = ranges[metric][1]
             if (v_min is None and v_max is None):  # get quantile range and make symmetric around 0.
                 v_min, v_max = get_quantiles(ds, quantiles)
                 v_max = max(abs(v_min), abs(v_max))  # make sure the range is symmetric around 0
@@ -161,7 +163,7 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
                           'Could not get value range from globals._metric_value_ranges\n' + \
                           'Computing quantile range \'{}\' instead.\n'.format(str(quantiles)) +
                           'Known metrics are: \'' + \
-                          '\', \''.join([metric for metric in globals._metric_value_ranges]) + '\'')
+                          '\', \''.join([metric for metric in ranges]) + '\'')
 
     if force_quantile:  # get quantile range
         v_min, v_max = get_quantiles(ds, quantiles)

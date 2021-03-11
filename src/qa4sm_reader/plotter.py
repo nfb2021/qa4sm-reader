@@ -6,23 +6,43 @@ import seaborn as sns
 from qa4sm_reader.plot_utils import *
 import pandas as pd
 
-def _make_cbar(fig, im, cax, ref_short, metric):
-    try:
-        label = globals._metric_name[metric] + \
-                globals._metric_description[metric].format(
-                    globals._metric_units[ref_short])
-    except KeyError as e:
-        raise Exception('The metric \'{}\' or reference \'{}\' is not known.\n'.format(metric, ref_short) + str(e))
+def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None):
+    """
+    Make colorbar to use in plots
+
+    Parameters
+    ----------
+    fig: matplotlib.figure.Figure
+        figure of plot
+    im: AxesImage
+        from method Axes.imshow()
+    cax: axes.SubplotBase
+        from fig.add_subplot
+    ref_short: str
+        name of ref dataset
+    metric: str
+        name of metric
+    label: str
+        label to describe the colorbar
+    """
+    if label is None:
+        try:
+            label = globals._metric_name[metric] + \
+                    globals._metric_description[metric].format(
+                        globals._metric_units[ref_short])
+        except KeyError as e:
+            raise Exception('The metric \'{}\' or reference \'{}\' is not known.\n'.format(metric, ref_short) + str(e))
+
     extend = get_extend_cbar(metric)
     cbar = fig.colorbar(im, cax=cax, orientation='horizontal', extend=extend)
-    cbar.set_label(label, weight='normal')  # TODO: Bug: If a circumflex ('^') is in the string, it becomes bold.)
+    cbar.set_label(label, weight='normal')
     cbar.outline.set_linewidth(0.4)
     cbar.outline.set_edgecolor('black')
-    cbar.ax.tick_params(width=0.4)  # , labelsize=4)
+    cbar.ax.tick_params(width=0.4)
 
     return fig, im, cax
 
-def boxplot(df, label=None, figsize=None, dpi=100):
+def boxplot(df, label=None, figsize=None, dpi=100, **kwargs): # todo: after changes, check that boxplot works when two equal datasets are on the left
     """
     Create a boxplot_basic from the variables in df.
     The box shows the quartiles of the dataset while the whiskers extend
@@ -43,48 +63,46 @@ def boxplot(df, label=None, figsize=None, dpi=100):
         Figure size in inches. The default is globals.map_figsize.
     dpi : int, optional
         Resolution for raster graphic output. The default is globals.dpi.
-    title_pad : float, optional
-        pad the title by title_pad pt. The default is globals.title_pad.
 
     Returns
     -------
-    fig : TYPE
-        DESCRIPTION.
-    ax : TYPE
-        DESCRIPTION.
-
+    fig : matplotlib.figure.Figure
+        the boxplot
+    ax : matplotlib.axes.Axes
     """
     df = df.copy()
-    # === plot ===
+    # make plot
     sns.set_style("whitegrid")
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-    ax = sns.boxplot(data=df, ax=ax, width=0.15, showfliers=False, color='white')
+    ax = sns.boxplot(data=df,
+                     ax=ax,
+                     width=0.15,
+                     showfliers=False,
+                     color='white',
+                     **kwargs)
     sns.despine()  # remove ugly spines (=border around plot) right and top.
 
     if label is not None:
-        ax.set_ylabel(label, weight='normal')  # TODO: Bug: If a circumflex ('^') is in the string, it becomes bold.)
+        ax.set_ylabel(label, weight='normal')
 
     return fig, ax
 
-
-
-def mapplot(df, var, metric, ref_short, ref_grid_stepsize=None, plot_extent=None, colormap=None, projection=None,
-                add_cbar=True, figsize=globals.map_figsize, dpi=globals.dpi,
-                **style_kwargs):
+def mapplot(df, metric, ref_short, ref_grid_stepsize=None,
+            plot_extent=None, colormap=None, projection=None,
+            add_cbar=True, label=None, figsize=globals.map_figsize,
+            dpi=globals.dpi, diff_range=None, **style_kwargs):
         """
-        Create an overview map from df using df[var] as color.
-        Plots a scatterplot for ISMN and a image plot for other input values.
+        Create an overview map from df using values as color. Plots a scatterplot for ISMN and an image plot for other
+        input values.
+
         Parameters
         ----------
-        df : pandas.DataFrame
-            DataFrame with lat and lon in the multiindex and var as a column
-        var : str
-            variable to be plotted.
-        metric:
+        df : pandas.Series
+            values to be plotted. Generally from metric_df[Var]
+        metric: str
+            name of the metric for the plot
         ref_short: str
-                short name of the reference dataset (read from netCDF file)
-        ref_is_regular:  bool (or 0, 1), optional (True by default)
-                information if dataset hase a regular grid (in terms of angular distance)
+                short_name of the reference dataset (read from netCDF file)
         ref_grid_stepsize: float or None, optional (None by default)
                 angular grid stepsize, needed only when ref_is_angular == False,
         plot_extent: tuple
@@ -97,71 +115,110 @@ def mapplot(df, var, metric, ref_short, ref_grid_stepsize=None, plot_extent=None
                 The default is None.
         add_cbar: bool, optional
                 Add a colorbar. The default is True.
+        label : str, optional
+            Label of the y axis, describing the metric. If None, a label is autogenerated from metadata.
+            The default is None.
         figsize: tuple, optional
             Figure size in inches. The default is globals.map_figsize.
         dpi: int, optional
             Resolution for raster graphic output. The default is globals.dpi.
+        diff_range: None, 'adjusted' or 'fixed'
+            if none, globals._metric_value_ranges is used to define the bar extent; if 'fixed', globals._diff_value_ranges
+            is used instead; if 'adjusted', max and minimum values are used
         **style_kwargs :
             Keyword arguments for plotter.style_map().
+
         Returns
         -------
-        fig : TYPE
-            DESCRIPTION.
-        ax : TYPE
-            DESCRIPTION.
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
         """
-        # === value range ===
+        v_min, v_max = get_value_range(df, metric)  # range of values
+        if diff_range and diff_range == 'adjusted':
+            v_min, v_max = get_value_range(df, metric=None)
+        elif diff_range and diff_range == 'fixed':
+            v_min, v_max = get_value_range(df, metric, type='diff')
 
-        v_min, v_max = get_value_range(df[var], metric)
-
-        # === init plot ===
+        # initialize plot
         fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
-
         if not colormap:
-            # colormap = globals._colormaps[meta['metric']]
             cmap = globals._colormaps[metric]
         else:
             cmap = colormap
-        # cmap = plt.cm.get_cmap(colormap)
 
-        # === scatter or mapplot ===
-        if ref_short in globals.scattered_datasets:  # === scatterplot ===
-            # === coordiniate range ===
+        # scatter point or mapplot
+        if ref_short in globals.scattered_datasets:  # scatter
             if not plot_extent:
                 plot_extent = get_plot_extent(df)
 
-            # === marker size ===
-            markersize = globals.markersize ** 2  # in points**2
-
-            # === plot ===
+            markersize = globals.markersize ** 2
             lat, lon = globals.index_names
-            im = ax.scatter(df.index.get_level_values(lon), df.index.get_level_values(lat),
-                            c=df[var], cmap=cmap, s=markersize, vmin=v_min, vmax=v_max, edgecolors='black',
-                            linewidths=0.1, zorder=2, transform=globals.data_crs)
-        else:  # === mapplot ===
-            # === coordiniate range ===
+            im = ax.scatter(df.index.get_level_values(lon),
+                            df.index.get_level_values(lat),
+                            c=df, cmap=cmap, s=markersize,
+                            vmin=v_min, vmax=v_max,
+                            edgecolors='black', linewidths=0.1,
+                            zorder=2, transform=globals.data_crs)
+        else:  # mapplot
             if not plot_extent:
                 plot_extent = get_plot_extent(df, grid_stepsize=ref_grid_stepsize, grid=True)
-
-            # === prepare values ===
-            zz, zz_extent, origin = geotraj_to_geo2d(df, var, grid_stepsize=ref_grid_stepsize)
-
-            # === plot ===
-            im = ax.imshow(zz, cmap=cmap, vmin=v_min, vmax=v_max,
-                           interpolation='nearest', origin=origin,
-                           extent=zz_extent,
+            zz, zz_extent, origin = geotraj_to_geo2d(df, grid_stepsize=ref_grid_stepsize)  # prep values
+            im = ax.imshow(zz, cmap=cmap, vmin=v_min,
+                           vmax=v_max, interpolation='nearest',
+                           origin=origin, extent=zz_extent,
                            transform=globals.data_crs, zorder=2)
 
-        # === add colorbar ===
-        if add_cbar:
-            _make_cbar(fig, im, cax, ref_short, metric)
+        if add_cbar:  # colorbar
+            _make_cbar(fig, im, cax, ref_short, metric, label=label)
 
         style_map(ax, plot_extent, **style_kwargs)
-
-        # === layout ===
         fig.canvas.draw()  # very slow. necessary bcs of a bug in cartopy: https://github.com/SciTools/cartopy/issues/1207
-        # plt.tight_layout()  # pad=1)  # pad=0.5,h_pad=1,w_pad=1,rect=(0, 0, 1, 1))
+
         return fig, ax
+
+def diff_plot(ref_df:pd.DataFrame, other_dfs:list, ref_name:str, other_names:list, **kwargs):
+    """
+    Create a Bland Altman plot for a Dataframe and a list of other Dataframes. Difference is other - reference.
+
+    Parameters
+    ----------
+    ref_df : pd.DataFrame
+        Dataframe of the reference values
+    other_dfs: list
+        list of Dataframes for the values to be compared
+    ref_name : str
+        name of the reference
+    other_names : list
+        list of names of the comparisons
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        the boxplot
+    ax : matplotlib.axes.Axes
+    """
+    ref_values = np.asarray(ref_df)
+    fig, axes = plt.subplots(figsize=(16,10))
+    colors = plt.cm.cividis(np.linspace(0,1, len(other_dfs)))
+
+    for df, name, c in zip(other_dfs, other_names, colors):
+        other_values = np.asarray(df)
+        mean = np.mean([ref_values, other_values], axis=0)
+        diff = other_values - ref_values
+        md = np.mean(diff)
+        sd = np.std(diff, axis=0)
+        axes.scatter(mean, diff, color=c, label=name, **kwargs)
+        # mean line
+        axes.axhline(md, color=c, linestyle='-', label="Mean difference")
+        # higher STD bound
+        axes.axhline(md + 1.96*sd, color=c, linestyle='--', label="Limits of agreement of difference")
+        # lower STD bound
+        axes.axhline(md - 1.96*sd, color=c, linestyle='--')
+
+    plt.legend()
+
+    return fig, axes
 
 def get_dir_name_type(out_name, out_type='png', out_dir=None):
     """
@@ -169,7 +226,6 @@ def get_dir_name_type(out_name, out_type='png', out_dir=None):
 
     Parameters
     ----------
-
     out_name : str
         output filename.
         if it contains an extension (e.g. 'MyName.png'), the extension is added to out_ext.
@@ -186,7 +242,6 @@ def get_dir_name_type(out_name, out_type='png', out_dir=None):
     out_name : str
     out_ext : set
         file extensions
-
     """
     # directory
     if not out_dir:
@@ -208,10 +263,13 @@ def get_dir_name_type(out_name, out_type='png', out_dir=None):
     if ext:
         out_type.add(ext)
     out_type = {ext if ext[0] == "." else "." + ext for ext in out_type}  # make sure all entries start with a '.'
+
     return out_dir, out_name, out_type
 
-class QA4SMPlotter(object):
-
+class QA4SMPlotter():
+    """
+    Class to create image files of plots from the validation results in a QA4SMImage
+    """
     def __init__(self, image, out_dir=None):
         """
         Create box plots from results in a qa4sm output file.
@@ -228,12 +286,26 @@ class QA4SMPlotter(object):
         self.img = image
         self.out_dir = out_dir
 
-    def _box_stats(self, ds:pd.Series, med:bool=True, iqr:bool=True,
-                   count:bool=True) -> str:
-        """ Create the metric part with stats of the box caption """
+    @staticmethod
+    def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> str:
+        """
+        Create the metric part with stats of the box (axis) caption
 
-        count = ds.count() if count else None
-        
+        Parameters
+        ----------
+        ds: pd.Series
+            data on which stats are found
+        med: bool
+        iqr: bool
+        count: bool
+            statistics
+
+        Returns
+        -------
+        stats: str
+            caption with summary stats
+        """
+        # interquartile range
         iqr = ds.quantile(q=[0.75,0.25]).diff()
         iqr = abs(float(iqr.loc[0.25]))
 
@@ -244,163 +316,173 @@ class QA4SMPlotter(object):
             met_str.append('Interq. range: {:.3g}'.format(iqr))
         if count:
             met_str.append('N: {:d}'.format(ds.count()))
+        stats = '\n'.join(met_str)
 
-        return '\n'.join(met_str)
+        return stats
 
-    def _box_caption(self, dss_meta, ignore_ds_idx:list=None, caption_header=None) -> str:
-        """ Create the dataset part of the box caption """
+    @staticmethod
+    def _box_caption(dss_meta, tc:bool=False) -> str:
+        """
+        Create the dataset part of the box (axis) caption
 
+        Parameters
+        ----------
+        dss_meta: id, dict
+            id and dictionary from MetricVariable.get_varmeta(), for the metric dataset (non-tc) or for the other
+            satellite dataset (tc)
+        tc: bool, default is False
+            True if TC. Then, caption starts with "Other Data:"
+
+        Returns
+        -------
+        capt: str
+            box caption
+        """
         ds_parts = []
-        for i, ds_meta in dss_meta: # [(1, {meta})]
-            if (ignore_ds_idx is not None) and (i in ignore_ds_idx):
-                continue
-            ds_parts.append('{}-{}\n({})'.format(i,
-                                                 ds_meta['pretty_name'],
-                                                 ds_meta['pretty_version']))
+        id, meta = dss_meta
+        ds_parts.append('{}-{}\n({})'.format(
+            i, meta['pretty_name'], meta['pretty_version']))
+        capt = '\n and \n'.join(ds_parts)
 
-        ds_part = '\n and \n'.join(ds_parts)
+        if tc:
+            capt = 'Other Data:' + '\n' + ds_part
 
-        if caption_header is not None:
-            ds_part = caption_header + '\n' + ds_part
+        return capt
 
-        return ds_part
+    @staticmethod
+    def _get_parts_name(var, type='bplot_basic'):
+        """
+        Create parts for title according to the type of plot
 
-    def _comb_title_parts(self, title_parts, max_len) -> str:
-        title = ''
-        for i, part in enumerate(title_parts):
-            if len(title.split('\n')[-1]) + len(part) > max_len:
-                part += '\n'
-            title = title + part
-        if title[-1:] == '\n':
-            title = title[:-1]
-        
+        Parameters
+        ----------
+        var: MetricVar
+            variable for a metric
+        type: str
+            type of plot
+
+        Returns
+        -------
+        parts: list
+            list of parts for title
+        """
+        parts = []
+        ref, mds, other = [meta.values() for meta in MetricVar.get_varmeta()]
+        if type == 'bplot_basic':
+            parts.append(ref[0])
+            parts.extend(ref[1])
+
+        elif type in ['bplot_tc', 'map_basic', 'map_tc']:
+            parts.append(mds[0])
+            parts.extend(mds[1])
+            parts.append(ref[0])
+            parts.extend(ref[1])
+
+            if type == 'map_tc':
+                parts.append(other[0])
+                parts.extend(other[1])
+
+        return parts
+
+    @staticmethod
+    def _titles_lut(type):
+        """
+        Lookup table for plot titles
+
+        Parameters
+        ----------
+        type: str
+            type of plot
+        """
+        titles = {'bplot_basic': 'Intercomparison of \n{} \nwith {}-{} ({}) as the reference',
+                  'bplot_tc': 'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
+                  'mapplot_basic': '{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
+                  'mapplot_tc': '{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nand {}-{} ({}) \nas the reference'}
+
+        try:
+            return titles[type]
+
+        except IndexError as e:
+            e.message = "'type' {} is not in the lookup table".format(type)
+
+            raise e
+
+    def create_title(self, var, metric:str, type:str) -> str:
+        """
+        Create title of the plot
+
+        Parameters
+        ----------
+        var: MetricVar
+            variable for a metric
+        type: str
+            type of plot
+        """
+        parts = [globals._metric_name[metric]]
+        parts.append(self._get_parts_name(type=type))
+        title = self._titles_lut(type=type).format(parts)
+
         return title
 
-    def _box_title_tc(self, ref_meta:dict, mds_meta:dict, metric:str,
-                         max_len=100) -> str:
-        """ Create the plot title for tc metrics """
-        i, meta = mds_meta
-        ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        met_parts = [meta['pretty_name'], meta['pretty_version']]
-        metric_pretty = globals._metric_name[metric]
-
-        title_parts = ['Intercomparison of ',  '{} '.format(metric_pretty),
-                       'for {0}-{1} ({2}) '.format(i, met_parts[0], met_parts[1]),
-                       'with {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
-                       'as the reference']
-
-        return self._comb_title_parts(title_parts, max_len)
-
-
-    def _box_title_basic(self, ref_meta:dict, metric:str, max_len=100) -> str:
-        """ Create the plot title for basic metrics (common and double) """
-
-        ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        metric_pretty = globals._metric_name[metric]
-
-        title_parts = ['Intercomparison of ',  '{} '.format(metric_pretty),
-                       'with {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
-                       'as the reference']
-
-        return self._comb_title_parts(title_parts, max_len)
-
-    def _map_title_basic(self, ref_meta:dict, ds_meta:dict, metric:str,
-                         max_len:int=100) -> str:
-        """ Create the plot title for basic metrics (common and double) """
-        i, meta = ds_meta
-        ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        ds_parts = [meta['pretty_name'], meta['pretty_version']]
-
-        metric_pretty = globals._metric_name[metric]
-
-        title_parts = ['{} '.format(metric_pretty),
-                       'for {0}-{1} ({2}) '.format(i, ds_parts[0], ds_parts[1]),
-                       'with {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
-                       'as the reference']
-
-        return self._comb_title_parts(title_parts, max_len)
-
-    def _map_title_tc(self, ref_meta:dict, ds_meta:dict, ds2_meta:dict, 
-                      met_meta:dict, metric:str, max_len:int=100) -> str:
-        """ Create the plot title for basic metrics (common and double) """
-        i, meta = ds_meta
-        i2, meta2 = ds2_meta
-        ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        ds_parts = [meta['pretty_name'], meta['pretty_version']]
-        ds2_parts = [meta2['pretty_name'], meta2['pretty_version']]
-        met_parts = [met_meta['pretty_name'], met_meta['pretty_version']]
-        other_parts = [ds_parts[0] if ds_parts[0] != met_parts[0] else ds2_parts[0],
-                      ds_parts[1] if ds_parts[1] != met_parts[1] else ds2_parts[1]]
-
-        metric_pretty = globals._metric_name[metric]
-
-        title_parts = ['{} '.format(metric_pretty),
-                       'for {0}-{1} ({2}) '.format(i, met_parts[0], met_parts[1]),
-                       'with {0}-{1} ({2}) '.format(i2, other_parts[0], other_parts[1]),
-                       'and {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
-                       'as the reference']
-
-        return self._comb_title_parts(title_parts, max_len)
-
-
-    def boxplot_tc(self, metric, out_type=None,
-                      add_stats=globals.boxplot_printnumbers):
+    def boxplot_tc(self, metric, out_type=None, add_stats=globals.boxplot_printnumbers):
         """
+        Creates a boxplot for TC metrics. Saves a figure and returns Matplotlib fig and ax objects for further processing.
 
+        Parameters
+        ----------
+        metric : str
+            metric that is collected from the file for all datasets and combined
+            into one plot.
+        out_name : [ None | str ], optional
+            Name of output file.
+            If None, defaults to a name that is generated based on the variables.
+            The default is None.
+        out_type : [ str | list | None ], optional
+            The file type, e.g. 'png', 'pdf', 'svg', 'tiff'...
+            If list, a plot is saved for each type.
+            If None, no file is saved.
+            The default is png.
+        add_stats : bool, optional (default: from globals)
+            Add stats of median, iqr and N to the box bottom.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            Figure containing the axes for further processing.
+        ax : matplotlib.axes.Axes or list of Axes objects
+            Axes or list of axes containing the plot.
         """
-        fnames = list()  # list to store all filenames.
+        fnames = list()  # list of filenames
+        for Var in self.img._iter_vars(**{'metric':metric}):  # for wach var in the metric
+            ref_meta, mds_meta, other_meta = Var.get_varmeta()
+            box_cap_ds = self._box_caption(mds_meta, tc=True)
+            # add statistics to the axis caption
+            if add_stats:
+                box_stats = self._box_stats(Var.values)
+                box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
+            else:
+                box_cap = box_cap_ds
+            # get variable values
+            df = Var.values
+            title = self.create_title(Var, metric, type='bplot_tc')
 
-        # === load values and metadata ===
-        dfs = self.img.metric_df(metric)
-        for i, df in enumerate(dfs):
-            tcvars = df.columns.values
-            REF_META, _, MDS_META = self.img.var_meta(tcvars[0])[metric]
-            for tcvar in tcvars:
-                ref_meta, dss_meta, mds_meta = self.img.var_meta(tcvar)[metric]
-                assert mds_meta == MDS_META
-                assert ref_meta == REF_META
-
-                box_cap_ds = self._box_caption(
-                    dss_meta, ignore_ds_idx=[mds_meta[0], ref_meta[0]],
-                    caption_header='Other Data:')
-
-                if add_stats:
-                    box_stats = self._box_stats(df[tcvar])
-                    box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
-                else:
-                    box_cap = box_cap_ds
-
-                df = df.rename(columns={tcvar: box_cap})
-
-            max_title_len = globals.boxplot_title_len * len(df.columns)
-            title = self._box_title_tc(REF_META[1], MDS_META, metric, max_title_len)
-
-            # === create label ===
-            mds_label = ' for {} ({})'.format(MDS_META[1]['pretty_name'],
-                                          MDS_META[1]['pretty_version'])
-            label = (globals._metric_name[metric] + mds_label +
-                     globals._metric_description[metric].format(
-                         globals._metric_units[REF_META[1]['short_name']]))
-
-            # === plot values ===
-            figwidth = globals.boxplot_width * (1 + len(df.columns))
+            parts = [globals._metric_name[metric]]
+            parts.append(self._get_parts_name(Var, type='bplot_tc'))
+            parts.append(Var.ref_df[1]['short_name'])
+            mu = glob._metric_description[metric].format(glob._metric_units[ref_ds])
+            label = "{} for {}-{} ({}) in {}".format(*parts)
+            # create plot
+            figwidth = globals.boxplot_width # todo: check width
             figsize = [figwidth, globals.boxplot_height]
-
             fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
-
-            # === set limits ===
-            ##ax.set_ylim(get_value_range(df, metric))
-
-            # === add title ===
             ax.set_title(title, pad=globals.title_pad)
 
-            # === add watermark ===
+            # add watermark
             if globals.watermark_pos not in [None, False]:
                 make_watermark(fig, globals.watermark_pos, offset=0.1)
 
-            # === save ===
-            out_name = 'boxplot_{}_for_{}-{}'.format(metric, MDS_META[0], MDS_META[1]['short_name'])
-
+            # save
+            out_name = 'boxplot_{}_for_{}-{}'.format(metric, mds_meta[0], mds_meta[1]['short_name'])
             out_dir, out_name, out_type = get_dir_name_type(out_name, out_type, self.out_dir)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
@@ -411,13 +493,13 @@ class QA4SMPlotter(object):
                 plt.savefig(fname, dpi='figure', bbox_inches='tight')
                 fnames.append(fname)
             plt.close()
+
         return fnames
 
-    def boxplot_basic(self, metric, out_name=None, out_type=None,
-                      add_stats=globals.boxplot_printnumbers):
+    def boxplot_basic(self, metric, out_name=None, out_type=None, add_stats=globals.boxplot_printnumbers): # todo: continue from here
         """
-        Creates a boxplot_basic, displaying the variables corresponding to given metric.
-        Saves a figure and returns Matplotlib fig and ax objects for further processing.
+        Creates a boxplot_basic for basic metrics. Saves a figure and returns Matplotlib fig and ax objects for further
+        processing.
 
         Parameters
         ----------
@@ -588,7 +670,7 @@ class QA4SMPlotter(object):
                 ds_meta = var_meta[metric][1][0]
                 ds2_meta = var_meta[metric][1][1]
                 met_meta = var_meta[metric][2]
-                out_name = 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'.format(
+                out_name = 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'.format( # todo: create template for plot titles, too
                     ref_num, ref_short, ds_meta[0], ds_meta[1]['short_name'], ds2_meta[0],
                     ds2_meta[1]['short_name'], metric, met_meta[0], met_meta[1]['short_name'])
 

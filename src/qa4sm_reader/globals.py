@@ -78,6 +78,8 @@ _ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}' # attribute convention f
 _version_short_name_attr = 'val_dc_version{:d}' # attribute convention for other datasets
 _version_pretty_name_attr = 'val_dc_version_pretty_name{:d}' # attribute convention for other datasets
 
+_variable_pretty_name = {0: "{}", 2: "{} of {} \n with {} as reference",
+                         3: "{} of {} \n against {}, {}"}  # format should have (metric, ds, ref, other ds)
 
 _colormaps = {  # from /qa4sm/validator/validation/graphics.py
     'R': _cclasses['div_better'],
@@ -116,13 +118,35 @@ _metric_value_ranges = {  # from /qa4sm/validator/validation/graphics.py
     'n_obs': [0, None],
     'urmsd': [0, None],
     'RSS': [0, None],
-    'mse': [0, None],  # mse only positive (https://en.wikipedia.org/wiki/Mean_squared_error)
-    'mse_corr': [0, None],  # mse_corr only positive
-    'mse_bias': [0, None],  # mse_bias only positive
-    'mse_var': [0, None],  # mse_var only positive
-    'snr': [None,None],  # mse_var only positive
-    'err_std': [None,None],  # mse_var only positive
-    'beta': [None,None],  # mse_var only positive
+    'mse': [0, None],
+    'mse_corr': [0, None],
+    'mse_bias': [0, None],
+    'mse_var': [0, None],
+    'snr': [None, None],
+    'err_std': [None, None],
+    'beta': [None, None],
+}
+
+# Value ranges for differences between metrics
+_diff_value_ranges = {  # from /qa4sm/validator/validation/graphics.py
+    'R': [-2, 2],
+    'p_R': [-1, 1],  # probability that observed corellation is statistical fluctuation
+    'rho': [-2, 2],
+    'p_rho': [-1, 1],
+    'tau': [-2, 2],
+    'p_tau': [-1, 1],
+    'RMSD': [None, None],
+    'BIAS': [None, None],
+    'n_obs': [None, None],
+    'urmsd': [None, None],
+    'RSS': [None, None],
+    'mse': [None, None],  # mse only positive (https://en.wikipedia.org/wiki/Mean_squared_error)
+    'mse_corr': [None, None],  # mse_corr only positive
+    'mse_bias': [None, None],  # mse_bias only positive
+    'mse_var': [None, None],  # mse_var only positive
+    'snr': [None, None],  # mse_var only positive
+    'err_std': [None, None],  # mse_var only positive
+    'beta': [None, None],  # mse_var only positive
 }
 
 # check if every metric has a colormap
