@@ -201,7 +201,9 @@ _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'ESA_CCI_SM_active': r'ESA CCI SM active',
     'ESA_CCI_SM_combined': r'ESA CCI SM combined',
     'ESA_CCI_SM_passive': r'ESA CCI SM passive',
-    'SMOS': r'SMOS IC'
+    'SMOS': r'SMOS IC',
+    'CGLS_CSAR_SSM1km': r'CGLS S1 SSM',
+    'CGLS_SCATSAR_SWI1km': r'CGLS SCATSAR SWI',
 }
 
 # fallback for dataset __version pretty names in case they are not in the metadata
@@ -230,7 +232,9 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_test": " ERA5 test",
     "ERA5_20190613": "v20190613",
     "ERA5_LAND_V20190904" : "v20190904",
-    "ERA5_LAND_TEST": "ERA5-Land test"
+    "ERA5_LAND_TEST": "ERA5-Land test",
+    "CGLS_CSAR_SSM1km_V1_1": "v1_1",
+    "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
 }
 
 # label format for all metrics for HTML rendering
@@ -268,4 +272,6 @@ _metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
     'ESA_CCI_SM_combined': 'm³/m³',
     'ESA_CCI_SM_passive': 'm³/m³',
     'SMOS': 'm³/m³',
+    'CGLS_CSAR_SSM1km': '% sat',
+    'CGLS_SCATSAR_SWI1km': '% sat',
 }
