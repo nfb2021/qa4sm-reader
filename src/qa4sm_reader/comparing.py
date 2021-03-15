@@ -356,6 +356,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
                          label="Validation point",
                          line_kws={'label':"x ={}*y + {}, r: {}, p: {}".format(
                              *[round(i,2) for i in [slope, int, r, p]])})
+        ax.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
         plt.legend()
 
     def diff_mapplot(self, metric:str, diff_range:str='adjusted'):
