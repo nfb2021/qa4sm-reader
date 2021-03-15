@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from qa4sm_reader.img import QA4SMImg
+import qa4sm_reader.globals as globals
 import os
 import seaborn as sns
 from qa4sm_reader.plot_utils import *
@@ -171,7 +172,6 @@ def mapplot(df, metric, ref_short, ref_grid_stepsize=None,
 
         if add_cbar:  # colorbar
             _make_cbar(fig, im, cax, ref_short, metric, label=label)
-
         style_map(ax, plot_extent, **style_kwargs)
         fig.canvas.draw()  # very slow. necessary bcs of a bug in cartopy: https://github.com/SciTools/cartopy/issues/1207
 
@@ -220,7 +220,7 @@ def diff_plot(ref_df:pd.DataFrame, other_dfs:list, ref_name:str, other_names:lis
 
     return fig, axes
 
-def get_dir_name_type(out_name, out_type='png', out_dir=None):
+def get_dir_name_type(out_name, out_type='png', out_dir=None): # todo: can form be improved?
     """
     Standardized behaviour for filenames.
 
@@ -286,6 +286,8 @@ class QA4SMPlotter():
         self.img = image
         self.out_dir = out_dir
 
+        self.ref = image.ref_dataset #todo: check working
+
     @staticmethod
     def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> str:
         """
@@ -341,7 +343,7 @@ class QA4SMPlotter():
         ds_parts = []
         id, meta = dss_meta
         ds_parts.append('{}-{}\n({})'.format(
-            i, meta['pretty_name'], meta['pretty_version']))
+            id, meta['pretty_name'], meta['pretty_version']))
         capt = '\n and \n'.join(ds_parts)
 
         if tc:
@@ -367,20 +369,20 @@ class QA4SMPlotter():
             list of parts for title
         """
         parts = []
-        ref, mds, other = [meta.values() for meta in MetricVar.get_varmeta()]
+        ref, mds, other = [meta for meta in var.get_varmeta()]
         if type == 'bplot_basic':
             parts.append(ref[0])
-            parts.extend(ref[1])
+            parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
 
-        elif type in ['bplot_tc', 'map_basic', 'map_tc']:
+        elif type in ['bplot_tc', 'mapplot_basic', 'mapplot_tc']:
             parts.append(mds[0])
-            parts.extend(mds[1])
+            parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
             parts.append(ref[0])
-            parts.extend(ref[1])
+            parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
 
-            if type == 'map_tc':
+            if type == 'mapplot_tc':
                 parts.append(other[0])
-                parts.extend(other[1])
+                parts.extend([other[1]['pretty_name'], other[1]['pretty_version']])
 
         return parts
 
@@ -394,16 +396,16 @@ class QA4SMPlotter():
         type: str
             type of plot
         """
-        titles = {'bplot_basic': 'Intercomparison of \n{} \nwith {}-{} ({}) as the reference',
+        titles = {'bplot_basic': 'Intercomparison of \n{} \nwith {}-{} ({}) \nas the reference',
                   'bplot_tc': 'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
-                  'mapplot_basic': '{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
-                  'mapplot_tc': '{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nand {}-{} ({}) \nas the reference'}
+                  'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
+                  'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the reference'}
 
         try:
             return titles[type]
 
-        except IndexError as e:
-            e.message = "'type' {} is not in the lookup table".format(type)
+        except IndexError as e: # todo: test
+            e.message = "type '{}' is not in the lookup table".format(type)
 
             raise e
 
@@ -419,12 +421,131 @@ class QA4SMPlotter():
             type of plot
         """
         parts = [globals._metric_name[metric]]
-        parts.append(self._get_parts_name(type=type))
-        title = self._titles_lut(type=type).format(parts)
+        parts.extend(self._get_parts_name(var=var, type=type))
+        title = self._titles_lut(type=type).format(*parts)
 
         return title
 
-    def boxplot_tc(self, metric, out_type=None, add_stats=globals.boxplot_printnumbers):
+    @staticmethod
+    def _filenames_lut(type):
+        """
+        Lookup table for file names
+
+        Parameters
+        ----------
+        type: str
+            type of plot
+        """
+        names = {'bplot_basic': 'boxplot_{}',
+                 'bplot_tc': 'boxplot_{}_for_{}-{}',
+                 'mapplot_common': 'overview_{}',
+                 'mapplot_double': 'overview_{}_{}-{}_and_{}-{}',
+                 'mapplot_tc': 'overview_{}_for_{}-{}_with_{}-{}_and_{}-{}'}
+
+        try:
+            return names[type]
+
+        except IndexError as e: # todo: test
+            e.message = "type '{}' is not in the lookup table".format(type)
+
+            raise e
+
+    def create_filename(self, var, metric:str, type:str) -> str:
+        """
+        Create name of the file
+
+        Parameters
+        ----------
+        var: MetricVar
+            variable for a metric
+        type: str
+            type of plot
+        """
+        name = self._filenames_lut(type=type)
+        ref_meta, mds_meta, other_meta = var.get_varmeta()
+        parts = [metric, mds_meta[0], mds_meta[1], ref_meta[0], ref_meta[1]]
+
+        if type == 'mapplot_tc':
+            parts.extend([other_meta[0], other_meta[1]])
+
+        return name.format(*parts)
+
+    def _yield_values(self, metric: str, add_stats:bool=globals.boxplot_printnumbers) -> pd.DataFrame:
+        """
+        Get iterable with pandas dataframes for all variables of a metric to plot
+
+        Parameters
+        ----------
+        add_stats : bool, optional (default: from globals)
+            Add stats of median, iqr and N to the box bottom.
+
+        Yield
+        -----
+        df: pd.DataFrame
+            dataframe with variable values and caption name
+        """
+        for n, Var in enumerate(self.img._iter_vars(**{'metric':metric})):  # for wach var in the metric
+            ref_meta, mds_meta, other_meta = Var.get_varmeta()
+            box_cap_ds = self._box_caption(mds_meta)
+            df = Var.values
+            if Var.g == 0:
+                box_cap_ds = 'All datasets'
+            else:
+                box_cap_ds = self._box_caption(mds_meta)
+            if add_stats:
+                box_stats = self._box_stats(df[Var.varname])
+                box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
+            else:
+                box_cap = box_cap_ds
+            df.columns = [box_cap]
+
+            yield df, Var
+
+    def _boxplot_definition(self, metric:str,
+                            df:pd.DataFrame,
+                            type:str,
+                            var=None,
+                            watermark_pos=globals.watermark_pos,
+                            offset=0.1,
+                            **kwargs):
+        """
+        Define parameters of plot
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            dataframe to plot
+        type: str
+            one of _titles_lut
+        watermark_pos: str
+            position of watermark
+        offset: float
+            offset of boxplots
+        """
+        # plot label
+        parts = [globals._metric_name[metric]]
+        parts.append(globals._metric_description[metric].format(
+            globals._metric_units[self.ref]))
+        label = "{}{}".format(*parts)
+        # generate plot
+        figwidth = globals.boxplot_width # todo: check width
+        figsize = [figwidth, globals.boxplot_height]
+        fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
+
+        # when we only need reference dataset from variables (i.e. is the same):
+        if not var:
+            for Var in self.img._iter_vars(**{'metric':metric}):
+                var =Var
+                break
+        title = self.create_title(var, metric, type=type)
+        ax.set_title(title, pad=globals.title_pad)
+        # add watermark
+        if globals.watermark_pos not in [None, False]:
+            make_watermark(fig, watermark_pos, offset)
+
+        return fig, ax
+
+    def boxplot_tc(self, metric, out_type=None):
         """
         Creates a boxplot for TC metrics. Saves a figure and returns Matplotlib fig and ax objects for further processing.
 
@@ -436,56 +557,26 @@ class QA4SMPlotter():
         out_name : [ None | str ], optional
             Name of output file.
             If None, defaults to a name that is generated based on the variables.
-            The default is None.
         out_type : [ str | list | None ], optional
             The file type, e.g. 'png', 'pdf', 'svg', 'tiff'...
-            If list, a plot is saved for each type.
-            If None, no file is saved.
-            The default is png.
-        add_stats : bool, optional (default: from globals)
-            Add stats of median, iqr and N to the box bottom.
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-            Figure containing the axes for further processing.
-        ax : matplotlib.axes.Axes or list of Axes objects
-            Axes or list of axes containing the plot.
+            If list, a plot is saved for each type. The default is png
+        kwargs: arguments for _boxplot_definition function
         """
         fnames = list()  # list of filenames
-        for Var in self.img._iter_vars(**{'metric':metric}):  # for wach var in the metric
-            ref_meta, mds_meta, other_meta = Var.get_varmeta()
-            box_cap_ds = self._box_caption(mds_meta, tc=True)
-            # add statistics to the axis caption
-            if add_stats:
-                box_stats = self._box_stats(Var.values)
-                box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
-            else:
-                box_cap = box_cap_ds
-            # get variable values
-            df = Var.values
-            title = self.create_title(Var, metric, type='bplot_tc')
-
-            parts = [globals._metric_name[metric]]
-            parts.append(self._get_parts_name(Var, type='bplot_tc'))
-            parts.append(Var.ref_df[1]['short_name'])
-            mu = glob._metric_description[metric].format(glob._metric_units[ref_ds])
-            label = "{} for {}-{} ({}) in {}".format(*parts)
+        for df, Var in self._yield_values(metric=metric):
             # create plot
-            figwidth = globals.boxplot_width # todo: check width
-            figsize = [figwidth, globals.boxplot_height]
-            fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
-            ax.set_title(title, pad=globals.title_pad)
-
-            # add watermark
-            if globals.watermark_pos not in [None, False]:
-                make_watermark(fig, globals.watermark_pos, offset=0.1)
-
+            fig, ax = self._boxplot_definition(metric=metric,
+                                               df=df,
+                                               type='bplot_tc',
+                                               var=Var,
+                                               **kwargs)
+            mds_meta = Var.get_varmeta()[1]
             # save
-            out_name = 'boxplot_{}_for_{}-{}'.format(metric, mds_meta[0], mds_meta[1]['short_name'])
-            out_dir, out_name, out_type = get_dir_name_type(out_name, out_type, self.out_dir)
+            out_name = self.create_filename(Var, metric, type='boxplot_tc')
+            out_dir, out_name, out_type = get_dir_name_type(out_name, out_type, self.out_dir) # todo: check save process
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
+
             for ending in out_type:
                 fname = os.path.join(out_dir, out_name+ending)
                 if os.path.isfile(fname):
@@ -496,7 +587,7 @@ class QA4SMPlotter():
 
         return fnames
 
-    def boxplot_basic(self, metric, out_name=None, out_type=None, add_stats=globals.boxplot_printnumbers): # todo: continue from here
+    def boxplot_basic(self, metric, out_name=None, out_type=None, **kwargs): # todo: check outnmae/out_type
         """
         Creates a boxplot_basic for basic metrics. Saves a figure and returns Matplotlib fig and ax objects for further
         processing.
@@ -509,14 +600,10 @@ class QA4SMPlotter():
         out_name : [ None | str ], optional
             Name of output file.
             If None, defaults to a name that is generated based on the variables.
-            The default is None.
         out_type : [ str | list | None ], optional
             The file type, e.g. 'png', 'pdf', 'svg', 'tiff'...
-            If list, a plot is saved for each type.
-            If None, no file is saved.
-            The default is png.
-        add_stats : bool, optional (default: from globals)
-            Add stats of median, iqr and N to the box bottom.
+            If list, a plot is saved for each type. If None, no file is saved.
+        kwargs: arguments for _boxplot_definition function
 
         Returns
         -------
@@ -525,61 +612,25 @@ class QA4SMPlotter():
         ax : matplotlib.axes.Axes or list of Axes objects
             Axes or list of axes containing the plot.
         """
-        fnames = list()  # list to store all filenames.
-
-        # === load values and metadata ===
-        df = self.img.metric_df(metric)
-        metric_meta = self.img.metric_meta(metric)
-        ref_meta = self.img.ref_meta()[1]
-
-        # === rename columns = label of boxes ===
-        for var, meta in metric_meta.items():
-            dss_meta = meta[1]
-
-            if var in self.img.ls_vars(True)['common']:
-                box_cap_ds = 'All datasets'
-            else:
-                box_cap_ds = self._box_caption(dss_meta)
-            if add_stats:
-                box_stats = self._box_stats(df[var])
-                box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
-            else:
-                box_cap = box_cap_ds
-
-            df = df.rename(columns={var: box_cap})
-
-        # === create title ===
-        max_title_len = globals.boxplot_title_len * len(df.columns)
-        title = self._box_title_basic(ref_meta, metric, max_title_len)
-
-        # === create label ===
-        label = (globals._metric_name[metric] +
-                 globals._metric_description[metric].format(
-                     globals._metric_units[ref_meta['short_name']]))
-
-        # === plot values ===
-        figwidth = globals.boxplot_width * (1 + len(df.columns))
-        figsize = [figwidth, globals.boxplot_height]
-
-        fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
-
-        # === set limits ===
-        #ax.set_ylim(get_value_range(df, metric))
-
-        # === add title ===
-        ax.set_title(title, pad=globals.title_pad)
-
-        # === add watermark ===
-        if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, globals.watermark_pos)
-
-        # === save ===
+        fnames = []  # list to store all filenames
+        values = []
+        for df, Var in self._yield_values(metric=metric):
+            values.append(df)
+        values = pd.concat(values)
+        # create plot
+        fig, ax = self._boxplot_definition(metric=metric,
+                                           df=values,
+                                           type='bplot_basic',
+                                           **kwargs)
+        # save or return plotting objects
         if not out_name:
             out_name = 'boxplot_{}'.format(metric)
 
         if self.out_dir is None:
             return fig, ax
+
         else:
+            out_name = self.create_filename(Var, metric, type='boxplot_basic')
             out_dir, out_name, out_type = get_dir_name_type(out_name, out_type, self.out_dir)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
@@ -588,29 +639,24 @@ class QA4SMPlotter():
                 plt.savefig(fname, dpi='figure', bbox_inches='tight')
                 fnames.append(fname)
             plt.close('all')
+
             return fnames
 
-    def mapplot_var(self, varname, out_name=None, out_type=None,
-                **plot_kwargs):
+    def mapplot_var(self, var, out_name=None, out_type=None, **plot_kwargs):
         """
         Plots values to a map, using the values as color. Plots a scatterplot for
         ISMN and a image plot for other input values.
 
         Parameters
         ----------
-        filepath : str
-            Path to the *.nc file to be processed.
-        varname : str
-            Name of a variable in the image to make the map for.
+        var : QA4SMMetricVariab;e
+            Var in the image to make the map for.
         out_name : [ None | str ], optional
             Name of output file.
             If None, defaults to a name that is generated based on the variables.
-            The default is None.
         out_type : [ str | list | None ], optional
             The file type, e.g. 'png', 'pdf', 'svg', 'tiff'...
-            If list, a plot is saved for each type.
-            If None, no file is saved.
-            The default is png.
+            If list, a plot is saved for each type. If None, no file is saved.
         **plot_kwargs : dict, optional
             Additional keyword arguments that are passed to dfplot.
 
@@ -620,63 +666,36 @@ class QA4SMPlotter():
             Figure containing the axes for further processing.
         ax : matplotlib.axes.Axes or list of Axes objects
             Axes or list of axes containing the plot.
-
         """
-        df = self.img._ds2df([varname])
-        var_meta = self.img.var_meta(varname)
-
-        assert len(list(var_meta.keys())) == 1
-        metric = list(var_meta.keys())[0]
-
-        ref_short = var_meta[metric][0][1]['short_name']
+        ref_meta, mds_meta, other_meta = var.get_varmeta()
+        metric = var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
 
-        # === plot values ===
-        fig, ax = mapplot(df=df, var=varname, metric=metric, ref_short=ref_short, ref_grid_stepsize = ref_grid_stepsize,
-                          plot_extent=self.img.extent, **plot_kwargs)
-
-        # === add title ===
-        if var_meta[metric][1] is None:
-            title_parts = ['{} '.format(globals._metric_name[metric]),
-                           'between all datasets']
-            title = self._comb_title_parts(title_parts, globals.max_title_len)
+        # create mapplot
+        fig, ax = mapplot(df=var.values[var.varname],
+                          metric=metric,
+                          ref_short=ref_meta[1]['short_name'],
+                          ref_grid_stepsize=ref_grid_stepsize,
+                          plot_extent=self.img.extent,
+                          **plot_kwargs)
+        # title and plot settings
+        if var.g == 0:
+            title = "{} between all datasets".format(globals._metric_name[metric])
+            out_name = self.create_filename(var, metric, type='mapplot_common')
+        elif var.g == 2:
+            title = self.create_title(var=var, metric=metric, type='mapplot_basic')
+            out_name = self.create_filename(var, metric, type='mapplot_double')
         else:
-            if metric in globals.metric_groups[3]:
-                title = self._map_title_tc(ref_meta=var_meta[metric][0][1],
-                                           ds_meta=var_meta[metric][1][0],
-                                           ds2_meta=var_meta[metric][1][1],
-                                           met_meta=var_meta[metric][2][1],
-                                           metric=metric,
-                                           max_len=globals.max_title_len)
-            else:
-                title = self._map_title_basic(ref_meta=var_meta[metric][0][1],
-                                              ds_meta=var_meta[metric][1][0],
-                                              metric=metric, max_len=globals.max_title_len)
-        ax.set_title(title, pad=globals.title_pad)
+            title = self.create_title(var=var, metric=metric, type='mapplot_tc') # todo: check titles are ok with QA4SM
+            out_name = self.create_filename(var, metric, type='mapplot_tc')
 
-        # === add watermark ===
+        ax.set_title(title, pad=globals.title_pad)
         if globals.watermark_pos not in [None, False]:
             make_watermark(fig, globals.watermark_pos, for_map=True)
-        # === save ===
-        if not out_name:
-            ref_num = var_meta[metric][0][0]
-            if metric in globals.metric_groups[0]:
-                out_name = 'overview_{}'.format(varname)
-            elif metric in globals.metric_groups[2]:
-                ds_meta = var_meta[metric][1][0]
-                out_name = 'overview_{}-{}_and_{}-{}_{}'.format(
-                    ref_num, ref_short, ds_meta[0], ds_meta[1]['short_name'], metric)
-            else:
-                ds_meta = var_meta[metric][1][0]
-                ds2_meta = var_meta[metric][1][1]
-                met_meta = var_meta[metric][2]
-                out_name = 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'.format( # todo: create template for plot titles, too
-                    ref_num, ref_short, ds_meta[0], ds_meta[1]['short_name'], ds2_meta[0],
-                    ds2_meta[1]['short_name'], metric, met_meta[0], met_meta[1]['short_name'])
-
 
         if self.out_dir is None:
             return fig, ax
+
         else:
             fnames = []
             out_dir, out_name, out_type = \
@@ -688,6 +707,7 @@ class QA4SMPlotter():
                 plt.savefig(fname, dpi='figure', bbox_inches='tight')
                 fnames.append(fname)
             plt.close('all')
+
             return fnames
 
     def mapplot(self, metric, out_type=None, **plot_kwargs):
@@ -708,11 +728,13 @@ class QA4SMPlotter():
         fnames : list
             List of files that were created
         """
-
-        varnames = list(self.img.metric_meta(metric).keys())
         fnames = []
-        for varname in varnames:
-            fns = self.mapplot_var(varname, out_name=None, out_type=out_type, **plot_kwargs)
+        for Var in self.img._iter_vars(**{'metric':metric}):
+            fns = self.mapplot_var(Var,
+                                   out_name=None,
+                                   out_type=out_type,
+                                   **plot_kwargs)
             plt.close('all')
             for fn in fns: fnames.append(fn)
+
         return fnames

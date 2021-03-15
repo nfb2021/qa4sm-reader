@@ -130,9 +130,12 @@ class QA4SMImg():
             dictionary with QA4SMMetricVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
         for Var in self.vars:
-            for key, val in filter_parms.items():
-                if val is None or getattr(Var, key) == val:
-                    yield Var
+            if filter_parms:
+                for key, val in filter_parms.items():
+                    if getattr(Var, key) == val:
+                        yield Var
+            else:
+                yield Var
 
     def _iter_metrics(self, **filter_parms) -> iter: # todo: use Wolfi method instead of kwargs
         """
