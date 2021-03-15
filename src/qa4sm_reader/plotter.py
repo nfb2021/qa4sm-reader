@@ -241,7 +241,7 @@ class QA4SMPlotter(object):
         if med:
             met_str.append('median: {:.3g}'.format(ds.median()))
         if iqr:
-            met_str.append('Interquartile range: {:.3g}'.format(iqr))
+            met_str.append('Interq. range: {:.3g}'.format(iqr))
         if count:
             met_str.append('N: {:d}'.format(ds.count()))
 
@@ -254,8 +254,9 @@ class QA4SMPlotter(object):
         for i, ds_meta in dss_meta: # [(1, {meta})]
             if (ignore_ds_idx is not None) and (i in ignore_ds_idx):
                 continue
-            ds_parts.append('{0}\n({1})'.format(ds_meta['pretty_name'],
-                                                ds_meta['pretty_version']))
+            ds_parts.append('{}-{}\n({})'.format(i,
+                                                 ds_meta['pretty_name'],
+                                                 ds_meta['pretty_version']))
 
         ds_part = '\n and \n'.join(ds_parts)
 
@@ -278,13 +279,13 @@ class QA4SMPlotter(object):
     def _box_title_tc(self, ref_meta:dict, mds_meta:dict, metric:str,
                          max_len=100) -> str:
         """ Create the plot title for tc metrics """
-
+        i, meta = mds_meta
         ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        met_parts = [mds_meta['pretty_name'], mds_meta['pretty_version']]
+        met_parts = [meta['pretty_name'], meta['pretty_version']]
         metric_pretty = globals._metric_name[metric]
 
         title_parts = ['Intercomparison of ',  '{} '.format(metric_pretty),
-                       'for {0} ({1}) '.format(met_parts[0], met_parts[1]),
+                       'for {0}-{1} ({2}) '.format(i, met_parts[0], met_parts[1]),
                        'with {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
                        'as the reference']
 
@@ -306,14 +307,14 @@ class QA4SMPlotter(object):
     def _map_title_basic(self, ref_meta:dict, ds_meta:dict, metric:str,
                          max_len:int=100) -> str:
         """ Create the plot title for basic metrics (common and double) """
-
+        i, meta = ds_meta
         ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        ds_parts = [ds_meta['pretty_name'], ds_meta['pretty_version']]
+        ds_parts = [meta['pretty_name'], meta['pretty_version']]
 
         metric_pretty = globals._metric_name[metric]
 
         title_parts = ['{} '.format(metric_pretty),
-                       'for {0} ({1}) '.format(ds_parts[0], ds_parts[1]),
+                       'for {0}-{1} ({2}) '.format(i, ds_parts[0], ds_parts[1]),
                        'with {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
                        'as the reference']
 
@@ -322,10 +323,11 @@ class QA4SMPlotter(object):
     def _map_title_tc(self, ref_meta:dict, ds_meta:dict, ds2_meta:dict, 
                       met_meta:dict, metric:str, max_len:int=100) -> str:
         """ Create the plot title for basic metrics (common and double) """
-
+        i, meta = ds_meta
+        i2, meta2 = ds2_meta
         ref_parts = [ref_meta['pretty_name'], ref_meta['pretty_version']]
-        ds_parts = [ds_meta['pretty_name'], ds_meta['pretty_version']]
-        ds2_parts = [ds2_meta['pretty_name'], ds2_meta['pretty_version']]
+        ds_parts = [meta['pretty_name'], meta['pretty_version']]
+        ds2_parts = [meta2['pretty_name'], meta2['pretty_version']]
         met_parts = [met_meta['pretty_name'], met_meta['pretty_version']]
         other_parts = [ds_parts[0] if ds_parts[0] != met_parts[0] else ds2_parts[0],
                       ds_parts[1] if ds_parts[1] != met_parts[1] else ds2_parts[1]]
@@ -333,8 +335,8 @@ class QA4SMPlotter(object):
         metric_pretty = globals._metric_name[metric]
 
         title_parts = ['{} '.format(metric_pretty),
-                       'for {0} ({1}) '.format(met_parts[0], met_parts[1]),
-                       'with {0} ({1}) '.format(other_parts[0], other_parts[1]),
+                       'for {0}-{1} ({2}) '.format(i, met_parts[0], met_parts[1]),
+                       'with {0}-{1} ({2}) '.format(i2, other_parts[0], other_parts[1]),
                        'and {0} ({1}) '.format(ref_parts[0], ref_parts[1]),
                        'as the reference']
 
@@ -371,7 +373,7 @@ class QA4SMPlotter(object):
                 df = df.rename(columns={tcvar: box_cap})
 
             max_title_len = globals.boxplot_title_len * len(df.columns)
-            title = self._box_title_tc(REF_META[1], MDS_META[1], metric, max_title_len)
+            title = self._box_title_tc(REF_META[1], MDS_META, metric, max_title_len)
 
             # === create label ===
             mds_label = ' for {} ({})'.format(MDS_META[1]['pretty_name'],
@@ -559,14 +561,14 @@ class QA4SMPlotter(object):
         else:
             if metric in globals.metric_groups[3]:
                 title = self._map_title_tc(ref_meta=var_meta[metric][0][1],
-                                           ds_meta=var_meta[metric][1][0][1],
-                                           ds2_meta=var_meta[metric][1][1][1],
+                                           ds_meta=var_meta[metric][1][0],
+                                           ds2_meta=var_meta[metric][1][1],
                                            met_meta=var_meta[metric][2][1],
                                            metric=metric,
                                            max_len=globals.max_title_len)
             else:
                 title = self._map_title_basic(ref_meta=var_meta[metric][0][1],
-                                              ds_meta=var_meta[metric][1][0][1],
+                                              ds_meta=var_meta[metric][1][0],
                                               metric=metric, max_len=globals.max_title_len)
         ax.set_title(title, pad=globals.title_pad)
 
