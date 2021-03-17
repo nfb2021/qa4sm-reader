@@ -483,6 +483,8 @@ class QA4SMPlotter():
         -----
         df: pd.DataFrame
             dataframe with variable values and caption name
+        Var: QA4SMMetricVariable
+            variable corresponding to the dataframe
         """
         for n, Var in enumerate(self.img._iter_vars(**{'metric':metric})):  # for wach var in the metric
             ref_meta, mds_meta, other_meta = Var.get_varmeta()
@@ -589,8 +591,8 @@ class QA4SMPlotter():
 
     def boxplot_basic(self, metric, out_name=None, out_type=None, **kwargs): # todo: check outnmae/out_type
         """
-        Creates a boxplot_basic for basic metrics. Saves a figure and returns Matplotlib fig and ax objects for further
-        processing.
+        Creates a boxplot for common and double metrics. Saves a figure and returns Matplotlib fig and ax objects for
+        further processing.
 
         Parameters
         ----------
