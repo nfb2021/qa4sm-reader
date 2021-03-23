@@ -3,7 +3,7 @@
 import xarray as xr
 from qa4sm_reader import globals
 from parse import *
-import os
+from pathlib import Path
 import numpy as np
 from collections import OrderedDict
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
@@ -13,7 +13,7 @@ import itertools
 
 class QA4SMImg():
     """
-    A QA4SM validation results netcdf image.
+    A tool to analyze the results of a validation, which are stored in a netCDF file.
     """
     def __init__(self, filepath,
                  extent=None,
@@ -38,16 +38,14 @@ class QA4SMImg():
         index_names : list, optional (default: ['lat', 'lon'] - as in globals.py)
             Names of dimension variables in x and y direction (lat, lon).
         """
-        self.filepath = filepath
-        self.filename = os.path.basename(self.filepath)
-
-        self.extent = extent
+        self.filepath = Path(filepath)
         self.index_names = index_names
 
         self.ignore_empty = ignore_empty
-        self.ds = xr.open_dataset(self.filepath)
-        self.varnames = list(self.ds.variables.keys())
+        self.ds = self._open_ds(extent=extent)
+        self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
 
+        self.varnames = list(self.ds.variables.keys())
         self.df = self._ds2df()
         self.datasets = QA4SMDatasets(self.ds.attrs)
         self.vars = self._load_vars()
@@ -62,6 +60,35 @@ class QA4SMImg():
         except:
             self.ref_dataset_grid_stepsize = 'nan'
         # todo: update tests for sel.ds.val_dc_dataset0_grid_stepsize = 'nan'
+
+    def _open_ds(self, extent=None):  #todo: check functionalities of other methods and that it doesn't break
+        """Open .nc as xarray datset, with selected extent"""
+        ds = xr.open_dataset(self.filepath)
+        ds = ds.drop_vars('time')
+        # geographical subset of the results
+        if extent:
+            lat, lon = globals.index_names
+            mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
+                   (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
+
+            #  todo: check that subset exists and raise assetion error if not
+
+            return ds.where(mask, drop=True)
+
+        else:
+            return ds
+
+    def _get_extent(self, extent):
+        """ Get extent of the results from the netCDF file"""
+        if extent:
+            return extent
+
+        lat, lon = globals.index_names
+        lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
+        lons = min(lon_coord), max(lon_coord)
+        lats = min(lat_coord), max(lat_coord)
+
+        return lons + lats
 
     def _load_vars(self, empty=False) -> (list, list):
         """
@@ -195,7 +222,7 @@ class QA4SMImg():
 
     def _ds2df(self, varnames:list=None) -> pd.DataFrame:
         """
-        Cut a variable to extent and return all variables in a single DataFrame.
+        Return one or all variables in a single DataFrame.
 
         Parameters
         ----------
@@ -205,7 +232,7 @@ class QA4SMImg():
         Return
         ------
         df : pd.DataFrame
-            DataFrame with Var name as column names and values cut to self.extent
+            DataFrame with Var name as column names
         """
         try:
             if varnames is None:
@@ -224,13 +251,7 @@ class QA4SMImg():
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
 
-        # geographical subset of the results
-        if self.extent:
-            lat, lon = globals.index_names
-            df = df[(df[lon] >= self.extent[0]) & (df[lon] <= self.extent[1]) &
-                    (df[lat] >= self.extent[2]) & (df[lat] <= self.extent[3])]
-
-        df.reset_index(drop=True, inplace=True)
+        df.reset_index(drop=True, inplace=True)  #todo: check this works
         df = df.set_index(self.index_names)
 
         return df

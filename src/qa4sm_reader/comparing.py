@@ -1,8 +1,9 @@
 from qa4sm_reader.img import QA4SMImg
-from qa4sm_reader.plotter import QA4SMPlotter, diff_plot, mapplot, boxplot
+from qa4sm_reader.plot_utils import diff_plot, mapplot, boxplot
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 import qa4sm_reader.globals as glob
 
+from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,18 +12,17 @@ from scipy import stats
 
 import warnings as warn
 
-paths = ['/home/pstradio/Projects/scratch/Difference_plot_data/2017-2018/0-ISMN.soil moisture_with_1-C3S.sm.nc',
-         '/home/pstradio/Projects/scratch/Difference_plot_data/2018-2019/0-ISMN.soil moisture_with_1-C3S.sm.nc']
 
-class ComparisonException(Exception):
+class ComparisonException(Exception):  #todo: migrate plotting functions to utils
     pass
+
 
 class QA4SMComparison(): # todo: add comparison of spatial extents
     """
     Class that provides comparison plots and table for a list of netCDF files. As initialising a QA4SMImage can
     take some time, the class can be updated keeping memory of what has already been initialized
     """
-    def __init__(self, paths: list, extent: tuple=None):
+    def __init__(self, paths:list, extent:tuple=None, where:str='union'):
         """
         Initialise the QA4SMImages and creates a default comparison
 
@@ -33,103 +33,107 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         extent : tuple, optional (default: None)
             Area to subset the values for.
             (min_lon, max_lon, min_lat, max_lat)
+        where : str, optional. Default is 'union'.
+            if extent is not specified, we can either take the union or intersection of the original extents of the
+            passed .nc files. This affects the diff_table and diff_boxplot methods, whereas the diff_corr, diff_mapplot
+            and diff_plot ALWAYS consider the intersection.
 
         Attributes
         ----------
-        plotters : dict
-            dictionary with shape {path: (id, QA4SMImage, QA4SMPlotter)}
+        comparison : dict
+            dictionary with shape {path: (id, QA4SMImage)}
         ref : tuple
-            QA4SMImage, QA4SMPlotter for the reference validation
-        others : dict
-            dictionary subset
-        default_table: What to return here???? --> better not foles, imagine how many combinations would be printed (e.g. if the reference is changed)
-             default comparion object for the validation result files specified in the paths
-        default_plot: What to return here????
-            default comparion object for the validation result files specified in the paths
-        default_mapplot: What to return here????
-            default comparion object for the validation result files specified in the paths
+            QA4SMImage for the reference validation
         """
         self.paths = paths
-        self.extent = extent
 
-        self.plotters = self._init_img_plotters(paths=paths, extent=extent)
+        self.comparison = self._init_imgs(paths=paths, extent=extent, where=where)
         self.ref = self._check_ref()
 
     def _check_ref(self):
         """ Check that all initialized validation results have the same dataset as reference """
-        for id, img, plotter in self.plotters.values():
+        for id, img in self.comparison.values():
             ref = img.datasets._dc_names(img.datasets._ref_dc())
             if id != 0:
-                assert ref == previous, "The initialized validation results have different reference datasets.This is currently not supported"
+                assert ref == previous, "The initialized validation results have different reference datasets. " \
+                                        "This is currently not supported"
             previous = ref
 
         return ref
 
-    def _init_img_plotters(self, paths:list=None, extent: tuple=None) -> dict: # todo: is plotter really needed??
-        """
-        Initialize the QA4SMImages and QA4SMPlotters for the selected validation results files.
-
-        Returns
-        -------
-        plotters: dict
-            see self.plotters
-        """
-        plotters = {}
-        for n, path in enumerate(paths):
-            img = QA4SMImg(path, extent=extent)
-            plotter = QA4SMPlotter(img)
-            plotters[path] = (n, img, plotter)
-
-        return plotters
-
     @staticmethod
-    def _update_plotters(plotters: dict, updated_paths: list):
+    def _check_extent(extents:list, where:str='union') -> tuple:
         """
-        Update the keys in the plotters dictionary based on the new provided paths
-
-        Prameters
-        ---------
-        plotters: dict
-            self.plotters
-        updated_paths: list
-            list of paths to .nc validation result files for the updated selection
-        """
-        # eliminate keys that are not in the new provided paths
-        to_delete = [key for key in plotters.keys() if not key in updated_paths]
-        for key in to_delete:
-            del plotters[key]
-        # list new keys
-        to_add = [path for path in updated_paths if not path in plotters.keys()]
-
-        return plotters, to_add
-
-    # todo: solve bugs for comparison update
-    def _update_comparison(self, updated_paths: list, updated_extent: tuple=None):
-        """
-        If new path is added to the self.paths list, class is re-initialised keeping memory of the previous paths list
-        in order to avoid initialising already present images
+        Check if different spatial subsets are overlapping and return either their intersection or union.
 
         Parameters
         ----------
-        updated_paths: list
-            list of paths to .nc validation result files for the updated selection
-        updated_extent: tuple
-            spatial extent of comparison for the updated selection
-        """
-        # If new extent, all images need to be re-initialised
-        if updated_extent != self.extent:
-            self.__init__(updated_paths, extent=updated_extent)
-        # Check if updated paths are different, if not add the new paths
-        elif updated_paths != self.paths:
-            to_keep, to_add = self._update_plotters(self.plotters, updated_paths)
-            new_plotters = self._init_img_plotters(paths=updated_paths)
-            self.plotters = to_keep.update(new_plotters)
+        extent : list
+            list with the spatial extent
+        where : str, optional. Default is 'union'.
+            if extent is not specified, we can either take the union or intersection of the original extents of the
+            passed .nc files. Possible choices are 'union', 'intersection'
 
-            self._init_defaults()
-
-    def _subset_plotters(self, subset_paths: list):
+        Return
+        ------
+        extent: tuple
+            spatial extent deriving from union or intersection of inputs
         """
-        Return a subset of the QA4SM plotters based on the provided paths
+        polys = []
+        for minlon, maxlon, minlat, maxlat in extents:
+            bounds = [(minlon,minlat), (maxlon, minlat),
+                      (maxlon, maxlat), (minlon, maxlat)]
+            poly = Polygon(bounds)
+            polys.append(poly)
+
+        output = polys[0]  # define starting point
+        for poly in polys:
+            if where == 'union':  # get maximum extent
+                output = output.union(poly)
+            if where == 'intersection':  # get maximum common
+                output = output.intersection(poly)
+                assert output, "The spatial extents of the chosen validation results do not overlap. " \
+                               "Set 'where' to 'union' to perform the comparison."
+
+        minlon, minlat, maxlon, maxlat = output.bounds
+
+        return minlon, maxlon, minlat, maxlat
+
+    def _init_imgs(self, paths:list=None, extent:tuple=None, where:str='union') -> dict:
+        """
+        Initialize the QA4SMImages for the selected validation results files.
+
+        Returns
+        -------
+        comparison: dict
+            see self.comparison
+        """
+        comparison = {}
+        subsets = []
+        try:
+            for n, path in enumerate(paths):
+                img = QA4SMImg(path, extent=extent)
+                comparison[path] = (n, img)
+                subsets.append(img.extent)
+
+        except AssertionError as e:
+            e.message = "One of the initialised validation result files has no points in the given spatial subset:" \
+                        "{}. \nYou should change subset to a valid one, or not pass any.".format(extent)
+            raise e
+
+        if not extent:
+            extent = self._check_extent(subsets, where=where)
+            for n, path in enumerate(paths):
+                img = QA4SMImg(path, extent=extent)
+                comparison[path] = (n, img)
+
+        self.extent = extent
+
+        return comparison
+
+    def _subset_comparison(self, subset_paths: list):
+        """
+        Return a subset of the comparison based on the provided paths
 
         Parameters
         ----------
@@ -141,7 +145,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
 
         self._check_initialized(subset_paths)
 
-        subset = {path: self.plotters[path] for path in subset_paths}
+        subset = {path: self.comparison[path] for path in subset_paths}
 
         return subset
 
@@ -161,11 +165,11 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         hasnot = False
         if isinstance(paths, list):
             for path in paths:
-                if not path in self.plotters.keys():
+                if not path in self.comparison.keys():
                     hasnot = True
                     break
 
-        elif paths not in self.plotters.keys():
+        elif paths not in self.comparison.keys():
             path = paths
             hasnot = True
 
@@ -181,11 +185,11 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         ComparisonException : if not
         """
         pairwise = True
-        if len(list(self.plotters.keys())) > 2:
+        if len(list(self.comparison.keys())) > 2:
             pairwise = False
 
         else:
-            for id, img, plotter in self.plotters.values():
+            for id, img in self.comparison.values():
                 if img.datasets.n_datasets() > 2:
                     pairwise = False
 
@@ -197,6 +201,10 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
 
 # functions here should make changes necessary to perform comparisons (e.g. same gridpoints)
 
+    def match_references(self):
+        """Function to match the points of different validations falling in the same spatial subset"""
+        # todo: implement
+
 # ---------------------- plotting functions ----------------------------------------------------------------------------
 
     def _title_plot(self):
@@ -204,7 +212,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         parts = []
         for path in self.paths:
             self._check_initialized(path)
-            id, img, _ = self.plotters[path]
+            id, img = self.comparison[path]
             img_part = "{}: {}".format(id, img.name)
             parts.append(img_part)
         title = "Comparison between " + " and ".join(parts)
@@ -221,10 +229,10 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
             name of metric to get data on
         """
         to_plot, names = [], []
-        for id, img, plotter in self.plotters.values():
+        for id, img in self.comparison.values():
             Var = img.group_vars(**{'metric':metric})[0]
-            names.append("{}: \n".format(id) + Var.pretty_name)
             # below necessary to workaround identical variable names
+            names.append("{}: \n".format(id) + Var.pretty_name)
             df = Var.values
             to_plot.append(df)
 
@@ -237,7 +245,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         self._check_pairwise() # todo: handle other cases
 
         medians, names = [], []
-        for id, img, plotter in self.plotters.values():
+        for id, img in self.comparison.values():
             median = img.stats_df()['Median']
             medians.append(median)
             names.append("Medians for {}".format(img.name))
@@ -278,8 +286,8 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         """
         # get non-pairwise data to plot
         to_plot, names = [], []
-        for n, res in enumerate(self.plotters.values()):
-            id, img, plotter = res
+        for n, res in enumerate(self.comparison.values()):
+            id, img = res
             for Var in img._iter_vars(**{'metric':metric}):
                 names.append("{}: \n".format(id) + Var.pretty_name)
                 # below necessary to workaround identical variable names
@@ -313,7 +321,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
             plotting keyword arguments
         """
         other_dfs, other_names = [], []
-        for id, img, plotter in self.plotters.values():
+        for id, img in self.comparison.values():
             for n, Var in enumerate(img._iter_vars(**{'metric':metric})):
                 name = "{}: ".format(id) + Var.pretty_name
                 if id == 0 and n == 0:
@@ -335,7 +343,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         axes.set_xlabel('Mean with {}'.format(ref_name) + um)
         axes.set_ylabel('Difference with {}'.format(ref_name) + um)
 
-    def corr_plot(self, metric:str):
+    def corr_plot(self, metric:str, **sns_kwargs):
         """
         Correlation plot between two validation results, for a metric
         """
@@ -355,7 +363,8 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
                          y=corrplot_df[names[1]],
                          label="Validation point",
                          line_kws={'label':"x ={}*y + {}, r: {}, p: {}".format(
-                             *[round(i,2) for i in [slope, int, r, p]])})
+                             *[round(i,2) for i in [slope, int, r, p]])},
+                         **sns_kwargs)
         ax.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
         plt.legend()
 
@@ -373,7 +382,7 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         Metric = QA4SMMetric(metric)
 
         sets = []
-        for id, img, plotter in self.plotters.values():
+        for id, img in self.comparison.values():
             for Var in img._iter_vars(**{'metric':metric}):
                 sets.append(Var.values)
         # get difference (other - reference) values for mapplot
@@ -417,12 +426,10 @@ class QA4SMComparison(): # todo: add comparison of spatial extents
         method: str
             a method from the lookup table in diff_method
         """
-        subset = self._subset_plotters(paths)
-        subset_plotters = [value[1] for value in subset.values()]
+        subset = self._subset_comparison(paths)
+        subset_comparison = [value[1] for value in subset.values()]
 
         diff_funct = self.diff_methods(method)
-        output = diff_funct(self.ref, plotters)
+        output = diff_funct(self.ref, comparison)
 
         return output
-
-comp = QA4SMComparison(paths)
