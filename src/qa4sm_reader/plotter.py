@@ -241,7 +241,7 @@ class QA4SMPlotter(object):
         if med:
             met_str.append('median: {:.3g}'.format(ds.median()))
         if iqr:
-            met_str.append('Interq. range: {:.3g}'.format(iqr))
+            met_str.append('IQR: {:.3g}'.format(iqr))
         if count:
             met_str.append('N: {:d}'.format(ds.count()))
 
