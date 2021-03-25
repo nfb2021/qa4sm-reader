@@ -17,7 +17,6 @@ class QA4SMDatasets():
         # attributes of the result file
         self.meta = global_attrs
         self._get_offset()
-        self.others = self.get_others()
 
     def _ref_dc(self) -> int:
         """
@@ -81,7 +80,8 @@ class QA4SMDatasets():
         names['pretty_name'] = self.meta[globals._ds_pretty_name_attr.format(dc)]
         names['short_version'] = self.meta[globals._version_short_name_attr.format(dc)]
         names['pretty_version'] = self.meta[globals._version_pretty_name_attr.format(dc)]
-        names['pretty_title'] = names['pretty_name'] + ' ({})'.format(names['pretty_version'])
+        names['short_title'] = '{} ({})'.format(names['short_name'], names['short_version'])
+        names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
         # todo: create condition if key not found in the attrs (take from global.py)
 
         return names
@@ -105,7 +105,15 @@ class QA4SMDatasets():
 
         return n_others + 1
 
-    def get_others(self) -> list:
+    @property
+    def ref(self) -> dict:
+        """Get a dictionary of the dataset metadata for the reference dataset"""
+        dc_name = self._dc_names(self._ref_dc())
+
+        return dc_name
+
+    @property
+    def others(self) -> list:
         """Get a list with the datset metadata for oll the non-reference datasets"""
         others_meta = []
         for dc in self._dcs():
@@ -116,7 +124,7 @@ class QA4SMDatasets():
 
     def dataset_metadata(self, id:int, element:str or list=None) -> tuple:
         """
-        Get the metadata for the dataset specified by the id and short_name
+        Get the metadata for the dataset specified by the id
 
         Parameters
         ----------

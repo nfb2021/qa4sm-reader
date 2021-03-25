@@ -15,6 +15,7 @@ from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from pygeogrids.grids import BasicGrid, genreg_grid
+from shapely.geometry import Polygon
 
 import warnings
 
@@ -604,3 +605,40 @@ def diff_plot(ref_df:pd.DataFrame, other_dfs:list, ref_name:str, other_names:lis
     plt.legend()
 
     return fig, axes
+
+def plot_spatial_extent(polys:dict, output:str=None, title:str=None):
+    """
+    Plots the given Polygons on a map.
+
+    Parameters
+    ----------
+    polys : dict
+        dictionary with shape {name: shapely.geometry.Polygon}
+    title : str
+        plot title
+    """
+    fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi)
+    for n, items in enumerate(polys.items()):
+        name, Pol = items
+        if n == 0:
+            union = Pol
+        union = union.union(Pol)  # get maximum extent
+        try:
+            x, y = Pol.exterior.xy
+            if name == output:
+                style = {'color':'powderblue', 'alpha':0.4}
+                ax.fill(x, y, label=name, **style, zorder=5)
+                continue
+            ax.plot(x, y, label=name)
+        except:
+            pass
+
+    plt.legend(loc='upper right')
+    ax.set_title(title)
+    # provide extent of plot
+    d_lon = abs(union.bounds[0] - union.bounds[2])* 1/8
+    d_lat = abs(union.bounds[1] - union.bounds[3])* 1/8
+    plot_extent = (union.bounds[0] - d_lon, union.bounds[2] + d_lon,
+                   union.bounds[1] - d_lat, union.bounds[3] + d_lat)
+
+    style_map(ax, plot_extent)

@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import xarray as xr
 from qa4sm_reader import globals
+from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
+
 from parse import *
 from pathlib import Path
 import numpy as np
+import xarray as xr
 from collections import OrderedDict
-from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
-import pandas as pd
 import itertools
-
+import pandas as pd
+from shapely.geometry import Polygon
 
 class QA4SMImg():
     """
@@ -19,7 +20,8 @@ class QA4SMImg():
                  extent=None,
                  ignore_empty=True,
                  metrics=None,
-                 index_names=globals.index_names):
+                 index_names=globals.index_names,
+                 load_data=True):
         """
         Initialise a common QA4SM results image.
 
@@ -37,6 +39,8 @@ class QA4SMImg():
             are loaded.
         index_names : list, optional (default: ['lat', 'lon'] - as in globals.py)
             Names of dimension variables in x and y direction (lat, lon).
+        load_data: bool, default is True
+            if true, initialize all the datasets, variables and metadata
         """
         self.filepath = Path(filepath)
         self.index_names = index_names
@@ -44,22 +48,23 @@ class QA4SMImg():
         self.ignore_empty = ignore_empty
         self.ds = self._open_ds(extent=extent)
         self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
-
-        self.varnames = list(self.ds.variables.keys())
-        self.df = self._ds2df()
         self.datasets = QA4SMDatasets(self.ds.attrs)
-        self.vars = self._load_vars()
-        self.metrics = self._load_metrics()
-        self.common, self.double, self.triple = self.group_metrics(metrics)
-
-        self.ref_dataset = self.ds.val_dc_dataset0
         self.name = self.create_image_name()
 
-        try:
-            self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
-        except:
-            self.ref_dataset_grid_stepsize = 'nan'
-        # todo: update tests for sel.ds.val_dc_dataset0_grid_stepsize = 'nan'
+        if load_data:
+            self.varnames = list(self.ds.variables.keys())
+            self.df = self._ds2df()
+            self.vars = self._load_vars()
+            self.metrics = self._load_metrics()
+            self.common, self.double, self.triple = self.group_metrics(metrics)
+
+            self.ref_dataset = self.ds.val_dc_dataset0
+
+            try:
+                self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
+            except:
+                self.ref_dataset_grid_stepsize = 'nan'
+            # todo: update tests for sel.ds.val_dc_dataset0_grid_stepsize = 'nan'
 
     def _open_ds(self, extent=None):  #todo: check functionalities of other methods and that it doesn't break
         """Open .nc as xarray datset, with selected extent"""
@@ -71,24 +76,41 @@ class QA4SMImg():
             mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
                    (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
 
-            #  todo: check that subset exists and raise assetion error if not
+            #  todo: check that subset exists and raise assertion error if not
 
             return ds.where(mask, drop=True)
 
         else:
             return ds
 
-    def _get_extent(self, extent):
+    def create_image_name(self) -> str:
+        """ Create a unique name for the QA4SMImage from the netCDF file"""
+        ref = self.datasets.ref['short_title']
+        others = [other['short_title'] for other in self.datasets.others]
+        int_from = self.ds.val_interval_from[:10]
+        int_to = self.ds.val_interval_to[:10]
+
+        name = "ref: {} v datasets: ".format(ref) + \
+               ", ".join(others) + \
+               " (period: {} to {})".format(int_from, int_to)
+
+        return name
+
+    def _get_extent(self, extent) -> Polygon:
         """ Get extent of the results from the netCDF file"""
-        if extent:
-            return extent
+        if not extent:
+            lat, lon = globals.index_names
+            lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
+            lons = min(lon_coord), max(lon_coord)
+            lats = min(lat_coord), max(lat_coord)
+            extent = lons + lats
+        # transform in shapely Polygon
+        minlon, maxlon, minlat, maxlat = extent
+        bounds = [(minlon,minlat), (maxlon, minlat),
+                  (maxlon, maxlat), (minlon, maxlat)]
+        Pol = Polygon(bounds)
 
-        lat, lon = globals.index_names
-        lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
-        lons = min(lon_coord), max(lon_coord)
-        lats = min(lat_coord), max(lat_coord)
-
-        return lons + lats
+        return Pol
 
     def _load_vars(self, empty=False) -> (list, list):
         """
@@ -164,7 +186,7 @@ class QA4SMImg():
             else:
                 yield Var
 
-    def _iter_metrics(self, **filter_parms) -> iter: # todo: use Wolfi method instead of kwargs
+    def _iter_metrics(self, **filter_parms) -> iter:
         """
         Iter through QA4SMMetric objects that are in the file
 
@@ -282,24 +304,6 @@ class QA4SMImg():
         metrics_df = self._ds2df(varnames=varnames)
 
         return metrics_df
-
-    # todo: replace find_group() everywhere
-
-    # todo: create handlers.Dataset object with precise/flexible structure
-
-    # todo: ref_meta, metric_meta() and var_meta() functions need to be replaced
-
-    # todo: parse_filename() and _build_fname_templ() have been substituted by QA4SMDatasets class
-
-    # todo: create a unique name for the image (to use in plots)
-    def create_image_name(self) -> str:
-        """ Create a unique name for the QA4SMImage """
-        ref = self.datasets.dataset_metadata(self.datasets._ref_dc())[1]
-        ref_part = "{} v ".format(ref['pretty_name'])
-        others_part = ", ".join(other['pretty_name'] for other in self.datasets.others)
-        date_range = "({} to {})".format(self.ds.val_interval_from[:10], self.ds.val_interval_to[:10])
-
-        return ref_part + others_part + date_range
 
     def _metric_stats(self, metric)  -> list:
         """
