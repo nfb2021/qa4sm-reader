@@ -80,9 +80,8 @@ class QA4SMDatasets():
         names['pretty_name'] = self.meta[globals._ds_pretty_name_attr.format(dc)]
         names['short_version'] = self.meta[globals._version_short_name_attr.format(dc)]
         names['pretty_version'] = self.meta[globals._version_pretty_name_attr.format(dc)]
-        names['short_title'] = '{} ({})'.format(names['short_name'], names['short_version'])
         names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
-        # todo: create condition if key not found in the attrs (take from global.py)
+        # todo: parse from filename and use globals as backup?
 
         return names
 
@@ -190,7 +189,7 @@ class QA4SMMetricVariable():
 
         self.metric, self.g, self.parts = self._parse_varname()
         self.Datasets = QA4SMDatasets(self.attrs)
-        # exclude lat, lon, idx, gpi, time, _row_size todo: should be excluded more upstream
+        # exclude lat, lon, idx, gpi, time, _row_size todo: should it be excluded more upstream?
         if self.g is not None:
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
@@ -262,7 +261,7 @@ class QA4SMMetricVariable():
             ref_ds = self.Datasets.dataset_metadata(self.Datasets._ref_dc())
             mds, dss = None, None
 
-        else: # todo: update for new structure
+        else:
             ref_ds = self.Datasets.dataset_metadata(self.parts['ref_id'])
             mds = self.Datasets.dataset_metadata(self.parts['sat_id0'])
             dss = None

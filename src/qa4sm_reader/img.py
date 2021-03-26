@@ -30,8 +30,7 @@ class QA4SMImg():
         filepath : str
             Path to the results netcdf file (as created by QA4SM)
         extent : tuple, optional (default: None)
-            Area to subset the values for.
-            (min_lon, max_lon, min_lat, max_lat)
+            Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
         ignore_empty : bool, optional (default: True)
             Ignore empty variables in the file.
         metrics : list or None, optional (default: None)
@@ -58,8 +57,6 @@ class QA4SMImg():
             self.metrics = self._load_metrics()
             self.common, self.double, self.triple = self.group_metrics(metrics)
 
-            self.ref_dataset = self.ds.val_dc_dataset0
-
             try:
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
             except:
@@ -85,8 +82,8 @@ class QA4SMImg():
 
     def create_image_name(self) -> str:
         """ Create a unique name for the QA4SMImage from the netCDF file"""
-        ref = self.datasets.ref['short_title']
-        others = [other['short_title'] for other in self.datasets.others]
+        ref = self.datasets.ref['short_version']
+        others = [other['short_version'] for other in self.datasets.others]
         int_from = self.ds.val_interval_from[:10]
         int_to = self.ds.val_interval_to[:10]
 
@@ -96,7 +93,7 @@ class QA4SMImg():
 
         return name
 
-    def _get_extent(self, extent) -> Polygon:
+    def _get_extent(self, extent) -> tuple:
         """ Get extent of the results from the netCDF file"""
         if not extent:
             lat, lon = globals.index_names
@@ -104,13 +101,8 @@ class QA4SMImg():
             lons = min(lon_coord), max(lon_coord)
             lats = min(lat_coord), max(lat_coord)
             extent = lons + lats
-        # transform in shapely Polygon
-        minlon, maxlon, minlat, maxlat = extent
-        bounds = [(minlon,minlat), (maxlon, minlat),
-                  (maxlon, maxlat), (minlon, maxlat)]
-        Pol = Polygon(bounds)
 
-        return Pol
+        return extent
 
     def _load_vars(self, empty=False) -> (list, list):
         """
@@ -350,7 +342,7 @@ class QA4SMImg():
         
         return metric_stats
     
-    def stats_df(self) -> pd.DataFrame:
+    def stats_df(self) -> pd.DataFrame: # todo: format numbers
         """
         Create a DataFrame with summary statistics for all the metrics
 

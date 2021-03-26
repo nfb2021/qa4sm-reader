@@ -11,8 +11,8 @@ def plot_all(filepath,
              extent=None,
              out_dir=None,
              out_types='png',
-             boxplot_kwargs=dict(),
-             mapplot_kwargs=dict()) -> (list, list):
+             save_all=True,
+             **plotting_kwargs) -> (list, list):
     """
     Creates boxplots for all metrics and map plots for all variables.
     Saves the output in a folder-structure.
@@ -23,17 +23,15 @@ def plot_all(filepath,
         path to the *.nc file to be processed.
     metrics : set or list, optional (default: None)
         metrics to be plotted. If None, all metrics with data are plotted
-    extent : list
-        list(x_min, x_max, y_min, y_max) to create a subset of the values
-    out_dir : str, optional
-        Parent directory where to generate the folder structure for all plots.
-        If None, defaults to the current working directory.
-    out_type: str, optional. Default is 'png'
-        File types, e.g. 'png', 'pdf', 'svg', 'tiff'...
-    boxplot_kwargs : dict, optional
-        Additional keyword arguments that are passed to the boxplot function.
-    mapplot_kwargs : dict, optional
-        Additional keyword arguments that are passed to the mapplot function.
+    extent : tuple, optional (default: None)
+        Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
+    out_dir : str, optional (default: None)
+        Path to output generated plot. If None, defaults to the current working directory.
+    out_types: str or list
+        extensions which the files should be saved in
+    save_all: bool, optional. Default is True.
+        all plotted images are saved to the output directory
+    plotting_kwargs: arguments for plotting functions.
 
     Returns
     -------
@@ -41,9 +39,6 @@ def plot_all(filepath,
     fnames_mapplots: list
         lists of filenames for created mapplots and boxplots
     """
-
-    if not out_dir:
-        out_dir = os.path.join(os.getcwd(), os.path.basename(filepath))
     # initialise image and plotter
     img = QA4SMImg(filepath, extent=extent, ignore_empty=True)
     plotter = QA4SMPlotter(image=img, out_dir=out_dir)
@@ -51,17 +46,16 @@ def plot_all(filepath,
     if not metrics:
         metrics = img.metrics
     # iterate metrics and create files in output directory
-    fnames_boxplots, fnames_mapplots = [], []
+    fnames_bplot, fnames_mapplot = [], []
     for metric in metrics:
-        boxplots, mapplots = plotter.plot_metric(metric=metric,
-                                                 out_types=out_types,
-                                                 boxplot_kwargs=boxplot_kwargs,
-                                                 mapplot_kwargs=mapplot_kwargs)
-        plt.close('all')
-        fnames_boxplots.extend(boxplots)
-        fnames_mapplots.extend(mapplots)
+        metric_bplots, metric_mapplots = plotter.plot_metric(metric=metric,
+                                                             out_types=out_types,
+                                                             save_all=save_all,
+                                                             **plotting_kwargs)
+        fnames_bplot.extend(metric_bplots)
+        fnames_mapplot.extend(metric_mapplots)
         
-    return fnames_boxplots, fnames_mapplots
+    return fnames_bplot, fnames_mapplot
 
 def get_img_stats(filepath, extent=None):
     """
@@ -84,4 +78,8 @@ def get_img_stats(filepath, extent=None):
     
     return table
 
-plot_all('/home/pstradio/Projects/scratch/Issue_plotting/0-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-GLDAS.SoilMoi0_10cm_inst.nc',out_dir='/home/pstradio/Projects/scratch/Issue_plotting')
+path = '/home/pstradio/Projects/scratch/Test_reader'
+nc = '/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc'
+out = '/out_2'
+
+plot_all(path+nc, out_dir=path+out)

@@ -14,7 +14,7 @@ import warnings as warn
 
 #todo: migrate plotting functions to utils
 
-class QA4SMComparison(): # todo: find way to only compare results union
+class QA4SMComparison():  #todo: optimize initialization (slow with large gridded files)
     """
     Class that provides comparison plots and table for a list of netCDF files. As initialising a QA4SMImage can
     take some time, the class can be updated keeping memory of what has already been initialized
@@ -90,7 +90,7 @@ class QA4SMComparison(): # todo: find way to only compare results union
         # make sure the new state is stored in the class attribute
         assert self.union
 
-    def _check_ref(self) -> str:
+    def _check_ref(self) -> str:  # todo: should it work with different versions?
         """ Check that all initialized validation results have the same dataset as reference """
         for id, img in self.comparison.values():
             ref = img.datasets.ref
@@ -106,7 +106,10 @@ class QA4SMComparison(): # todo: find way to only compare results union
         """Return True if the initialised validation results have overlapping spatial extents, else False"""
         polys = {}
         for id, img in self.comparison.values():  # get names and extents for all images
-            Pol = img.extent
+            minlon, maxlon, minlat, maxlat = img.extent
+            bounds = [(minlon,minlat), (maxlon, minlat),
+                      (maxlon, maxlat), (minlon, maxlat)]
+            Pol = Polygon(bounds)
             name = "{}: ".format(id) + img.name
             polys[name] = Pol
 
@@ -186,7 +189,10 @@ class QA4SMComparison(): # todo: find way to only compare results union
         """
         polys = {}
         for n, img in enumerate(imgs):  # get names and extents for all images
-            Pol = img.extent
+            minlon, maxlon, minlat, maxlat = img.extent
+            bounds = [(minlon,minlat), (maxlon, minlat),
+                      (maxlon, maxlat), (minlon, maxlat)]
+            Pol = Polygon(bounds)
             name = "{}: ".format(n) + img.name
             polys[name] = Pol
 
@@ -287,7 +293,7 @@ class QA4SMComparison(): # todo: find way to only compare results union
 
         return title
 
-    def diff_table(self) -> pd.DataFrame:
+    def diff_table(self, **kwargs) -> pd.DataFrame:
         """
         Create a table where all the metrics for the different validation runs are compared
         """
@@ -308,7 +314,7 @@ class QA4SMComparison(): # todo: find way to only compare results union
 
         return table
 
-    def diff_boxplot(self, metric:str):
+    def diff_boxplot(self, metric:str, **kwargs):
         """
         Create a boxplot where two validations are compared. If the comparison is on the subsets union, then the
         difference is not shown.
@@ -387,7 +393,7 @@ class QA4SMComparison(): # todo: find way to only compare results union
         ax.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
         plt.legend()
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted'):
+    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -411,16 +417,15 @@ class QA4SMComparison(): # todo: find way to only compare results union
                             label=cbar_label)
         axes.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
 
-    def diff_method(self, method):
+    def diff_methods(self, method):
         """
         Return the difference function from a lookup table
         """
         try:
-            diff_methods_lut = {'table': self.diff_plot,
+            diff_methods_lut = {'table': self.diff_table,
                                 'boxplot': self.diff_boxplot,
-                                'extended_bplot': self.diff_bplot_extended,
-                                'correlation_plot': self.corr_plot,
-                                'plot': self.diff_plot,
+                                'correlation': self.corr_plot,
+                                'difference': self.diff_plot,
                                 'mapplot': self.diff_mapplot}
         except IndexError as e:
             warn('Difference method not valid. Choose one of %s' % ', '.join(diff_methods_lut.keys()))
@@ -428,7 +433,7 @@ class QA4SMComparison(): # todo: find way to only compare results union
 
         return diff_methods_lut[method]
 
-    def wrapper(self, method): # todo: make functional
+    def wrapper(self, method, metric, **kwargs): # todo: make functional
         """
         Call the method using a list of paths and the already initialised images
 
@@ -437,14 +442,9 @@ class QA4SMComparison(): # todo: find way to only compare results union
         method: str
             a method from the lookup table in diff_method
         """
-        subset_comparison = [value[1] for value in subset.values()]
+
 
         diff_funct = self.diff_methods(method)
-        output = diff_funct(self.ref, comparison)
+        output = diff_funct(metric=metric, **kwargs)
 
         return output
-
-paths = ['/home/pstradio/Projects/scratch/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.east_US.nc',
-         '/home/pstradio/Projects/scratch/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.middle_US.nc']
-
-comp = QA4SMComparison(paths)
