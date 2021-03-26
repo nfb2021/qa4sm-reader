@@ -32,7 +32,7 @@ boxplot_width = 1.7  # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 
 # === watermark defaults ===
-watermark = u'made with QA4SM (qa4sm.eodc.eu)'  # Watermark string
+watermark = u'made with QA4SM (qa4sm.eu)'  # Watermark string
 watermark_pos = 'bottom'  # Default position ('top' or 'bottom' or None)
 watermark_fontsize = 8  # fontsize in points (matplotlib uses 72ppi)
 watermark_pad = 5  # padding above/below watermark in points (matplotlib uses 72ppi)
