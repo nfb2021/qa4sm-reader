@@ -12,16 +12,15 @@ from scipy import stats
 
 import warnings as warn
 
-#todo: migrate plotting functions to utils
 
 class QA4SMComparison():  #todo: optimize initialization (slow with large gridded files)
     """
     Class that provides comparison plots and table for a list of netCDF files. As initialising a QA4SMImage can
     take some time, the class can be updated keeping memory of what has already been initialized
     """
-    def __init__(self, paths:list, extent:tuple=None, get_intersection=True):
+    def __init__(self, paths:list, extent:tuple=None, get_intersection:bool=True):
         """
-        Initialise the QA4SMImages and creates a default comparison
+        Initialise the QA4SMImages from the paths to netCDF files specified
 
         Parameters
         ----------
@@ -52,8 +51,12 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         Returns
         -------
-        comparison: dict
-            see self.comparison
+        extent: tuple, optional. Default is None
+            exent of stapial subset
+        get_intersection : bool, optional. Default is True.
+            if extent is not specified, we can either take the union or intersection of the original extents of the
+            passed .nc files. This affects the diff_table and diff_boxplot methods, whereas the diff_corr, diff_mapplot
+            and diff_plot ALWAYS consider the intersection.
         """
         comparison = {}
         imgs = []
@@ -102,7 +105,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         return ref
 
     @property
-    def overlapping(self):
+    def overlapping(self) -> bool:
         """Return True if the initialised validation results have overlapping spatial extents, else False"""
         polys = {}
         for id, img in self.comparison.values():  # get names and extents for all images
@@ -120,7 +123,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         return output.bounds != ()
 
-    def _check_initialized(self, paths):
+    def _check_initialized(self, paths:str or list):
         """
         Check that the given path has been initialized in the class
 
@@ -167,7 +170,6 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         assert pairwise, "For pairwise comparison methods, only two validation " \
                          "results with two datasets each can be compared"
 
-#----------------------- handling functions ----------------------------------------------------------------------------
     @staticmethod
     def _combine_geometry(imgs:list, get_intersection:bool=True, visualize=False) -> tuple:
         """
@@ -178,9 +180,12 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         ----------
         imgs : list
             list with the QA4SMImg corresponding to the paths
-        where : str, optional. Default is 'intersection'.
+        get_intersection : bool, optional. Default is True.
             if extent is not specified, we can either take the union or intersection of the original extents of the
-            passed .nc files. Possible choices are 'union', 'intersection'
+            passed .nc files. This affects the diff_table and diff_boxplot methods, whereas the diff_corr, diff_mapplot
+            and diff_plot ALWAYS consider the intersection.
+        visualize: bool, optional. Default is False.
+            If true, an image is produced to visualize the output
 
         Return
         ------
@@ -224,7 +229,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         Parameters
         ----------
-        where : str, optional. Default is 'union'.
+        get_intersection : bool, optional. Default is True.
             if extent is not specified, we can either take the union or intersection of the original extents of the
             passed .nc files. This affects the diff_table and diff_boxplot methods, whereas the diff_corr, diff_mapplot
             and diff_plot ALWAYS consider the intersection.
@@ -254,7 +259,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             ids.append(id)
             Var = img.group_vars(**{'metric':metric})[0]
             # below necessary to workaround identical variable names
-            names.append("{}: \n".format(id) + Var.pretty_name)
+            names.append("{}: ".format(id) + Var.pretty_name)
             df = Var.values
             to_plot.append(df)
 
@@ -276,22 +281,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                                      "have overlapping spatial extents."
         if not self.extent and union:
             assert not self.union, "If the comparison is based on the 'union' of spatial extents, this method " \
-                               "cannot be called, as it is based on a point-by-point comparison"
+                                   "cannot be called, as it is based on a point-by-point comparison"
         if pairwise:
             self._check_pairwise() # todo: handle other cases
-
-# ---------------------- plotting functions ----------------------------------------------------------------------------
-    def _title_plot(self):
-        """ Create title for general plot """
-        parts = []
-        for path in self.paths:
-            self._check_initialized(path)
-            id, img = self.comparison[path]
-            img_part = "{}: {}".format(id, img.name)
-            parts.append(img_part)
-        title = "Comparison between: \n" + ";\n".join(parts)
-
-        return title
 
     def diff_table(self, **kwargs) -> pd.DataFrame:
         """
@@ -310,7 +302,6 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         table.columns = names
         diff_name = 'Difference of medians ({} - {})'.format(*ids[::-1])
         table[diff_name] = table.iloc[:,1] - table.iloc[:,0]
-        pd.set_option('display.precision', 1) # todo: format numbers
 
         return table
 
@@ -318,6 +309,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         """
         Create a boxplot where two validations are compared. If the comparison is on the subsets union, then the
         difference is not shown.
+
+        metric: str
+            metric from the .nc result file attributes that the plot is based on
         """
         self.perform_checks(pairwise=True)
         # prepare data
@@ -336,7 +330,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                             label= "{} {}".format(Metric.pretty_name, um),
                             figsize=(16,10),
                             **{'palette':palette})
-        axes.set_title(self._title_plot())
+        title_plot = "Boxplot comparison of {} {}".format(Metric.pretty_name, um)
+        axes.set_title(title_plot, pad=glob.title_pad)
 
     def diff_plot(self, metric:str, **kwargs):
         """
@@ -344,10 +339,6 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         Parameters
         ----------
-        ref : str
-            path to the reference validation result .nc file
-        others : list
-            list of paths to the validation results files to be compared tot he reference
         metric: str
             metric from the .nc result file attributes that the plot is based on
         **kwargs : kwargs
@@ -356,22 +347,27 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         self.perform_checks(overlapping=True, union=True, pairwise=True)
 
         # get data and names
-        corrplot_df = self._get_pairwise(metric=metric).dropna()
+        df = self._get_pairwise(metric=metric).dropna()
 
-        fig, axes = diff_plot(ref_df, other_dfs, ref_name, other_names)  #todo: restructure this
+        fig, axes = diff_plot(df)
         # get unit measures
-        ref_ds = self.ref['short_name']
-        um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
+        ref_name = self.ref['short_name']
+        um = glob._metric_description[metric].format(glob._metric_units[ref_name])
         # set figure title
         Metric = QA4SMMetric(metric)
-        axes.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
-        # set axes titles
-        axes.set_xlabel('Mean with {}'.format(ref_name) + um)
-        axes.set_ylabel('Difference with {}'.format(ref_name) + um)
+        title_plot = "Difference plot of {} {}".format(Metric.pretty_name, um)
+        axes.set_title(title_plot, pad=glob.title_pad)
 
     def corr_plot(self, metric:str, **sns_kwargs):  #todo: colouring based on metadata
         """
         Correlation plot between two validation results, for a metric
+
+        Parameters
+        ----------
+        metric: str
+            metric from the .nc result file attributes that the plot is based on
+        **sns_kwargs : kwargs
+            plotting keyword arguments
         """
         self.perform_checks(overlapping=True, union=True, pairwise=True)
 
@@ -383,14 +379,15 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
         # plot regression
         slope, int, r, p, sterr = stats.linregress(corrplot_df.iloc[:,0], corrplot_df.iloc[:,1])
-        fig, ax = plt.subplots(figsize=(16,10))
+        fig, axes = plt.subplots(figsize=(16,10))
         ax = sns.regplot(x=corrplot_df.iloc[:, 0],
                          y=corrplot_df.iloc[:, 1],
                          label="Validation point",
                          line_kws={'label':"x ={}*y + {}, r: {}, p: {}".format(
                              *[round(i,2) for i in [slope, int, r, p]])},
                          **sns_kwargs)
-        ax.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
+        title_plot = "Correlation plot of {} {}".format(Metric.pretty_name, um)
+        axes.set_title(title_plot, pad=glob.title_pad)
         plt.legend()
 
     def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
@@ -399,27 +396,37 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         Parameters
         ----------
+        metric: str
+            metric from the .nc result file attributes that the plot is based on
         diff_range: str, default is 'adjusted'
             if 'adjusted', colorbar goues from minimum to maximum of difference; if 'fixed', the colorbar goes from the
             maximum to the minimum difference range, by metric
+        **kwargs : kwargs
+            plotting keyword arguments
         """
         self.perform_checks(overlapping=True, union=True, pairwise=True)
 
         df_diff = self._get_pairwise(metric=metric).dropna()
         Metric = QA4SMMetric(metric)
-
+        um = glob._metric_description[metric].format(glob._metric_units[self.ref['short_name']])
         # make mapplot
-        cbar_label = "Difference of  {}".format(Metric.pretty_name)
+        cbar_label = "Difference between {} and {}".format(*df_diff.columns)
         fig, axes = mapplot(df_diff.iloc[:,2],
                             metric,
                             self.ref['short_name'],
                             diff_range=diff_range,
                             label=cbar_label)
-        axes.set_title(self._title_plot() + " for {}".format(Metric.pretty_name))
+        title_plot = "Overview of the difference of {} {}".format(Metric.pretty_name, um)
+        axes.set_title(title_plot, pad=glob.title_pad)
 
-    def diff_methods(self, method):
+    def diff_methods(self, method:str):
         """
         Return the difference function from a lookup table
+
+        Parameters
+        ----------
+        method: str
+            method linked to function
         """
         try:
             diff_methods_lut = {'table': self.diff_table,
@@ -433,7 +440,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         return diff_methods_lut[method]
 
-    def wrapper(self, method, metric, **kwargs): # todo: make functional
+    def wrapper(self, method:str, metric:str, **kwargs):
         """
         Call the method using a list of paths and the already initialised images
 
@@ -441,10 +448,17 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         ----------
         method: str
             a method from the lookup table in diff_method
+        metric: str
+            metric from the .nc result file attributes that the plot is based on
+        **kwargs : kwargs
+            plotting keyword arguments
         """
-
-
         diff_funct = self.diff_methods(method)
         output = diff_funct(metric=metric, **kwargs)
 
         return output
+
+paths = ['/home/pstradio/Projects/qa4sm-reader/docs/examples/example_data/validations_nc/0-C3S.sm_with_1-GLDAS.SoilMoi0_10cm_inst.nc',
+         '/home/pstradio/Projects/qa4sm-reader/docs/examples/example_data/validations_nc/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc']
+
+comp = QA4SMComparison(paths)

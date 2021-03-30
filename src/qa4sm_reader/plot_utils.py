@@ -64,7 +64,7 @@ def oversample(lon, lat, data, extent, dx, dy):
 
     return img.reshape(-1, reg_grid.shape[1]), reg_grid
 
-def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None): # todo: check that changes do not cause breakages
+def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None):
     """
     Converts geotraj (list of lat, lon, value) to a regular grid over lon, lat.
     The values in df needs to be sampled from a regular grid, the order does not matter.
@@ -429,7 +429,7 @@ def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None):
 
     return fig, im, cax
 
-def boxplot(df, label=None, figsize=None, dpi=100, **kwargs): # todo: after changes, check that boxplot works when two equal datasets are on the left
+def boxplot(df, label=None, figsize=None, dpi=100, **kwargs):
     """
     Create a boxplot_basic from the variables in df.
     The box shows the quartiles of the dataset while the whiskers extend
@@ -563,7 +563,7 @@ def mapplot(df, metric, ref_short, ref_grid_stepsize=None,
 
         return fig, ax
 
-def diff_plot(ref_df:pd.DataFrame, other_dfs:list, ref_name:str, other_names:list, **kwargs):
+def diff_plot(df:pd.DataFrame, **kwargs):
     """
     Create a Bland Altman plot for a Dataframe and a list of other Dataframes. Difference is other - reference.
 
@@ -571,12 +571,6 @@ def diff_plot(ref_df:pd.DataFrame, other_dfs:list, ref_name:str, other_names:lis
     ----------
     ref_df : pd.DataFrame
         Dataframe of the reference values
-    other_dfs: list
-        list of Dataframes for the values to be compared
-    ref_name : str
-        name of the reference
-    other_names : list
-        list of names of the comparisons
 
     Returns
     -------
@@ -584,27 +578,26 @@ def diff_plot(ref_df:pd.DataFrame, other_dfs:list, ref_name:str, other_names:lis
         the boxplot
     ax : matplotlib.axes.Axes
     """
-    ref_values = np.asarray(ref_df)
-    fig, axes = plt.subplots(figsize=(16,10))
-    colors = plt.cm.cividis(np.linspace(0,1, len(other_dfs)))
+    fig, ax = plt.subplots(figsize=(16,10))
 
-    for df, name, c in zip(other_dfs, other_names, colors):
-        other_values = np.asarray(df)
-        mean = np.mean([ref_values, other_values], axis=0)
-        diff = other_values - ref_values
-        md = np.mean(diff)
-        sd = np.std(diff, axis=0)
-        axes.scatter(mean, diff, color=c, label=name, **kwargs)
-        # mean line
-        axes.axhline(md, color=c, linestyle='-', label="Mean difference")
-        # higher STD bound
-        axes.axhline(md + 1.96*sd, color=c, linestyle='--', label="Limits of agreement of difference")
-        # lower STD bound
-        axes.axhline(md - 1.96*sd, color=c, linestyle='--')
+    mean = "Mean with {}".format(df.columns[0])
+    diff = "Difference with {}".format(df.columns[0])
+
+    df[diff] = df.iloc[:,1] - df.iloc[:,0]
+    df[mean] = np.mean(df, axis=1)
+    md = np.mean(df[diff])
+    sd = np.std(df[diff])
+    ax = sns.scatterplot(x=df[mean], y=df[diff], **kwargs)
+    # mean line
+    ax.axhline(md, linestyle='-', label="Mean difference with {}".format(df.columns[1]))
+    # higher STD bound
+    ax.axhline(md + 1.96*sd, linestyle='--', label="Standard intervals")
+    # lower STD bound
+    ax.axhline(md - 1.96*sd, linestyle='--')
 
     plt.legend()
 
-    return fig, axes
+    return fig, ax
 
 def plot_spatial_extent(polys:dict, output:str=None, title:str=None):
     """

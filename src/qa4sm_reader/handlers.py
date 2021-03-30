@@ -97,9 +97,7 @@ class QA4SMDatasets():
         return id + self._offset_id_dc
 
     def n_datasets(self) -> int:
-        """
-        Counts the total number of datasets (reference + others)
-        """
+        """Counts the total number of datasets (reference + others)"""
         n_others = len(self._dcs().keys())
 
         return n_others + 1
@@ -135,7 +133,6 @@ class QA4SMDatasets():
         meta: tuple
             tuple with (dataset id, names dict)
         """
-        # todo: check use of dc/id
         dc = self._id2dc(id=id)
         names = self._dc_names(dc=dc)
 
@@ -144,7 +141,7 @@ class QA4SMDatasets():
 
         elif isinstance(element, str):
             if not element in names.keys():
-                raise ValueError("Elements must be one of '{}'".format(', '.join(names.keys()))) #todo: check error
+                raise ValueError("Elements must be one of '{}'".format(', '.join(names.keys())))
 
             meta = names[element]
 
@@ -154,7 +151,7 @@ class QA4SMDatasets():
         return (id, meta)
 
 class QA4SMMetricVariable():
-    """ Class that describes a metric variable, i.e. the metric for a specific set of Datasets"""
+    """Class that describes a metric variable, i.e. the metric for a specific set of Datasets"""
 
     def __init__(self, varname, global_attrs, values=None):
         """
@@ -189,20 +186,21 @@ class QA4SMMetricVariable():
 
         self.metric, self.g, self.parts = self._parse_varname()
         self.Datasets = QA4SMDatasets(self.attrs)
-        # exclude lat, lon, idx, gpi, time, _row_size todo: should it be excluded more upstream?
+        # do not initialize idx, gpi, time, _row_size (non-validation variables)
         if self.g is not None:
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
             self.pretty_name = self._pretty_name()
 
+    @property
     def isempty(self) -> bool:
-        """ Check whether values are associated with the object or not """
+        """Check whether values are associated with the object or not"""
         if self.values is None or self.values.empty:
 
             return True
 
     def _pretty_name(self):
-        """ Create a nice name for the variable """
+        """Create a nice name for the variable"""
         name = globals._variable_pretty_name[self.g]
 
         if self.g == 0:
@@ -275,7 +273,7 @@ class QA4SMMetricVariable():
         return ref_ds, mds, dss
 
 class QA4SMMetric():
-    """ Class for validation metric """
+    """Class for validation metric"""
     def __init__(self, name, variables_list=None):
 
         self.name = name
@@ -306,3 +304,4 @@ class QA4SMMetric():
             previous = value
 
         return value
+

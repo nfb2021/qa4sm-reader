@@ -15,7 +15,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
                                           'test_data', 'basic', self.testfile)
         self.img = QA4SMImg(self.testfile_path, ignore_empty=False)
 
-    def test_parse_filename(self):
+    def test_parse_filename(self):  #todo: deal with dataset numbering
         ds_and_vars = self.img.parse_filename()
         assert ds_and_vars['i_ref'] == 3
         assert ds_and_vars['i_ds1'] == 1
@@ -25,28 +25,24 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
         assert ds_and_vars['ds2'] == 'SMOS'
 
     def test_metrics_in_file(self):
-        m_groups = self.img.ls_metrics(as_groups=True)
-        assert m_groups['common'] == globals.metric_groups[0]
-        for m in m_groups['double']:  # tau is not in the results
+        assert list(self.img.common.keys()) == globals.metric_groups[0]
+        for m in self.img.double.keys():  # tau is not in the results
             assert m in globals.metric_groups[2]
-        assert m_groups['triple'] == []  #  this is not the TC test case
+        assert list(self.img.triple.keys()) == []  #  this is not the TC test case
 
         # with merged return value
-        ms = self.img.ls_metrics(as_groups=False)
+        ms = self.img.metrics
         for m in ms:
             assert any([m in l for l in list(globals.metric_groups.values())])
 
     def test_vars_in_file(self):
-        vars = self.img.ls_vars(False)
+        vars = self.img.varnames
         vars_should = ['n_obs']
         for metric in globals.metric_groups[2]:
             vars_should.append('{}_between_3-ERA5_LAND_and_1-C3S'.format(metric))
             vars_should.append('{}_between_3-ERA5_LAND_and_2-SMOS'.format(metric))
         vars_should = np.sort(np.array(vars_should))
         assert all(vars == vars_should)
-        vars = self.img.ls_vars(False)
-        assert len(vars) <= len(vars_should)
-
 
     def test_find_group(self):
         double_group = self.img.find_group('R')

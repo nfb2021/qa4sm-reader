@@ -63,17 +63,19 @@ class QA4SMImg():
                 self.ref_dataset_grid_stepsize = 'nan'
             # todo: update tests for sel.ds.val_dc_dataset0_grid_stepsize = 'nan'
 
-    def _open_ds(self, extent=None):  #todo: check functionalities of other methods and that it doesn't break
+    def _open_ds(self, extent=None):
         """Open .nc as xarray datset, with selected extent"""
         ds = xr.open_dataset(self.filepath)
-        ds = ds.drop_vars('time')
+        # drop non-spatial variables (e.g.'time')
+        if globals.time_name in ds.variables:
+            ds = ds.drop_vars(globals.time_name)
         # geographical subset of the results
         if extent:
             lat, lon = globals.index_names
             mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
                    (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
 
-            #  todo: check that subset exists and raise assertion error if not
+            assert True in mask, "The selected subset is not overlapping the validation domain"
 
             return ds.where(mask, drop=True)
 
@@ -81,20 +83,17 @@ class QA4SMImg():
             return ds
 
     def create_image_name(self) -> str:
-        """ Create a unique name for the QA4SMImage from the netCDF file"""
+        """Create a unique name for the QA4SMImage from the netCDF file"""
         ref = self.datasets.ref['short_version']
         others = [other['short_version'] for other in self.datasets.others]
-        int_from = self.ds.val_interval_from[:10]
-        int_to = self.ds.val_interval_to[:10]
 
         name = "ref: {} v datasets: ".format(ref) + \
-               ", ".join(others) + \
-               " (period: {} to {})".format(int_from, int_to)
+               ", ".join(others)
 
         return name
 
     def _get_extent(self, extent) -> tuple:
-        """ Get extent of the results from the netCDF file"""
+        """Get extent of the results from the netCDF file"""
         if not extent:
             lat, lon = globals.index_names
             lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
@@ -122,13 +121,19 @@ class QA4SMImg():
         """
         vars = []
         for varname in self.varnames:
-            if empty or varname in ['lat', 'lon', 'time']: # todo: is there way to not specify names?
+            if empty:
                 values = None
             else:
-                values = self.df[[varname]]
+                # lat, lon are in varnames but not in datasframe (as they are the index)
+                try:
+                    values = self.df[[varname]]
+                except KeyError:
+                    values = None
 
             try:
                 Var = QA4SMMetricVariable(varname, self.ds.attrs, values=values)
+                if self.ignore_empty and Var.isempty:  # check whether there are values
+                    continue
             except IOError:
                 Var = None
                 continue
@@ -216,7 +221,7 @@ class QA4SMImg():
         metrics: list or None
             if list, only metrics in the list are grouped
         """
-        common, double, triple = dict(), dict(), dict()
+        common, double, triple = {},{},{}
 
         # fetch Metrics
         if metrics is None:
@@ -265,7 +270,7 @@ class QA4SMImg():
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
 
-        df.reset_index(drop=True, inplace=True)  #todo: check this works
+        df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
 
         return df
@@ -315,10 +320,13 @@ class QA4SMImg():
         for Var in self._iter_vars(**{'metric':metric}):
             # get interquartile range 
             values = Var.values[Var.varname]
+            # take out variables with all NaN or NaNf
+            if values.isnull().values.all():
+                continue
             iqr = values.quantile(q=[0.75,0.25]).diff()
             iqr = abs(float(iqr.loc[0.25]))
             # find the statistics for the metric variable
-            var_stats = [i for i in (values.mean(), values.median(), iqr)] #todo: solve decimal problem
+            var_stats = [i for i in (values.mean(), values.median(), iqr)]
             if Var.g == 0:
                 var_stats.append('All datasets')
                 var_stats.extend([globals._metric_name[metric], Var.g])
@@ -342,7 +350,7 @@ class QA4SMImg():
         
         return metric_stats
     
-    def stats_df(self) -> pd.DataFrame: # todo: format numbers
+    def stats_df(self) -> pd.DataFrame:
         """
         Create a DataFrame with summary statistics for all the metrics
 
@@ -353,12 +361,13 @@ class QA4SMImg():
         """
         stats = []
         # find stats for all the metrics
-        for metric in self.metrics.keys(): # todo: check discrepancy with metric names
+        for metric in self.metrics.keys():
             stats.extend(self._metric_stats(metric))
         # create a dataframe
         stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'IQ range', 'Dataset', 'Metric', 'Group'])
         stats_df.set_index('Metric', inplace=True)
         stats_df.sort_values(by='Group', inplace=True)
-        pd.set_option('display.precision', 1)
+        pd.set_option('display.float_format',
+                      lambda x: '{:,.2f}'.format(x) if abs(x) > 0.2 else '{:,.2e}'.format(x))
         
         return stats_df

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from qa4sm_reader.handlers import QA4SMAttributes, QA4SMNamedAttributes, QA4SMMetricVariable
+from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 import os
 import unittest
 import xarray as xr
+
+# todo: update for new classes
 
 def test_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
@@ -28,10 +30,10 @@ class TestQA4SMAttributes(unittest.TestCase):
 
     def setUp(self) -> None:
         attrs = test_attributes()
-        self.meta = QA4SMAttributes(global_attrs=attrs)
+        self.meta = QA4SMDatasets(global_attrs=attrs)
 
     def test_get_ref_name(self):
-        ref_names = self.meta.get_ref_names()
+        ref_names = self.meta.ref
         assert ref_names['short_name'] == 'ISMN'
         assert ref_names['pretty_name'] == 'ISMN'
         assert ref_names['short_version'] == 'ISMN_V20180712_MINI'
@@ -39,7 +41,7 @@ class TestQA4SMAttributes(unittest.TestCase):
         return ref_names
 
     def test_get_other_names(self):
-        other_names = self.meta.get_other_names()
+        other_names = self.meta.others
         # index is dc, as in the meta values not as in the variable name
         assert other_names[0]['short_name'] == 'C3S'
         assert other_names[0]['pretty_name'] == 'C3S'

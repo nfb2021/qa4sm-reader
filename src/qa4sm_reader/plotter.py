@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
+from pathlib import Path
+import seaborn as sns
+import pandas as pd
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
-from pathlib import Path
-import seaborn as sns
 from qa4sm_reader.plot_utils import *
-import pandas as pd
 
 from warnings import warn
 
-class QA4SMPlotter(): #todo: condition for load_data in image
+
+class QA4SMPlotter():
     """
     Class to create image files of plots from the validation results in a QA4SMImage
     """
-    def __init__(self, image, out_dir=None):
+    def __init__(self, image, out_dir:str=None):
         """
         Create box plots from results in a qa4sm output file.
 
@@ -28,6 +29,12 @@ class QA4SMPlotter(): #todo: condition for load_data in image
         self.out_dir = self.get_dir(out_dir=out_dir)
 
         self.ref = image.datasets.ref
+
+        try:
+            self.img.vars
+        except:
+            warn("The initialized QA4SMImg object has not been loaded. 'load_data' needs to be "
+                 "set to 'True' in the initialization of the Image.")
 
     def get_dir(self, out_dir:str) -> Path:
         """Use output path if specified, otherwise same directory as the one storing the netCDF file"""
@@ -170,7 +177,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
         return parts
 
     @staticmethod
-    def _titles_lut(type) -> str:
+    def _titles_lut(type:str) -> str:
         """
         Lookup table for plot titles
 
@@ -192,7 +199,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
             warn(message)
 
     @staticmethod
-    def _filenames_lut(type) -> str:
+    def _filenames_lut(type:str) -> str:
         """
         Lookup table for file names
 
@@ -255,7 +262,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
 
         return name
 
-    def _yield_values(self, metric: str, tc:bool=False) -> tuple:
+    def _yield_values(self, metric:str, tc:bool=False) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
@@ -279,6 +286,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
+
             # changes if it's a common-type Var
             if Var.g == 0:
                 box_cap_ds = 'All datasets'
@@ -318,7 +326,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
             globals._metric_units[self.ref['short_name']]))
         label = "{}{}".format(*parts)
         # generate plot
-        figwidth = globals.boxplot_width * (len(df.columns) + 1) # todo: check width
+        figwidth = globals.boxplot_width * (len(df.columns) + 1)
         figsize = [figwidth, globals.boxplot_height]
         fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
 
@@ -334,7 +342,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
 
         return fig, ax
 
-    def _save_plot(self, out_name, out_types='png') -> list:
+    def _save_plot(self, out_name:str, out_types:str='png') -> list:
         """
         Save plot with name to self.out_dir
 
@@ -351,7 +359,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
             list of file names with all the extensions
         """
         fnames = []
-        if isinstance(out_types, str): # todo: check saving and naming process
+        if isinstance(out_types, str):
             out_types = [out_types]
         for ext in out_types:
             fname = self._standard_filename(out_name, out_type=ext)
@@ -362,9 +370,9 @@ class QA4SMPlotter(): #todo: condition for load_data in image
 
         return fnames
 
-    def boxplot_basic(self, metric,
-                      out_name=None,
-                      out_types='png',
+    def boxplot_basic(self, metric:str,
+                      out_name:str=None,
+                      out_types:str='png',
                       save_files:bool=False,
                       **plotting_kwargs) -> list:
         """
@@ -393,7 +401,11 @@ class QA4SMPlotter(): #todo: condition for load_data in image
         # we take the last iterated value for Var and use it for the file name
         for df, Var in self._yield_values(metric=metric):
             values.append(df)
+
         values = pd.concat(values)
+        # values are all Nan or NaNf - not plotted
+        if df.isnull().values.all():
+            return None
         # create plot
         fig, ax = self._boxplot_definition(metric=metric,
                                            df=values,
@@ -411,9 +423,9 @@ class QA4SMPlotter(): #todo: condition for load_data in image
         else:
             return fig, ax
 
-    def boxplot_tc(self, metric,
-                   out_name=None,
-                   out_types='png',
+    def boxplot_tc(self, metric:str,
+                   out_name:str=None,
+                   out_types:str='png',
                    save_files:bool=False,
                    **plotting_kwargs) -> list:
         """
@@ -450,6 +462,9 @@ class QA4SMPlotter(): #todo: condition for load_data in image
 
         for dfs, Var in metric_tc.values():
             df = pd.concat(dfs)
+            # values are all Nan or NaNf - not plotted
+            if df.isnull().values.all():
+                continue
             # create plot
             fig, ax = self._boxplot_definition(metric=metric,
                                                df=df,
@@ -469,8 +484,8 @@ class QA4SMPlotter(): #todo: condition for load_data in image
                 return fig, ax
 
     def mapplot_var(self, Var,
-                    out_name=None,
-                    out_types='png',
+                    out_name:str=None,
+                    out_types:str='png',
                     save_files:bool=False,
                     **plotting_kwargs) -> list:
         """
@@ -503,7 +518,7 @@ class QA4SMPlotter(): #todo: condition for load_data in image
                           metric=metric,
                           ref_short=ref_meta[1]['short_name'],
                           ref_grid_stepsize=ref_grid_stepsize,
-                          plot_extent=self.img.extent,
+                          plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
                           **plotting_kwargs)
 
         # title and plot settings depend on the metric group
@@ -531,8 +546,8 @@ class QA4SMPlotter(): #todo: condition for load_data in image
         else:
             return fig, ax
 
-    def mapplot_metric(self, metric,
-                       out_types='png',
+    def mapplot_metric(self, metric:str,
+                       out_types:str='png',
                        save_files:bool=False,
                        **plotting_kwargs) -> list:
         """
@@ -557,18 +572,23 @@ class QA4SMPlotter(): #todo: condition for load_data in image
         """
         fnames = []
         for Var in self.img._iter_vars(**{'metric':metric}):
-            fns = self.mapplot_var(Var,
-                                   out_name=None,
-                                   out_types=out_types,
-                                   save_files=save_files,
-                                   **plotting_kwargs)
+            if not Var.values.isnull().values.all():
+                fns = self.mapplot_var(Var,
+                                       out_name=None,
+                                       out_types=out_types,
+                                       save_files=save_files,
+                                       **plotting_kwargs)
+            # values are all Nan or NaNf - not plotted
+            else:
+                continue
             if save_files:
                 fnames.extend(fns)
                 plt.close('all')
 
-        return fnames
+        if fnames:
+            return fnames
 
-    def plot_metric(self, metric, out_types='png', save_all=True, **plotting_kwargs) -> tuple:
+    def plot_metric(self, metric:str, out_types:str='png', save_all:bool=True, **plotting_kwargs) -> tuple:
         """
         Plot and save boxplot and mapplot for a certain metric
 
@@ -599,10 +619,3 @@ class QA4SMPlotter(): #todo: condition for load_data in image
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
-
-path = '/home/pstradio/Projects/scratch/Test_reader'
-nc = '/0-C3S.sm_with_1-C3S.sm_with_2-C3S.sm.nc'
-out = '/out'
-
-im = QA4SMImg(path+nc)
-pl = QA4SMPlotter(im, path+out)

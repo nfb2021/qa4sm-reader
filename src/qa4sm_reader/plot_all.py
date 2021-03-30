@@ -6,12 +6,12 @@ from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader import globals
 import matplotlib.pyplot as plt
 
-def plot_all(filepath,
-             metrics=None,
-             extent=None,
-             out_dir=None,
-             out_types='png',
-             save_all=True,
+def plot_all(filepath:str,
+             metrics:list=None,
+             extent:tuple=None,
+             out_dir:str=None,
+             out_types:str='png',
+             save_all:bool=True,
              **plotting_kwargs) -> (list, list):
     """
     Creates boxplots for all metrics and map plots for all variables.
@@ -52,12 +52,15 @@ def plot_all(filepath,
                                                              out_types=out_types,
                                                              save_all=save_all,
                                                              **plotting_kwargs)
-        fnames_bplot.extend(metric_bplots)
-        fnames_mapplot.extend(metric_mapplots)
+        # there can be boxplots with no mapplots
+        if metric_bplots:
+            fnames_bplot.extend(metric_bplots)
+        if metric_mapplots:
+            fnames_mapplot.extend(metric_mapplots)
         
     return fnames_bplot, fnames_mapplot
 
-def get_img_stats(filepath, extent=None):
+def get_img_stats(filepath:str, extent:tuple=None) -> pd.DataFrame:
     """
     Creates a dataframe containing summary statistics for each metric
 
@@ -78,8 +81,11 @@ def get_img_stats(filepath, extent=None):
     
     return table
 
-path = '/home/pstradio/Projects/scratch/Test_reader'
-nc = '/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc'
-out = '/out_2'
+nc = '/home/pstradio/Projects/scratch/Difference_plot_data/0-ISMN.soil moisture_with_1-ESA_CCI_SM_active.sm_with_2-GLDAS.SoilMoi0_10cm_inst.nc'
+out = '/home/pstradio/Projects/scratch/Difference_plot_data/out1'
 
-plot_all(path+nc, out_dir=path+out)
+from qa4sm_reader.img import QA4SMImg
+
+im = QA4SMImg(nc)
+plot_all(nc, out_dir=out)
+get_img_stats(nc)
