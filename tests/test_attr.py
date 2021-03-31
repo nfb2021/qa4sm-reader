@@ -5,7 +5,7 @@ import os
 import unittest
 import xarray as xr
 
-# todo: update for new classes
+#todo: create tests for new functions
 
 def test_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
@@ -76,8 +76,4 @@ class TestQA4SMAttributes(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    suite = unittest.TestSuite()
-    suite.addTest(TestQA4SMAttributes("test_get_ref_name"))
-    suite.addTest(TestQA4SMAttributes("test_get_other_names"))
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+    unittest.main()
