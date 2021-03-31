@@ -61,7 +61,6 @@ class QA4SMImg():
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
             except:
                 self.ref_dataset_grid_stepsize = 'nan'
-            # todo: update tests for sel.ds.val_dc_dataset0_grid_stepsize = 'nan'
 
     def _open_ds(self, extent=None):
         """Open .nc as xarray datset, with selected extent"""
@@ -84,8 +83,8 @@ class QA4SMImg():
 
     def create_image_name(self) -> str:
         """Create a unique name for the QA4SMImage from the netCDF file"""
-        ref = self.datasets.ref['short_version']
-        others = [other['short_version'] for other in self.datasets.others]
+        ref = self.datasets.ref['pretty_title']
+        others = [other['pretty_title'] for other in self.datasets.others]
 
         name = "ref: {} v datasets: ".format(ref) + \
                ", ".join(others)
@@ -166,16 +165,21 @@ class QA4SMImg():
 
         return Metrics
 
-    def _iter_vars(self, **filter_parms) -> iter:
+    def _iter_vars(self, only_metrics=False, **filter_parms) -> iter:
         """
         Iter through QA4SMMetricVariable objects that are in the file
 
         Parameters
         ----------
+        only_metrics: bool, optional. Default is Fales.
+            If True, only Vars that belong to a group are taken
         **filter_parms : kwargs, dict
             dictionary with QA4SMMetricVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
         for Var in self.vars:
+            if only_metrics:
+                if Var.g is None:
+                    continue
             if filter_parms:
                 for key, val in filter_parms.items():
                     if getattr(Var, key) == val:
@@ -371,3 +375,4 @@ class QA4SMImg():
                       lambda x: '{:,.2f}'.format(x) if abs(x) > 0.2 else '{:,.2e}'.format(x))
         
         return stats_df
+

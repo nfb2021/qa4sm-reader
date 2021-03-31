@@ -307,6 +307,7 @@ class QA4SMPlotter():
                             df:pd.DataFrame,
                             type:str,
                             offset=0.1,
+                            Var=None,
                             **kwargs) -> tuple:
         """
         Define parameters of plot
@@ -319,6 +320,8 @@ class QA4SMPlotter():
             one of _titles_lut
         offset: float
             offset of boxplots
+        Var: QA4SMMetricVariable, optional. Default is None
+            Specified in case mds meta is needed
         """
         # plot label
         parts = [globals._metric_name[metric]]
@@ -329,11 +332,11 @@ class QA4SMPlotter():
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
         figsize = [figwidth, globals.boxplot_height]
         fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
-
-        # when we only need reference dataset from variables (i.e. is the same):
-        for Var in self.img._iter_vars(**{'metric':metric}):
-            Var = Var
-            break
+        if not Var:
+            # when we only need reference dataset from variables (i.e. is the same):
+            for Var in self.img._iter_vars(**{'metric':metric}):
+                Var = Var
+                break
         title = self.create_title(Var, type=type)
         ax.set_title(title, pad=globals.title_pad)
         # add watermark
@@ -469,19 +472,21 @@ class QA4SMPlotter():
             fig, ax = self._boxplot_definition(metric=metric,
                                                df=df,
                                                type='boxplot_tc',
+                                               Var=Var,
                                                **plotting_kwargs)
-            # save
+            # save. Below workaround to avoid same names
             if not out_name:
-                out_name = self.create_filename(Var, type='boxplot_tc')
+                save_name = self.create_filename(Var, type='boxplot_tc')
+            else:
+                save_name = out_name
             # save or return plotting objects
             if save_files:
-                fnames = self._save_plot(out_name, out_types=out_types)
+                fns = self._save_plot(save_name, out_types=out_types)
+                fnames.extend(fns)
                 plt.close('all')
 
-                return fnames
-
-            else:
-                return fig, ax
+        if save_files:
+            return fnames
 
     def mapplot_var(self, Var,
                     out_name:str=None,

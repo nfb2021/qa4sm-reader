@@ -352,7 +352,7 @@ def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturaleart
 
     return ax
 
-def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.02):
+def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.02): #todo: adjust space of watermark
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.

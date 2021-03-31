@@ -18,14 +18,14 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
     Class that provides comparison plots and table for a list of netCDF files. As initialising a QA4SMImage can
     take some time, the class can be updated keeping memory of what has already been initialized
     """
-    def __init__(self, paths:list, extent:tuple=None, get_intersection:bool=True):
+    def __init__(self, paths:list or str, extent:tuple=None, get_intersection:bool=True):
         """
         Initialise the QA4SMImages from the paths to netCDF files specified
 
         Parameters
         ----------
-        paths : list
-            list of paths to .nc validation results files to use for the comparison
+        paths : list or str
+            list of paths or single path to .nc validation results files to use for the comparison
         extent : tuple, optional (default: None)
             Area to subset the values for.
             (min_lon, max_lon, min_lat, max_lat)
@@ -42,6 +42,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         self.comparison = self._init_imgs(extent=extent, get_intersection=get_intersection)
         self.ref = self._check_ref()
+        self.union = False
 
     def _init_imgs(self, extent=None, get_intersection=True) -> dict:
         """
@@ -49,15 +50,30 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         not, by default the intersection of results is taken and the images are initialized with it, unless 'get_union'
         is specified. In this case, only diff_table and diff_boxplots can be created (as only non-pairwise methods).
 
-        Returns
-        -------
+        Parameters
+        ----------
         extent: tuple, optional. Default is None
             exent of stapial subset
         get_intersection : bool, optional. Default is True.
             if extent is not specified, we can either take the union or intersection of the original extents of the
             passed .nc files. This affects the diff_table and diff_boxplot methods, whereas the diff_corr, diff_mapplot
             and diff_plot ALWAYS consider the intersection.
+
+        Returns
+        -------
+        comparison : dict or Image
+            if more nc files are initialized, a dictionary with shape {path: (id, img)}. Otherwise, the single QASMImg
+            initialized for the specified path
         """
+        if self.single_image:
+            if isinstance(self.paths, list):
+                self.paths = self.paths[0]
+            img = QA4SMImg(self.paths, extent=extent)
+            assert len(img.datasets.others) > 1, "A single validation was initialized, with a single" \
+                                                 "satellite dataset. You should add another comparison term."
+
+            return img
+
         comparison = {}
         imgs = []
         if extent:
@@ -95,6 +111,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
     def _check_ref(self) -> str:  # todo: should it work with different versions?
         """ Check that all initialized validation results have the same dataset as reference """
+        if self.single_image:
+            return self.comparison.datasets.ref
+
         for id, img in self.comparison.values():
             ref = img.datasets.ref
             if id != 0:
@@ -122,6 +141,13 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             output = output.intersection(Pol)
 
         return output.bounds != ()
+
+    @property
+    def single_image(self) -> bool:
+        if isinstance(self.paths, str):
+            return True
+        else:
+            return len(self.paths) == 1
 
     def _check_initialized(self, paths:str or list):
         """
@@ -245,47 +271,67 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                                       get_intersection=get_intersection,
                                       visualize=visualize)
 
-    def _get_pairwise(self, metric:str) -> (list, list):
+    def _get_pairwise(self, metric:str) -> (list, list): #todo: create separate method for getting the difference and names
         """
-        Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each
+        Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each.
+        In case that a single image is given, the comparison will be amon the different satellite datasets.
 
         Parameters
         ----------
         metric: str
             name of metric to get data on
         """
-        to_plot, names, ids = [], [], []
-        for id, img in self.comparison.values():
-            ids.append(id)
-            Var = img.group_vars(**{'metric':metric})[0]
-            # below necessary to workaround identical variable names
-            names.append("{}: ".format(id) + Var.pretty_name)
-            df = Var.values
-            to_plot.append(df)
+        # check wether the comparison has one single image and the number of sat datasets
+        if self.single_image and self.perform_checks():
+            to_plot, names, ids = [], [], []  # todo: improve ids
+            for n, Var in enumerate(self.comparison._iter_vars(**{'metric':metric})):
+                ids.append(n)
+                to_plot.append(Var.values)
+                names.append("{}-{}".format(n, Var.pretty_name))
+            boxplot_df = pd.concat(to_plot, axis=1)
+            boxplot_df.columns = names
 
-        # if lon, lat in index are the same (e.g. multiple points in same ISMN station), needs workaround
-        boxplot_df = to_plot[0].join(to_plot[1],
-                                     how='outer',
-                                     lsuffix='_caller',
-                                     rsuffix='_other')
-        boxplot_df.columns = names
-        diff_name = 'Difference between {} and {}'.format(*ids[::-1])
-        boxplot_df[diff_name] = boxplot_df.iloc[:,1] - boxplot_df.iloc[:,0]
+        elif self.single_image and not self.perform_checks():
+            pass  # todo: handle situation with multiple datasets in validation
+
+        else:
+            to_plot, names, ids = [], [], []
+            for id, img in self.comparison.values():
+                ids.append(id)
+                Var = img.group_vars(**{'metric':metric})[0]
+                # below necessary to workaround identical variable names
+                names.append("{}: ".format(id) + Var.pretty_name)
+                df = Var.values
+                to_plot.append(df)
+
+            # if lon, lat in index are the same (e.g. multiple points in same ISMN station), needs workaround
+            boxplot_df = to_plot[0].join(to_plot[1],
+                                         how='outer',
+                                         lsuffix='_caller',
+                                         rsuffix='_other')
+            boxplot_df.columns = names
+        diff_name = 'Difference between {} and {}'.format(*ids)
+        boxplot_df[diff_name] = boxplot_df.iloc[:,0] - boxplot_df.iloc[:,1]
 
         return boxplot_df
 
     def perform_checks(self, overlapping=False, union=False, pairwise=False):
         """Performs selected checks and throws error is they're not passed"""
-        if overlapping:
-            assert self.overlapping, "This method works only in case the initialized validations " \
-                                     "have overlapping spatial extents."
-        if not self.extent and union:
-            assert not self.union, "If the comparison is based on the 'union' of spatial extents, this method " \
-                                   "cannot be called, as it is based on a point-by-point comparison"
-        if pairwise:
-            self._check_pairwise() # todo: handle other cases
+        if self.single_image:
+            return len(self.comparison.datasets.others) <= 2
 
-    def diff_table(self, **kwargs) -> pd.DataFrame:
+        # these checks are for multiple images
+        else:
+            if overlapping:
+                assert self.overlapping, "This method works only in case the initialized validations " \
+                                         "have overlapping spatial extents."
+            if not self.extent and union:
+                assert not self.union, "If the comparison is based on the 'union' of spatial extents, this method " \
+                                       "cannot be called, as it is based on a point-by-point comparison"
+            if pairwise:
+                self._check_pairwise() # todo: handle other cases
+
+    def diff_table(self, **kwargs) -> pd.DataFrame:  #todo: diff_table for single_image
         """
         Create a table where all the metrics for the different validation runs are compared
         """
@@ -300,8 +346,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         table = pd.concat(medians, axis=1)
         table.columns = names
-        diff_name = 'Difference of medians ({} - {})'.format(*ids[::-1])
-        table[diff_name] = table.iloc[:,1] - table.iloc[:,0]
+        diff_name = 'Difference of the medians ({} - {})'.format(*ids)
+        table[diff_name] = table.iloc[:,0] - table.iloc[:,1]
 
         return table
 
@@ -310,6 +356,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         Create a boxplot where two validations are compared. If the comparison is on the subsets union, then the
         difference is not shown.
 
+        Parameters
+        ----------
         metric: str
             metric from the .nc result file attributes that the plot is based on
         """
@@ -411,12 +459,12 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         um = glob._metric_description[metric].format(glob._metric_units[self.ref['short_name']])
         # make mapplot
         cbar_label = "Difference between {} and {}".format(*df_diff.columns)
-        fig, axes = mapplot(df_diff.iloc[:,2],
+        fig, axes = mapplot(df_diff.iloc[:,2],  # todo: hack on ids
                             metric,
                             self.ref['short_name'],
                             diff_range=diff_range,
                             label=cbar_label)
-        title_plot = "Overview of the difference of {} {}".format(Metric.pretty_name, um)
+        title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad)
 
     def diff_methods(self, method:str):
@@ -457,8 +505,3 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         output = diff_funct(metric=metric, **kwargs)
 
         return output
-
-paths = ['/home/pstradio/Projects/qa4sm-reader/docs/examples/example_data/validations_nc/0-C3S.sm_with_1-GLDAS.SoilMoi0_10cm_inst.nc',
-         '/home/pstradio/Projects/qa4sm-reader/docs/examples/example_data/validations_nc/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc']
-
-comp = QA4SMComparison(paths)

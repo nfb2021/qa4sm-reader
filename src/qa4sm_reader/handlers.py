@@ -43,7 +43,6 @@ class QA4SMDatasets():
         """
         Return the ids and attribute key for each dataset that is not the reference
 
-
         Returns
         -------
         dcs: dict
@@ -159,7 +158,7 @@ class QA4SMMetricVariable():
 
         Parameters
         ---------
-        name : str
+        varname : str
             Name of the variable
         global_attrs : dict
             Global attributes of the results.
@@ -195,9 +194,11 @@ class QA4SMMetricVariable():
     @property
     def isempty(self) -> bool:
         """Check whether values are associated with the object or not"""
-        if self.values is None or self.values.empty:
+        return self.values is None or self.values.empty
 
-            return True
+    @property
+    def ismetric(self) -> bool:
+        return self.g is not None
 
     def _pretty_name(self):
         """Create a nice name for the variable"""

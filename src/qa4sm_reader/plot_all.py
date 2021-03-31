@@ -80,12 +80,3 @@ def get_img_stats(filepath:str, extent:tuple=None) -> pd.DataFrame:
     table = img.stats_df()
     
     return table
-
-nc = '/home/pstradio/Projects/scratch/Difference_plot_data/0-ISMN.soil moisture_with_1-ESA_CCI_SM_active.sm_with_2-GLDAS.SoilMoi0_10cm_inst.nc'
-out = '/home/pstradio/Projects/scratch/Difference_plot_data/out1'
-
-from qa4sm_reader.img import QA4SMImg
-
-im = QA4SMImg(nc)
-plot_all(nc, out_dir=out)
-get_img_stats(nc)
