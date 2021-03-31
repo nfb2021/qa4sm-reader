@@ -42,7 +42,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         self.comparison = self._init_imgs(extent=extent, get_intersection=get_intersection)
         self.ref = self._check_ref()
-        self.union = False
+        self.union = not get_intersection
 
     def _init_imgs(self, extent=None, get_intersection=True) -> dict:
         """
