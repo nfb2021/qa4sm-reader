@@ -72,7 +72,7 @@ class QA4SMPlotter():
         if not out_path.suffix:
             if out_type[0] != '.':
                 out_type = '.' + out_type
-            out_path.with_suffix(out_type)
+            out_path = out_path.with_suffix(out_type)
 
         return out_path
 
@@ -198,7 +198,7 @@ class QA4SMPlotter():
             message = "type '{}' is not in the lookup table".format(type)
             warn(message)
 
-    @staticmethod
+    @staticmethod  # todo: cange file names and convention in qa4sm
     def _filenames_lut(type:str) -> str:
         """
         Lookup table for file names
@@ -211,8 +211,8 @@ class QA4SMPlotter():
         names = {'boxplot_basic': 'boxplot_{}',
                  'boxplot_tc': 'boxplot_{}_for_{}-{}',
                  'mapplot_common': 'overview_{}',
-                 'mapplot_double': 'overview_{}_{}-{}_and_{}-{}',
-                 'mapplot_tc': 'overview_{}_for_{}-{}_with_{}-{}_and_{}-{}'}
+                 'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
+                 'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'}
 
         try:
             return names[type]
@@ -238,7 +238,7 @@ class QA4SMPlotter():
 
         return title
 
-    def create_filename(self, Var, type:str) -> str:
+    def create_filename(self, Var, type:str) -> str:  # todo: naming convention is a bit weird and should be updated in qa4sm
         """
         Create name of the file
 
@@ -256,8 +256,16 @@ class QA4SMPlotter():
             ref_meta, mds_meta, other_meta = Var.get_varmeta()
             parts.extend([mds_meta[0], mds_meta[1]['short_name'],
                           ref_meta[0], ref_meta[1]['short_name']])
+        if type == 'mapplot_double':
+            parts = (ref_meta[0], ref_meta[1]['short_name'],
+                     mds_meta[0], mds_meta[1]['short_name'],
+                     Var.metric)
         if type == 'mapplot_tc':
-            parts.extend([other_meta[0], other_meta[1]['short_name']])
+            parts = (ref_meta[0], ref_meta[1]['short_name'],
+                     mds_meta[0], mds_meta[1]['short_name'],
+                     other_meta[0], other_meta[1]['short_name'],
+                     Var.metric,
+                     mds_meta[0], mds_meta[1]['short_name'])
         name = name.format(*parts)
 
         return name
@@ -369,7 +377,7 @@ class QA4SMPlotter():
             if fname.exists():
                 warnings.warn('Overwriting file {}'.format(fname.name))
             plt.savefig(fname, dpi='figure', bbox_inches='tight')
-            fnames.append(fname.name)
+            fnames.append(fname.absolute())
 
         return fnames
 
@@ -534,7 +542,7 @@ class QA4SMPlotter():
             title = self.create_title(Var=Var, type='mapplot_basic')
             out_name = self.create_filename(Var, type='mapplot_double')
         else:
-            title = self.create_title(Var=Var, type='mapplot_tc') # todo: check titles are ok with QA4SM
+            title = self.create_title(Var=Var, type='mapplot_tc')
             out_name = self.create_filename(Var, type='mapplot_tc')
 
         # use title for plot, make watermark

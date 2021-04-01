@@ -10,7 +10,7 @@ def plot_all(filepath:str,
              metrics:list=None,
              extent:tuple=None,
              out_dir:str=None,
-             out_types:str='png',
+             out_type:str='png',
              save_all:bool=True,
              **plotting_kwargs) -> (list, list):
     """
@@ -27,7 +27,7 @@ def plot_all(filepath:str,
         Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
     out_dir : str, optional (default: None)
         Path to output generated plot. If None, defaults to the current working directory.
-    out_types: str or list
+    out_type: str or list
         extensions which the files should be saved in
     save_all: bool, optional. Default is True.
         all plotted images are saved to the output directory
@@ -49,7 +49,7 @@ def plot_all(filepath:str,
     fnames_bplot, fnames_mapplot = [], []
     for metric in metrics:
         metric_bplots, metric_mapplots = plotter.plot_metric(metric=metric,
-                                                             out_types=out_types,
+                                                             out_types=out_type,
                                                              save_all=save_all,
                                                              **plotting_kwargs)
         # there can be boxplots with no mapplots

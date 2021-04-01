@@ -375,7 +375,7 @@ class QA4SMImg():
         stats_df.set_index('Metric', inplace=True)
         stats_df.sort_values(by='Group', inplace=True)
         pd.set_option('display.float_format',
-                      lambda x: '{:,.2f}'.format(x) if abs(x) > 0.2 else '{:,.2e}'.format(x))
+                      lambda x: '{:,.2f}'.format(x) if abs(x) > 0.01 else '{:,.2e}'.format(x))
         
         return stats_df
 
