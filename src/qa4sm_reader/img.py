@@ -102,19 +102,19 @@ class QA4SMImg():
 
         return extent
 
-    def _load_vars(self, empty=False) -> (list, list):
+    def _load_vars(self, empty=False, only_metrics=False) -> list:
         """
         Create a list of common variables and fill each with values
 
         Parameters
         ----------
         empty : bool, default is False
-            if True, each Var.values is empty
+            if True, Var.values is an empty dataframe
+        only_metrics : bool, default is False
+            if True, only variables for metric scores are kept (i.e. not gpi, idx ...)
 
         Returns
         -------
-        meta_vars: list
-            list of QA4SMMetricVariable objects for the metadata variables (lon, lat, gpi, ...)
         vars : list
             list of QA4SMMetricVariable objects for the validation variables
         """
@@ -138,7 +138,10 @@ class QA4SMImg():
                 continue
 
             if not Var is None:
-                vars.append(Var)
+                if only_metrics and Var.ismetric:
+                    vars.append(Var)
+                elif not only_metrics:
+                    vars.append(Var)
 
         return vars
 
@@ -245,7 +248,7 @@ class QA4SMImg():
 
     def _ds2df(self, varnames:list=None) -> pd.DataFrame:
         """
-        Return one or all variables in a single DataFrame.
+        Return one or more or all variables in a single DataFrame.
 
         Parameters
         ----------

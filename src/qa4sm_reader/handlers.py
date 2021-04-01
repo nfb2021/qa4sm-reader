@@ -2,10 +2,14 @@
 
 from qa4sm_reader import globals
 from parse import *
-import warnings
+import warnings as warn
 
-class QA4SMDatasets():
-    """Class that provides information on all datasets in the results file"""
+class QA4SMDatasets():  #  todo: change netCDF ids/dcs
+    """
+    Class that provides information on all datasets in the results file. 'dc' is the 0-based index value associated
+    to each dataset. 'id' is the 1-based index value (in variables name). If the 'dc' of the reference is 0, dcs and ids
+    will be identical.
+    """
 
     def __init__(self, global_attrs):
         """
@@ -16,32 +20,45 @@ class QA4SMDatasets():
         """
         # attributes of the result file
         self.meta = global_attrs
-        self._get_offset()
 
     def _ref_dc(self) -> int:
         """
-        Get the id of the reference dataset from the results file
+        Get the position of the reference dataset from the results file as a 0-based index
 
         Returns
         -------
         ref_dc : int
         """
         ref_dc = 0
-        if globals._ref_ds_attr in self.meta.keys():
+
+        try:
             val_ref = self.meta[globals._ref_ds_attr]
             ref_dc = parse(globals._ds_short_name_attr, val_ref)[0]
+        except KeyError as e:
+            warn("The netCDF file does not contain the attribute {}".format(globals._ref_ds_attr))
+            raise e
 
         return ref_dc
 
-    def _get_offset(self) -> int:
-        """Check that the id number given to the reference is 0, change the ids if not"""
-        self._offset_id_dc = 0
+    def _ref_id(self) -> int:
+        """Get the dataset id for the reference"""
+        dc = self._ref_dc()
+        ref_id = dc - self.offset
+
+        return ref_id
+
+    @property
+    def offset(self) -> int:
+        """Check that the dc number given to the reference is 0, change the ids if not"""
+        offset = 0
         if self._ref_dc() != 0:
-            self._offset_id_dc = -1
+            offset = -1
+
+        return offset
 
     def _dcs(self) -> dict:
         """
-        Return the ids and attribute key for each dataset that is not the reference
+        Return the dcs and attribute key for each dataset that is not the reference
 
         Returns
         -------
@@ -65,7 +82,7 @@ class QA4SMDatasets():
         Parameters
         ----------
         dc : int
-            The id of the dataset as in the global metadata of the results file
+            The dc of the dataset as in the global metadata of the results file
 
         Returns
         -------
@@ -80,20 +97,19 @@ class QA4SMDatasets():
         names['short_version'] = self.meta[globals._version_short_name_attr.format(dc)]
         names['pretty_version'] = self.meta[globals._version_pretty_name_attr.format(dc)]
         names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
-        # todo: parse from filename and use globals as backup?
 
         return names
 
     def _id2dc(self, id:int) -> int:
         """
-        Offset ids according to the offset_id_dc value
+        Offset ids according to the self.offset value
 
         Parameters
         ----------
         id: int
-            # todo: description
+            1-based index value of the dataset
         """
-        return id + self._offset_id_dc
+        return id + self.offset
 
     def n_datasets(self) -> int:
         """Counts the total number of datasets (reference + others)"""
@@ -120,7 +136,7 @@ class QA4SMDatasets():
 
     def dataset_metadata(self, id:int, element:str or list=None) -> tuple:
         """
-        Get the metadata for the dataset specified by the id
+        Get the metadata for the dataset specified by the id. This function is used by the QA4SMMetricVariable class
 
         Parameters
         ----------
@@ -257,7 +273,7 @@ class QA4SMMetricVariable():
             this is the additional dataset in TC variables
         """
         if self.g == 0:
-            ref_ds = self.Datasets.dataset_metadata(self.Datasets._ref_dc())
+            ref_ds = self.Datasets.dataset_metadata(self.Datasets._ref_id())
             mds, dss = None, None
 
         else:
