@@ -5,7 +5,6 @@ import os
 import unittest
 import xarray as xr
 
-#todo: create tests for new functions
 
 def test_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',

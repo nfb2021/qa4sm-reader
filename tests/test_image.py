@@ -7,7 +7,6 @@ import pandas as pd
 import unittest
 from qa4sm_reader import globals
 
-#todo: create tests for new functions
 
 class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
@@ -97,7 +96,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
         assert all(vars == vars_should)
 
-    def test_find_groups(self):  #todo: there should be really be a test for _iter_metrics and one for _iter_vars
+    def test_find_groups(self):
         """Test that all metrics for a specific group can be collected"""
         common_group = []
         for name, Metric in self.img.common.items():

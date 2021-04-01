@@ -8,7 +8,6 @@ import unittest
 import tempfile
 import shutil
 
-#todo: create tests for new functions
 
 class TestQA4SMMetaImgISMNPlotter_newFormat(unittest.TestCase):
 
