@@ -17,6 +17,59 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
                                           'test_data', 'basic', self.testfile)
         self.img = QA4SMImg(self.testfile_path, ignore_empty=False)
 
+    def test_load_data(self):
+        unloaded = QA4SMImg(self.testfile_path, load_data=False)
+        assert 'varnames' not in unloaded.__dict__.keys()
+
+    def test_extent(self):
+        extent = QA4SMImg(self.testfile_path, extent=(113.7, 123.7, -19.8, -9.8))
+        assert self.img.extent != extent.extent
+        assert self.img.extent == (113.7, 153.5, -43.1, -9.8)
+
+    def test_metrics(self):
+        metrics = QA4SMImg(self.testfile_path, metrics=['R'])
+        assert metrics.common != self.img.common
+        assert metrics.double != self.img.double
+        assert 'R' in metrics.double.keys()
+
+    def test_load_vars(self):
+        Vars = self.img._load_vars()
+        assert len(Vars) == len(self.img.varnames)
+        Metr_Vars = self.img._load_vars(only_metrics=True)
+        assert len(Metr_Vars) == len(Vars) - 3
+
+    def test_iter_vars(self):
+        for Var in self.img._iter_vars(only_metrics=True):
+            assert Var.g in [0,2,3]
+        for Var in self.img._iter_vars(**{'metric':'R'}):
+            Var.varname in ['R_between_3-ERA5_LAND_and_2-SMOS', 'R_between_3-ERA5_LAND_and_1-C3S']
+
+    def test_iter_metrics(self):
+        for Metr in self.img._iter_metrics(**{'g':2}):
+            assert Metr.name in globals.metric_groups[2]
+
+    def test_group_vars(self):
+        Vars = self.img.group_vars(**{'metric':'R'})
+        names = [Var.varname for Var in Vars]
+        assert names == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
+
+    def test_group_metrics(self):
+        common, double, triple = self.img.group_metrics(['R'])
+        assert common == {}
+        assert triple == {}
+        assert list(double.keys()) == ['R']
+
+    def test_load_metrics(self):
+        assert len(self.img.metrics.keys()) == len(globals.metric_groups[0]) + len(globals.metric_groups[2])
+
+    def test_ds2df(self):
+        df = self.img._ds2df()
+        assert len(df.columns) == len(self.img.varnames) - 2  # minus lon, lat
+
+    def test_metric_df(self):
+        df = self.img.metric_df(['R'])
+        assert list(df.columns) == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
+
     def test_metrics_in_file(self):
         """Test that all metrics are initialized correctly"""
         assert list(self.img.common.keys()) == globals.metric_groups[0]

@@ -2,14 +2,61 @@
 import pandas as pd
 import unittest
 
-from qa4sm_reader.handlers import QA4SMMetricVariable
-from qa4sm_reader.handlers import QA4SMDatasets
+from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 
 from tests.test_attr import test_attributes, test_tc_attributes
 
 
-# todo: create tests for new functions
+class TestQA4SMDatasets(unittest.TestCase):
+    """Tests based on netCDF file where reference id == 6 (i.e. different from 0)"""
 
+    def setUp(self) -> None:
+        attrs = test_attributes()
+        self.Datasets = QA4SMDatasets(attrs)
+        self.ismn = self.Datasets._dc_names(dc=5)
+        self.c3s17 = self.Datasets._dc_names(dc=0)
+        self.c3s18 = self.Datasets._dc_names(dc=1)
+        self.smos = self.Datasets._dc_names(dc=2)
+        self.smap = self.Datasets._dc_names(dc=3)
+        self.ascat = self.Datasets._dc_names(dc=4)
+
+    def test_id_dc(self):
+        assert self.Datasets._ref_dc() != self.Datasets._ref_id()
+        assert self.Datasets._ref_id() == 6
+        assert self.Datasets.offset == -1
+        assert self.Datasets._id2dc(6) == 5
+
+    def test_dcs(self):
+        for i in range(5):
+            assert i in self.Datasets._dcs().keys()
+        assert len(self.Datasets._dcs().keys()) == 5
+
+    def test_dc_names(self):
+        assert self.ismn['pretty_name'] == 'ISMN'
+        assert self.ismn['pretty_version'] == '20180712 mini testset'
+
+        assert self.c3s17['pretty_name'] == 'C3S'
+        assert self.c3s17['pretty_version'] == 'v201706'
+
+        assert self.c3s18['pretty_name'] == 'C3S'
+        assert self.c3s18['pretty_version'] == 'v201812'
+
+        assert self.smos['pretty_name'] == 'SMOS IC'
+        assert self.smos['pretty_version'] == 'V.105 Ascending'
+
+        assert self.smap['pretty_name'] == 'SMAP level 3'
+        assert self.smap['pretty_version'] == 'v5 PM/ascending'
+
+        assert self.ascat['pretty_name'] == 'H-SAF ASCAT SSM CDR'
+        assert self.ascat['pretty_version'] == 'H113'
+
+    def test_others(self):
+        assert len(self.Datasets.others) == 5
+
+    def test_dataset_metadata(self):
+        meta_ref = self.Datasets.dataset_metadata(6)[1]  # shape (id, {names})
+        also_meta_ref = self.Datasets._dc_names(5)
+        assert meta_ref == also_meta_ref
 
 class TestMetricVariableTC(unittest.TestCase):
 
@@ -20,13 +67,28 @@ class TestMetricVariableTC(unittest.TestCase):
         self.r = QA4SMMetricVariable('R_between_3-ERA5_LAND_and_1-C3S', attrs)
         self.beta = QA4SMMetricVariable('beta_1-C3S_between_3-ERA5_LAND_and_1-C3S_and_2-ASCAT', attrs)
 
+    def test_properties(self):
+        assert self.beta.isempty
+        assert self.beta.ismetric
+
+    def test_pretty_name(self):
+        print(self.beta._pretty_name())
+        assert self.beta._pretty_name() == "TC scaling coefficient of C3S (v201812) \n against ERA5-Land (ERA5-Land test), H-SAF ASCAT SSM CDR (H113)"
+
+    def test_parse_varname(self):
+        for var in [self.beta, self.r, self.n_obs]:
+            info = var._parse_varname()
+            assert type(info[0]) == str
+            assert type(info[1]) == int
+            assert type(info[2]) == dict
+
     def test_get_varmeta(self):
         # n_obs has only the reference dataset
         assert self.n_obs.ismetric
         assert not self.n_obs.isempty
         ref_ds, metric_ds, other_ds = self.n_obs.get_varmeta()
+        assert ref_ds[1]['short_name'] == 'ERA5_LAND'
         assert metric_ds == other_ds is None
-        # todo: ref_ds for common group metrics
 
         # R has only the reference and metric dataset
         ref_ds, metric_ds, other_ds = self.r.get_varmeta()
@@ -82,8 +144,8 @@ class TestMetricVariableBasic(unittest.TestCase):
         assert self.n_obs.ismetric
         assert not self.n_obs.isempty
         ref_ds, metric_ds, other_ds = self.n_obs.get_varmeta()
+        assert ref_ds[1]['short_name'] == 'ISMN'
         assert metric_ds == other_ds is None
-        # todo: ref_ds for common group metrics
 
         # R
         ref_ds, metric_ds, other_ds = self.r.get_varmeta()
@@ -116,41 +178,17 @@ class TestMetricVariableBasic(unittest.TestCase):
         assert other_ds is None
 
 
-class TestQA4SMDatasets(unittest.TestCase):
+class TestQA4SMMetric(unittest.TestCase):
 
     def setUp(self) -> None:
-        attrs = test_attributes()
-        Datasets = QA4SMDatasets(attrs)
-        self.ismn = Datasets._dc_names(dc=5)
-        self.c3s17 = Datasets._dc_names(dc=0)
-        self.c3s18 = Datasets._dc_names(dc=1)
-        self.smos = Datasets._dc_names(dc=2)
-        self.smap = Datasets._dc_names(dc=3)
-        self.ascat = Datasets._dc_names(dc=4)
+        attrs = test_tc_attributes()
 
-    def test_eq(self):
-        assert self.ismn != self.ascat
-        assert self.ismn == self.ismn
-        assert self.ascat == self.ascat
+        self.r1 = QA4SMMetricVariable('R_between_3-ERA5_LAND_and_2-ASCAT', attrs)
+        self.r2 = QA4SMMetricVariable('R_between_3-ERA5_LAND_and_1-C3S', attrs)
+        self.R = QA4SMMetric('R', variables_list=[self.r1, self.r2])
 
-    def test_names(self):
-        assert self.ismn['pretty_name'] == 'ISMN'
-        assert self.ismn['pretty_version'] == '20180712 mini testset'
-
-        assert self.c3s17['pretty_name'] == 'C3S'
-        assert self.c3s17['pretty_version'] == 'v201706'
-
-        assert self.c3s18['pretty_name'] == 'C3S'
-        assert self.c3s18['pretty_version'] == 'v201812'
-
-        assert self.smos['pretty_name'] == 'SMOS IC'
-        assert self.smos['pretty_version'] == 'V.105 Ascending'
-
-        assert self.smap['pretty_name'] == 'SMAP level 3'
-        assert self.smap['pretty_version'] == 'v5 PM/ascending'
-
-        assert self.ascat['pretty_name'] == 'H-SAF ASCAT SSM CDR'
-        assert self.ascat['pretty_version'] == 'H113'
+    def test_get_attribute(self):
+        assert self.R.g == self.r1.g == self.r2.g
 
 
 if __name__ == '__main__':
