@@ -5,7 +5,11 @@ from parse import *
 import warnings
 
 class QA4SMDatasets():
-    """Class that provides information on all datasets in the results file"""
+    """
+    Class that provides information on all datasets in the results file. Ids and dcs refer to the
+    1-based and 0-based index number of the datasets, respectively. For newer validations, these are always
+    the same
+    """
 
     def __init__(self, global_attrs):
         """
@@ -41,7 +45,8 @@ class QA4SMDatasets():
 
     def _dcs(self) -> dict:
         """
-        Return the ids and attribute key for each dataset that is not the reference
+        Return the ids as in the global attributes and attribute key for each dataset
+        that is not the reference
 
         Returns
         -------
@@ -83,6 +88,16 @@ class QA4SMDatasets():
         # todo: parse from filename and use globals as backup?
 
         return names
+
+    @property
+    def ref_id(self):
+        """Id of the reference dataset as in the variable names"""
+        return self._ref_dc() - self._offset_id_dc
+
+    @property
+    def others_id(self):
+        """Id of the other datasets as in the variable names"""
+        return [dc - self._offset_id_dc for dc in self._dcs().keys()]
 
     def _id2dc(self, id:int) -> int:
         """
@@ -186,7 +201,7 @@ class QA4SMMetricVariable():
         self.metric, self.g, self.parts = self._parse_varname()
         self.Datasets = QA4SMDatasets(self.attrs)
         # do not initialize idx, gpi, time, _row_size (non-validation variables)
-        if self.g is not None:
+        if self.g:
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
             self.pretty_name = self._pretty_name()
@@ -199,6 +214,15 @@ class QA4SMMetricVariable():
     @property
     def ismetric(self) -> bool:
         return self.g is not None
+
+    @property
+    def id(self):
+        """Id of the metric dataset for g = 2 or 3, of the reference dataset for g = 0"""
+        if self.g:
+            if self.metric_ds:
+                return self.metric_ds[0]
+            else:
+                return self.ref_ds[0]
 
     def _pretty_name(self):
         """Create a nice name for the variable"""
