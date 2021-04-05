@@ -634,6 +634,3 @@ class QA4SMPlotter():
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
-
-im = QA4SMImg("/Users/pietrostradiotti/Projects/qa4sm-reader/tests/test_data/tc/3-GLDAS.SoilMoi0_10cm_inst_with_1-C3S.sm_with_2-SMOS.Soil_Moisture.nc")
-pl = QA4SMPlotter(im)
