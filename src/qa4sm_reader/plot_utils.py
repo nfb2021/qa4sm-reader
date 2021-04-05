@@ -52,6 +52,16 @@ def _value2index(a, a_min, da):
     "Return the indexes corresponding to a. a and the returned index is a numpy array."
     return ((a - a_min) / da).astype('int')
 
+def _format_floats(x):
+    """Format floats in the statistsics table"""
+    if isinstance(x, float):
+        if x > 0.01:
+            return np.format_float_positional(x, precision=2)
+        else:
+            return np.format_float_scientific(x, precision=2)
+    else:
+        return x
+
 def oversample(lon, lat, data, extent, dx, dy):
 
     other = BasicGrid(lon, lat)

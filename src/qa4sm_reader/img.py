@@ -2,6 +2,7 @@
 
 from qa4sm_reader import globals
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
+from qa4sm_reader.plot_utils import _format_floats
 
 from parse import *
 from pathlib import Path
@@ -309,14 +310,17 @@ class QA4SMImg():
 
         return metrics_df
 
-    def _metric_stats(self, metric)  -> list:
+    def _metric_stats(self, metric, id=None)  -> list:
         """
-        Provide a list with the metric summary statistics (for each variable)
+        Provide a list with the metric summary statistics for each variable or for all variables
+        where the dataset with id=id is the metric dataset.
 
         Parameters
         ----------
         metric : str
             A metric that is in the file (e.g. n_obs, R, ...)
+        id: int
+            dataset id
 
         Returns
         -------
@@ -324,7 +328,12 @@ class QA4SMImg():
             List of (variable) lists with summary statistics
         """
         metric_stats = []
-        for Var in self._iter_vars(**{'metric':metric}):
+        if id:
+            filters = {'metric':metric, 'id':id}
+        else:
+            filters = {'metric':metric}
+        # get stats by metric
+        for Var in self._iter_vars(**filters):
             # get interquartile range 
             values = Var.values[Var.varname]
             # take out variables with all NaN or NaNf
@@ -374,8 +383,7 @@ class QA4SMImg():
         stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'IQ range', 'Dataset', 'Metric', 'Group'])
         stats_df.set_index('Metric', inplace=True)
         stats_df.sort_values(by='Group', inplace=True)
-        pd.set_option('display.float_format',
-                      lambda x: '{:,.2f}'.format(x) if abs(x) > 0.01 else '{:,.2e}'.format(x))
-        
-        return stats_df
+        # format the numbers for display
+        stats_df = stats_df.applymap(_format_floats)
 
+        return stats_df

@@ -348,8 +348,10 @@ class QA4SMPlotter():
         title = self.create_title(Var, type=type)
         ax.set_title(title, pad=globals.title_pad)
         # add watermark
+        if Var.g == 0:
+            offset = 0.0  # offset smaller as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, globals.watermark_pos, offset=offset)
+            make_watermark(fig, offset=offset)
 
         return fig, ax
 
@@ -632,3 +634,6 @@ class QA4SMPlotter():
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
+
+im = QA4SMImg("/Users/pietrostradiotti/Projects/qa4sm-reader/tests/test_data/tc/3-GLDAS.SoilMoi0_10cm_inst_with_1-C3S.sm_with_2-SMOS.Soil_Moisture.nc")
+pl = QA4SMPlotter(im)
