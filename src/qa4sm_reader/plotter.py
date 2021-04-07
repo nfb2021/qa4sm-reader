@@ -211,8 +211,8 @@ class QA4SMPlotter():
         names = {'boxplot_basic': 'boxplot_{}',
                  'boxplot_tc': 'boxplot_{}_for_{}-{}',
                  'mapplot_common': 'overview_{}',
-                 'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
-                 'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'}
+                 'mapplot_double': 'overview_{}_for_{}-{}',
+                 'mapplot_tc': 'overview_{}_for_{}-{}_against_{}-{}_and_{}-{}'}
 
         try:
             return names[type]
@@ -254,18 +254,10 @@ class QA4SMPlotter():
         parts = [Var.metric]
         if not type in ['boxplot_basic', 'mapplot_common']:
             ref_meta, mds_meta, other_meta = Var.get_varmeta()
-            parts.extend([mds_meta[0], mds_meta[1]['short_name'],
-                          ref_meta[0], ref_meta[1]['short_name']])
-        if type == 'mapplot_double':
-            parts = (ref_meta[0], ref_meta[1]['short_name'],
-                     mds_meta[0], mds_meta[1]['short_name'],
-                     Var.metric)
-        if type == 'mapplot_tc':
-            parts = (ref_meta[0], ref_meta[1]['short_name'],
-                     mds_meta[0], mds_meta[1]['short_name'],
-                     other_meta[0], other_meta[1]['short_name'],
-                     Var.metric,
-                     mds_meta[0], mds_meta[1]['short_name'])
+            parts.extend([mds_meta[0], mds_meta[1]['short_name']])
+            if type == 'mapplot_tc':
+                parts.extend([ref_meta[0], ref_meta[1]['short_name'],
+                              other_meta[0], other_meta[1]['short_name']])
         name = name.format(*parts)
 
         return name
@@ -349,7 +341,7 @@ class QA4SMPlotter():
         ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if Var.g == 0:
-            offset = 0.3  # offset smaller as common metrics have a shorter caption
+            offset = 0.03  # offset smaller as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
             make_watermark(fig, offset=offset)
 
