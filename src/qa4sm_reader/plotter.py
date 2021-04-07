@@ -314,7 +314,7 @@ class QA4SMPlotter():
     def _boxplot_definition(self, metric:str,
                             df:pd.DataFrame,
                             type:str,
-                            offset=0.1,
+                            offset=0.08,
                             Var=None,
                             **kwargs) -> tuple:
         """
@@ -349,7 +349,7 @@ class QA4SMPlotter():
         ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if Var.g == 0:
-            offset = 0.0  # offset smaller as common metrics have a shorter caption
+            offset = 0.3  # offset smaller as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
             make_watermark(fig, offset=offset)
 
