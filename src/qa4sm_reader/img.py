@@ -11,7 +11,6 @@ import xarray as xr
 from collections import OrderedDict
 import itertools
 import pandas as pd
-from shapely.geometry import Polygon
 
 class QA4SMImg():
     """
