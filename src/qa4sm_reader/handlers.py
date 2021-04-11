@@ -105,12 +105,12 @@ class QA4SMDatasets():  #  todo: change netCDF ids/dcs
     @property
     def ref_id(self):
         """Id of the reference dataset as in the variable names"""
-        return self._ref_dc() - self._offset_id_dc
+        return self._ref_dc() - self.offset
 
     @property
     def others_id(self):
         """Id of the other datasets as in the variable names"""
-        return [dc - self._offset_id_dc for dc in self._dcs().keys()]
+        return [dc - self.offset for dc in self._dcs().keys()]
 
     def _id2dc(self, id:int) -> int:
         """

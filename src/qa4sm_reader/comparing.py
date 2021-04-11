@@ -1,5 +1,5 @@
 from qa4sm_reader.img import QA4SMImg
-from qa4sm_reader.plot_utils import diff_plot, mapplot, boxplot, plot_spatial_extent
+from qa4sm_reader.plot_utils import diff_plot, mapplot, boxplot, plot_spatial_extent, _format_floats
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 import qa4sm_reader.globals as glob
 
@@ -12,6 +12,7 @@ from scipy import stats
 
 import warnings as warn
 
+# todo: take _get_pairwise outside plotting functions and handle at higher level
 
 class QA4SMComparison():  #todo: optimize initialization (slow with large gridded files)
     """
@@ -274,7 +275,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
     def _get_pairwise(self, metric:str) -> (list, list): #todo: create separate method for getting the difference and names
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each.
-        In case that a single image is given, the comparison will be amon the different satellite datasets.
+        In case that a single image is given, the comparison will be among the different satellite datasets.
 
         Parameters
         ----------
@@ -331,23 +332,66 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             if pairwise:
                 self._check_pairwise() # todo: handle other cases
 
+
     def diff_table(self, **kwargs) -> pd.DataFrame:  #todo: diff_table for single_image
         """
         Create a table where all the metrics for the different validation runs are compared
         """
         self.perform_checks(pairwise=True)
 
-        medians, names, ids = [], [], []
-        for id, img in self.comparison.values():
-            ids.append(id)
-            median = img.stats_df()['Median']
-            medians.append(median)
-            names.append("Medians for {}: {}".format(id, img.name))
+        if self.single_image and self.perform_checks():
+            ids = self.comparison.datasets.others_id
+            stats = {}
+            for metric, Metr in self.comparison.metrics.items():
+                values, names = [], []
+                for id in ids:
+                    metric_stats = self.comparison._metric_stats(metric, id=id)
+                    if not metric_stats:
+                        continue
+                    values.append(metric_stats[0][1])  # get median only
+                    ds_name = self.comparison.datasets.dataset_metadata(
+                        id, element="pretty_title"
+                    )
+                    names.append("Median of {}-{}".format(*ds_name))
+                if not values:  # if metric is non-validation or belongs to group 0
+                    continue
+                diff = values[0] - values[1]
+                values.append(diff)
+                names.append("Difference of the medians ({} - {})".format(*ids))
+                stats[Metr.pretty_name] = values
 
-        table = pd.concat(medians, axis=1)
-        table.columns = names
-        diff_name = 'Difference of the medians ({} - {})'.format(*ids)
-        table[diff_name] = table.iloc[:,0] - table.iloc[:,1]
+        else:
+            stats, names, ids = {}, [], []
+            for n, val in enumerate(self.comparison.values()):
+                id, img = val
+                names.append("Median of {}: {}".format(id, img.name))
+                ids.append(id)
+                for metric, Metr in img.metrics.items():
+                    metric_stats = img._metric_stats(metric)
+                    if metric_stats:
+                        median = metric_stats[0][1]  # get median only
+                    else:  # if metric is non-validation or belongs to group 0
+                        continue
+                    if Metr.pretty_name in stats.keys():
+                        stats[Metr.pretty_name].append(median)
+                    elif n == 0:
+                        stats[Metr.pretty_name] = [median]
+
+            for key, medians in stats.items():
+                if len(medians) == 1:  # this means the two images have different metrics
+                    del stats[key]
+                else:
+                    diff = medians[0] - medians[1]
+                    stats[key].append(diff)
+
+            names.append("Difference of the medians ({} - {})".format(*ids))
+        # create difference table from fetched values
+        table = pd.DataFrame.from_dict(
+            data=stats,
+            orient="index",
+            columns=names
+        )
+        table = table.applymap(_format_floats)
 
         return table
 
@@ -505,3 +549,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         output = diff_funct(metric=metric, **kwargs)
 
         return output
+
+comp = QA4SMComparison(["/Users/pietrostradiotti/Projects/tests/0-GLDAS.SoilMoi40_100cm_inst_with_1-C3S.sm.nc",
+                       "/Users/pietrostradiotti/Projects/tests/0-GLDAS.SoilMoi0_10cm_inst_with_1-C3S.sm.nc"])
+tb = comp.diff_table()

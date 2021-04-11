@@ -185,8 +185,13 @@ class QA4SMImg():
                     continue
             if filter_parms:
                 for key, val in filter_parms.items():
-                    if getattr(Var, key) == val:
-                        yield Var
+                    if getattr(Var, key) == val:  # check all attribute individually
+                        check = True
+                    else:
+                        check = False  # does not match requirements
+                        break
+                if check == True:
+                    yield Var
             else:
                 yield Var
 
@@ -362,7 +367,7 @@ class QA4SMImg():
                     globals._metric_units_HTML[ds_name['short_name']]), Var.g])
             # put the separate variable statistics in the same list
             metric_stats.append(var_stats)
-        
+
         return metric_stats
     
     def stats_df(self) -> pd.DataFrame:
