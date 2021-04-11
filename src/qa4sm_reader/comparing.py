@@ -127,6 +127,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
     @property
     def overlapping(self) -> bool:
         """Return True if the initialised validation results have overlapping spatial extents, else False"""
+        if self.single_image:  # one validation is always on the same bounds
+            return True
+
         polys = {}
         for id, img in self.comparison.values():  # get names and extents for all images
             minlon, maxlon, minlat, maxlat = img.extent
@@ -152,7 +155,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
     def _check_initialized(self, paths:str or list):
         """
-        Check that the given path has been initialized in the class
+        Check that the given path has been initialized in the class. Only working
+        when a list of paths is initialized.
 
         Parameters
         ----------
@@ -272,7 +276,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                                       get_intersection=get_intersection,
                                       visualize=visualize)
 
-    def _get_pairwise(self, metric:str) -> (list, list): #todo: create separate method for getting the difference and names
+    def _get_pairwise(self, metric:str) -> pd.DataFrame: #todo: create separate method for getting the difference and names
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each.
         In case that a single image is given, the comparison will be among the different satellite datasets.
@@ -281,6 +285,11 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         ----------
         metric: str
             name of metric to get data on
+
+        Returns
+        -------
+        pair_df: pd.DataFrame
+            Dataframe with the metric sets of values for each term of comparison
         """
         # check wether the comparison has one single image and the number of sat datasets
         if self.single_image and self.perform_checks():
@@ -289,8 +298,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 ids.append(n)
                 to_plot.append(Var.values)
                 names.append("{}-{}".format(n, Var.pretty_name))
-            boxplot_df = pd.concat(to_plot, axis=1)
-            boxplot_df.columns = names
+            pair_df = pd.concat(to_plot, axis=1)
+            pair_df.columns = names
 
         elif self.single_image and not self.perform_checks():
             pass  # todo: handle situation with multiple datasets in validation
@@ -306,15 +315,15 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 to_plot.append(df)
 
             # if lon, lat in index are the same (e.g. multiple points in same ISMN station), needs workaround
-            boxplot_df = to_plot[0].join(to_plot[1],
+            pair_df = to_plot[0].join(to_plot[1],
                                          how='outer',
                                          lsuffix='_caller',
                                          rsuffix='_other')
-            boxplot_df.columns = names
+            pair_df.columns = names
         diff_name = 'Difference between {} and {}'.format(*ids)
-        boxplot_df[diff_name] = boxplot_df.iloc[:,0] - boxplot_df.iloc[:,1]
+        pair_df[diff_name] = pair_df.iloc[:,0] - pair_df.iloc[:,1]
 
-        return boxplot_df
+        return pair_df
 
     def perform_checks(self, overlapping=False, union=False, pairwise=False):
         """Performs selected checks and throws error is they're not passed"""
@@ -326,14 +335,14 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             if overlapping:
                 assert self.overlapping, "This method works only in case the initialized validations " \
                                          "have overlapping spatial extents."
-            if not self.extent and union:
+            if union and not self.extent:  # todo: unexpected behavior here if union is initialized through init_union
                 assert not self.union, "If the comparison is based on the 'union' of spatial extents, this method " \
                                        "cannot be called, as it is based on a point-by-point comparison"
             if pairwise:
                 self._check_pairwise() # todo: handle other cases
 
 
-    def diff_table(self, **kwargs) -> pd.DataFrame:  #todo: diff_table for single_image
+    def diff_table(self) -> pd.DataFrame:  #todo: diff_table for single_image
         """
         Create a table where all the metrics for the different validation runs are compared
         """
@@ -511,28 +520,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad)
 
-    def diff_methods(self, method:str):
-        """
-        Return the difference function from a lookup table
-
-        Parameters
-        ----------
-        method: str
-            method linked to function
-        """
-        try:
-            diff_methods_lut = {'table': self.diff_table,
-                                'boxplot': self.diff_boxplot,
-                                'correlation': self.corr_plot,
-                                'difference': self.diff_plot,
-                                'mapplot': self.diff_mapplot}
-        except IndexError as e:
-            warn('Difference method not valid. Choose one of %s' % ', '.join(diff_methods_lut.keys()))
-            raise e
-
-        return diff_methods_lut[method]
-
-    def wrapper(self, method:str, metric:str, **kwargs):
+    def wrapper(self, method:str, metric=None, **kwargs):
         """
         Call the method using a list of paths and the already initialised images
 
@@ -545,11 +533,25 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         **kwargs : kwargs
             plotting keyword arguments
         """
-        diff_funct = self.diff_methods(method)
-        output = diff_funct(metric=metric, **kwargs)
+        diff_methods_lut = {'table': self.diff_table,
+                            'boxplot': self.diff_boxplot,
+                            'correlation': self.corr_plot,
+                            'difference': self.diff_plot,
+                            'mapplot': self.diff_mapplot}
+        try:
+            diff_method = diff_methods_lut[method]
+        except IndexError as e:
+            warn('Difference method not valid. Choose one of %s' % ', '.join(diff_methods_lut.keys()))
+            raise e
 
-        return output
+        if method == "table":
+            return diff_method()
 
-comp = QA4SMComparison(["/Users/pietrostradiotti/Projects/tests/0-GLDAS.SoilMoi40_100cm_inst_with_1-C3S.sm.nc",
-                       "/Users/pietrostradiotti/Projects/tests/0-GLDAS.SoilMoi0_10cm_inst_with_1-C3S.sm.nc"])
-tb = comp.diff_table()
+        else:
+            assert metric, "If you chose '{}' as a method, you should specify a " \
+                           "metric (e.g. 'R').".format(method)
+
+            return diff_method(
+                metric=metric,
+                **kwargs
+            )
