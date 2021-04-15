@@ -85,6 +85,3 @@ def get_img_stats(
     table = img.stats_df()
     
     return table
-
-plot_all("../../../scratch/Test_reader/0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.nc",
-         out_dir="../../../scratch/Test_reader/out3/")
