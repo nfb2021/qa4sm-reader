@@ -81,6 +81,16 @@ class QA4SMImg():
         else:
             return ds
 
+    @property
+    def has_CIs(self):
+        """True if the validation result contains confidence intervals"""
+        cis = False
+        # check if there is any CI Var
+        for Var in self._iter_vars():
+            if Var.is_CI:
+                cis = True
+        return cis
+
     def create_image_name(self) -> str:
         """Create a unique name for the QA4SMImage from the netCDF file"""
         ref = self.datasets.ref['pretty_title']

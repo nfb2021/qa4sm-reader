@@ -57,19 +57,29 @@ _cclasses = {
 }
 
 # 0=common metrics, 2=paired metrics (2 datasets), 3=triple metrics (TC, 3 datasets)
-metric_groups = {0: ['n_obs'],
-                 2: ['R', 'p_R', 'rho','p_rho', 'RMSD', 'BIAS',
-                     'urmsd', 'mse', 'mse_corr', 'mse_bias', 'mse_var',
-                     'RSS', 'tau', 'p_tau'],
-                 3: ['snr', 'err_std', 'beta']}
+metric_groups = {
+    0: ['n_obs'],
+    2: ['R', 'p_R', 'rho','p_rho', 'RMSD', 'BIAS',
+        'urmsd', 'mse', 'mse_corr', 'mse_bias', 'mse_var',
+        'RSS', 'tau', 'p_tau'
+        ],
+    3: ['snr', 'err_std', 'beta']
+}
+
 
 # === variable template ===
 # how the metric is separated from the rest
-var_name_metric_sep = {0: "{metric}", 2: "{metric}_between_",
-                       3: "{metric}_{mds_id:d}-{mds}_between_"}
+var_name_metric_sep = {
+    0: "{metric}",
+    2: "{metric}_between_",
+    3: "{metric}_{mds_id:d}-{mds}_between_"
+}
+var_name_CI = "{metric}_ci_{bound}_between_"
 # how two datasets are separated, ids must be marked as numbers with :d!
-var_name_ds_sep = {0: None, 2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",
-                   3: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"}
+var_name_ds_sep = {
+    0: None, 2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",
+    3: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"
+}
 
 # === metadata tempplates ===
 _ref_ds_attr = 'val_ref' # global meta values variable that links to the reference dc
@@ -78,8 +88,11 @@ _ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}' # attribute convention f
 _version_short_name_attr = 'val_dc_version{:d}' # attribute convention for other datasets
 _version_pretty_name_attr = 'val_dc_version_pretty_name{:d}' # attribute convention for other datasets
 
-_variable_pretty_name = {0: "{}", 2: "{} of {} \n with {} as reference",
-                         3: "{} of {} \n against {}, {}"}  # format should have (metric, ds, ref, other ds)
+# format should have (metric, ds, ref, other ds)
+_variable_pretty_name = {
+    0: "{}", 2: "{} of {} \n with {} as reference",
+    3: "{} of {} \n against {}, {}"
+}
 
 _colormaps = {  # from /qa4sm/validator/validation/graphics.py
     'R': _cclasses['div_better'],

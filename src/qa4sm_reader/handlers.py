@@ -218,6 +218,9 @@ class QA4SMMetricVariable():
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
             self.pretty_name = self._pretty_name()
+            # if this is a CI variable, get whether it's the upper or lower bound
+            if self.is_CI:
+                self.bound = self.parts["bound"]
 
     @property
     def isempty(self) -> bool:
@@ -237,19 +240,31 @@ class QA4SMMetricVariable():
             else:
                 return self.ref_ds[0]
 
+    @property
+    def is_CI(self):
+        """True if the Variable is the confidence interval of a metric"""
+        if self.g:
+            return "bound" in self.parts.keys()
+        else:
+            return False
+
     def _pretty_name(self):
         """Create a nice name for the variable"""
-        name = globals._variable_pretty_name[self.g]
+        template = globals._variable_pretty_name[self.g]
 
         if self.g == 0:
-            return name.format(self.metric)
+            name = template.format(self.metric)
 
         elif self.g == 2:
-            return name.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
+            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
                                self.ref_ds[1]['pretty_title'])
         elif self.g == 3:
-            return name.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
+            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
                                self.ref_ds[1]['pretty_title'], self.other_ds[1]['pretty_title'])
+        if self.is_CI:
+            name = "Confidence Interval of " + name
+
+        return name
 
     def _parse_varname(self) -> (str, int, dict):
         """
@@ -276,6 +291,13 @@ class QA4SMMetricVariable():
 
             if parts is not None and parts['metric'] in globals.metric_groups[g]:
                 return parts['metric'], g, parts.named
+            # perhaps it's a CI variable
+            else:
+                pattern = '{}{}'.format(globals.var_name_CI, template)
+                parts = parse(pattern, self.varname)
+
+                if parts is not None and parts['metric'] in globals.metric_groups[g]:
+                    return parts['metric'], g, parts.named
 
         return None, None, None
 
