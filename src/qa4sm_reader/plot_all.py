@@ -6,13 +6,15 @@ from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader import globals
 import matplotlib.pyplot as plt
 
-def plot_all(filepath:str,
-             metrics:list=None,
-             extent:tuple=None,
-             out_dir:str=None,
-             out_type:str='png',
-             save_all:bool=True,
-             **plotting_kwargs) -> (list, list):
+def plot_all(
+        filepath:str,
+        metrics:list=None,
+        extent:tuple=None,
+        out_dir:str=None,
+        out_type:str='png',
+        save_all:bool=True,
+        **plotting_kwargs
+) -> (list, list):
     """
     Creates boxplots for all metrics and map plots for all variables.
     Saves the output in a folder-structure.
@@ -60,7 +62,10 @@ def plot_all(filepath:str,
         
     return fnames_bplot, fnames_mapplot
 
-def get_img_stats(filepath:str, extent:tuple=None) -> pd.DataFrame:
+def get_img_stats(
+        filepath:str,
+        extent:tuple=None
+) -> pd.DataFrame:
     """
     Creates a dataframe containing summary statistics for each metric
 
@@ -80,3 +85,6 @@ def get_img_stats(filepath:str, extent:tuple=None) -> pd.DataFrame:
     table = img.stats_df()
     
     return table
+
+plot_all("../../../scratch/Test_reader/0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.nc",
+         out_dir="../../../scratch/Test_reader/out3/")

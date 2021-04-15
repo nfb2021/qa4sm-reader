@@ -208,11 +208,12 @@ class QA4SMPlotter():
         type: str
             type of plot
         """
+        # we stick to old naming convention
         names = {'boxplot_basic': 'boxplot_{}',
-                 'boxplot_tc': 'boxplot_{}_for_{}-{}',
                  'mapplot_common': 'overview_{}',
-                 'mapplot_double': 'overview_{}_for_{}-{}',
-                 'mapplot_tc': 'overview_{}_for_{}-{}_against_{}-{}_and_{}-{}'}
+                 'boxplot_tc': 'boxplot_{}_for_{}-{}',
+                 'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
+                 'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'}
 
         try:
             return names[type]
@@ -238,7 +239,7 @@ class QA4SMPlotter():
 
         return title
 
-    def create_filename(self, Var, type:str) -> str:  # todo: naming convention is a bit weird and should be updated in qa4sm
+    def create_filename(self, Var, type:str) -> str:
         """
         Create name of the file
 
@@ -250,14 +251,21 @@ class QA4SMPlotter():
             type of plot
         """
         name = self._filenames_lut(type=type)
+        ref_meta, mds_meta, other_meta = Var.get_varmeta()
         # fetch parts of the name for the variable
-        parts = [Var.metric]
-        if not type in ['boxplot_basic', 'mapplot_common']:
-            ref_meta, mds_meta, other_meta = Var.get_varmeta()
-            parts.extend([mds_meta[0], mds_meta[1]['short_name']])
-            if type == 'mapplot_tc':
-                parts.extend([ref_meta[0], ref_meta[1]['short_name'],
-                              other_meta[0], other_meta[1]['short_name']])
+        if not type in ["mapplot_tc", "mapplot_double"]:
+            parts = [Var.metric]
+            if mds_meta:
+                parts.extend([mds_meta[0], mds_meta[1]['short_name']])
+        else:
+            parts = [ref_meta[0], ref_meta[1]['short_name']]
+            if type == "mapplot_tc":
+                # necessary to respect old naming convention
+                for dss in  Var.other_dss:
+                    parts.extend([dss[0], dss[1]['short_name']])
+                parts.extend([Var.metric, mds_meta[0], mds_meta[1]['short_name']])
+            parts.extend([mds_meta[0], mds_meta[1]['short_name'], Var.metric])
+
         name = name.format(*parts)
 
         return name

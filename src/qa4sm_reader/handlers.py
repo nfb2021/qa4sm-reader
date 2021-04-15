@@ -307,6 +307,11 @@ class QA4SMMetricVariable():
                 dss = self.Datasets.dataset_metadata(self.parts['sat_id1'])
                 if dss == mds:
                     dss = self.Datasets.dataset_metadata(self.parts['sat_id0'])
+                # need this to respect old file naming convention
+                self.other_dss = [
+                    self.Datasets.dataset_metadata(self.parts['sat_id0']),
+                    self.Datasets.dataset_metadata(self.parts['sat_id1'])
+                ]
 
         return ref_ds, mds, dss
 
