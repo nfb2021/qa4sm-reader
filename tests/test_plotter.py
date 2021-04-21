@@ -201,5 +201,32 @@ class TestQA4SMMetaImgIrregularGridPlotter(unittest.TestCase):
             assert zz.count() != 0
             assert origin == 'upper'
 
+
+class TestQA4SMMetaImgWithCIPlotter(unittest.TestCase): # todo: update with correct CI .nc file
+    """Test plotter works with confidence intervals. We test whether boxplots are working, but not whether CIs are
+    actually plotted correctly inside them"""
+
+    def setUp(self) -> None:
+        self.testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.CI.nc"
+        self.testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
+                                          'test_data', 'tc', self.testfile)
+        self.plotdir = tempfile.mkdtemp()
+        self.img = QA4SMImg(self.testfile_path)
+        self.plotter = QA4SMPlotter(self.img, self.plotdir)
+
+    def test_boxplot_basic(self):
+        bias_files = self.plotter.boxplot_basic('BIAS', out_types='png', save_files=True) # should be 1
+        assert len(os.listdir(self.plotdir)) == 1
+        assert len(list(bias_files)) == 1
+
+        shutil.rmtree(self.plotdir)
+
+    def test_boxplot_tc(self):  # todo: with correct CI file, this should be 2, not 3
+        snr_files = self.plotter.boxplot_tc('snr', out_types='svg', save_files=True) # should be 2
+        assert len(os.listdir(self.plotdir)) == 3
+        assert len(list(snr_files)) == 3
+
+        shutil.rmtree(self.plotdir)
+
 if __name__ == '__main__':
     unittest.main()

@@ -170,5 +170,35 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
         assert tot_stats == len(df)
 
 
+class TestQA4SMImgWithCI(unittest.TestCase): # todo: update with correct CI .nc file
+    """Test image where some of the variables are confidence intervals"""
+
+    def setUp(self) -> None:
+        self.testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.CI.nc"
+        self.testfile_path = os.path.join(os.path.dirname(__file__), '..','tests',
+                                          'test_data', 'tc', self.testfile)
+        self.img = QA4SMImg(self.testfile_path, ignore_empty=False)
+
+    def test_testfile(self):
+        someCIs = [
+            "RMSD_ci_lower_between_0-ERA5_and_1-ESA_CCI_SM_combined",
+            "RMSD_ci_upper_between_0-ERA5_and_1-ESA_CCI_SM_combined"
+        ]
+        for CI_varname in someCIs:
+            assert CI_varname in self.img.varnames
+
+    def test_CIs(self):
+        assert self.img.has_CIs
+
+    def test_CI_in_Vars(self):
+        """Test that CI Variables are correctly assigned to a metric"""
+        for CI_varname in self.img._iter_vars(**{
+            "metric":"RMSD",
+            "metric_ds":"2-ESA_CCI_SM_combined"}):
+            assert CI_varname in [
+                "RMSD_ci_lower_between_0-ERA5_and_2-ESA_CCI_SM_combined",
+                "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined"
+            ]
+
 if __name__ == '__main__':
     unittest.main()
