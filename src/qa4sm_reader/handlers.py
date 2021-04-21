@@ -217,7 +217,6 @@ class QA4SMMetricVariable():
         if self.g:
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
-            self.pretty_name = self._pretty_name()
             # if this is a CI variable, get whether it's the upper or lower bound
             if self.is_CI:
                 self.bound = self.parts["bound"]
@@ -248,7 +247,8 @@ class QA4SMMetricVariable():
         else:
             return False
 
-    def _pretty_name(self):
+    @property
+    def pretty_name(self):
         """Create a nice name for the variable"""
         template = globals._variable_pretty_name[self.g]
 
@@ -370,3 +370,13 @@ class QA4SMMetric():
 
         return value
 
+    @property
+    def has_CIs(self):
+        """Boolean property for metrics with or without confidence intervals"""
+        it_does = False
+        for n, Var in enumerate(self.variables):
+            if Var.is_CI():
+                it_does = True
+                break
+
+        return  it_does

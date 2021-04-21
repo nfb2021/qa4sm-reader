@@ -190,17 +190,17 @@ _metric_description = {  # from /qa4sm/validator/validation/graphics.py
 
 # units for all datasets
 _metric_units = {  # from /qa4sm/validator/validation/graphics.py
-    'ISMN': r'm^3 m^{-3}',
-    'C3S': r'm^3 m^{-3}',
-    'GLDAS': r'm^3 m^{-3}',
+    'ISMN': r'm³/m³',
+    'C3S': r'm³/m³',
+    'GLDAS': r'm³/m³',
     'ASCAT': r'percentage of saturation',
-    'SMAP': r'm^3 m^{-3}',
-    'ERA5': r'm^3 m^{-3}',
-    'ERA5_LAND': r'm^3 m^{-3}',
+    'SMAP': r'm³/m³',
+    'ERA5': r'm³/m³',
+    'ERA5_LAND': r'm³/m³',
     'ESA_CCI_SM_active': r'percentage of saturation',
-    'ESA_CCI_SM_combined': r'm^3 m^{-3}',
-    'ESA_CCI_SM_passive': r'm^3 m^{-3}',
-    'SMOS': r'm^3 m^{-3}',
+    'ESA_CCI_SM_combined': r'm³/m³',
+    'ESA_CCI_SM_passive': r'm³/m³',
+    'SMOS': r'm³/m³',
 }
 
 # label name for all metrics
