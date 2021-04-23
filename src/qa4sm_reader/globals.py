@@ -26,9 +26,8 @@ max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if 
 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
-boxplot_figsize = [6.30, 4.68]  # size of the output figure in inches. NO MORE USED.
-boxplot_height = 4.68
-boxplot_width = 1.7  # times (n+1), where n is the number of boxes.
+boxplot_height = 6
+boxplot_width = 2 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 
 # === watermark defaults ===
@@ -74,7 +73,11 @@ var_name_metric_sep = {
     2: "{metric}_between_",
     3: "{metric}_{mds_id:d}-{mds}_between_"
 }
-var_name_CI = "{metric}_ci_{bound}_between_"
+var_name_CI = {
+    0: "{metric}_ci_{bound}_between_",
+    2: "{metric}_ci_{bound}_between_",
+    3: "{metric}_ci_{bound}_{mds_id:d}-{mds}_between_"
+}
 # how two datasets are separated, ids must be marked as numbers with :d!
 var_name_ds_sep = {
     0: None, 2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",

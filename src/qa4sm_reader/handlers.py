@@ -293,9 +293,8 @@ class QA4SMMetricVariable():
                 return parts['metric'], g, parts.named
             # perhaps it's a CI variable
             else:
-                pattern = '{}{}'.format(globals.var_name_CI, template)
+                pattern = '{}{}'.format(globals.var_name_CI[g], template)
                 parts = parse(pattern, self.varname)
-
                 if parts is not None and parts['metric'] in globals.metric_groups[g]:
                     return parts['metric'], g, parts.named
 

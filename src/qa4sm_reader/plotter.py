@@ -430,12 +430,13 @@ class QA4SMPlotter():
         fnames, values = [], []
         ci = []
         # we take the last iterated value for Var and use it for the file name
-        for df, Var in self._yield_values(metric=metric):  # todo: combine in extrenal function (also with boxplot TC)
+        for df, Var in self._yield_values(metric=metric):
             if not Var.is_CI:
                 # concat upper and lower CIs of Variable, if present
                 bounds = []
                 for ci_df, ci_Var in self._yield_values(metric=metric):
-                    if ci_Var.is_CI and ci_Var.metric_ds == Var.metric_ds:
+                    # make sure they refer to the right variable
+                    if ci_Var.is_CI and (ci_Var.metric_ds == Var.metric_ds):
                         ci_df.columns = [ci_Var.bound]
                         bounds.append(ci_df)
                 if bounds:  # could be that variable doesn't have CIs
@@ -474,7 +475,7 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def boxplot_tc(
+    def boxplot_tc(  # todo: set limits to show confidence intervals
             self, metric:str,
             out_name:str=None,
             out_types:str='png',
@@ -504,32 +505,40 @@ class QA4SMPlotter():
             list of file names with all the extensions
         """
         fnames = []
-        metric_tc = {}  # group Vars relative to the same dataset
-        ci = []
+        # group Vars and CIs relative to the same dataset
+        metric_tc, ci = {}, {}
         for df, Var in self._yield_values(metric=metric, tc=True):
             if not Var.is_CI:
                 id, names = Var.metric_ds
                 bounds = []
                 for ci_df, ci_Var in self._yield_values(metric=metric):
-                    if ci_Var.is_CI and ci_Var.metric_ds == Var.metric_ds:
+                    # make sure they refer to the right variable
+                    if ci_Var.is_CI and \
+                            (ci_Var.metric_ds == Var.metric_ds) and \
+                            (ci_Var.other_dss == Var.other_dss):
                         ci_df.columns = [ci_Var.bound]
                         bounds.append(ci_df)
                 if bounds:  # could be that variable doesn't have CIs
                     bounds = pd.concat(bounds, axis=1)
                     # get the mean CI range
                     diff = bounds["upper"] - bounds["lower"]
-                    ci_range = float(diff.mean())
+                    ci_range = diff.mean()
                     df.columns = [
                         df.columns[0] + "\nMean CI range:"
                                         " {:.3g}".format(ci_range)
                     ]
-                    ci.append(bounds)
+                    if id in ci.keys():
+                        ci[id].append(bounds)
+                    else:
+                        ci[id] = [bounds]
                 if id in metric_tc.keys():
                     metric_tc[id][0].append(df)
                 else:
                     metric_tc[id] = [df], Var
 
-        for dfs, Var in metric_tc.values():
+        for id, values in metric_tc.items():
+            dfs, Var = values
+            bounds = ci[id]
             df = pd.concat(dfs)
             # values are all Nan or NaNf - not plotted
             if df.isnull().values.all():
@@ -537,6 +546,7 @@ class QA4SMPlotter():
             # create plot
             fig, ax = self._boxplot_definition(metric=metric,
                                                df=df,
+                                               ci=bounds,
                                                type='boxplot_tc',
                                                Var=Var,
                                                **plotting_kwargs)
