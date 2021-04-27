@@ -174,7 +174,7 @@ class TestQA4SMImgWithCI(unittest.TestCase): # todo: update with correct CI .nc 
     """Test image where some of the variables are confidence intervals"""
 
     def setUp(self) -> None:
-        self.testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.CI.nc"
+        self.testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc"
         self.testfile_path = os.path.join(os.path.dirname(__file__), '..','tests',
                                           'test_data', 'tc', self.testfile)
         self.img = QA4SMImg(self.testfile_path, ignore_empty=False)

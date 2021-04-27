@@ -20,7 +20,7 @@ def test_tc_attributes():
 
 def test_CI_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'tc',
-                            '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.CI.nc')
+                            "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc")
     ds = xr.open_dataset(testfile)
     return ds.attrs
 

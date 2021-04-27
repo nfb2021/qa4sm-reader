@@ -432,7 +432,7 @@ class QA4SMPlotter():
         # we take the last iterated value for Var and use it for the file name
         for df, Var in self._yield_values(metric=metric):
             if not Var.is_CI:
-                # concat upper and lower CIs of Variable, if present
+                # concat upper and lower CI bounds of Variable, if present
                 bounds = []
                 for ci_df, ci_Var in self._yield_values(metric=metric):
                     # make sure they refer to the right variable
@@ -538,18 +538,24 @@ class QA4SMPlotter():
 
         for id, values in metric_tc.items():
             dfs, Var = values
-            bounds = ci[id]
             df = pd.concat(dfs)
             # values are all Nan or NaNf - not plotted
             if df.isnull().values.all():
                 continue
+            # necessary if statement to prevent key error when no CIs are in the netCDF
+            if ci:
+                bounds = ci[id]
+            else:
+                bounds = ci
             # create plot
-            fig, ax = self._boxplot_definition(metric=metric,
-                                               df=df,
-                                               ci=bounds,
-                                               type='boxplot_tc',
-                                               Var=Var,
-                                               **plotting_kwargs)
+            fig, ax = self._boxplot_definition(
+                metric=metric,
+                df=df,
+                ci=bounds,
+                type='boxplot_tc',
+                Var=Var,
+                **plotting_kwargs
+            )
             # save. Below workaround to avoid same names
             if not out_name:
                 save_name = self.create_filename(Var, type='boxplot_tc')
