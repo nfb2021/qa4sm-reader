@@ -11,12 +11,16 @@ from qa4sm_reader.handlers import QA4SMMetricVariable
 import pandas as pd
 import itertools
 
+def extract_periods(filepath) -> np.array:
+    dataset = xr.open_dataset(filepath)
+    return dataset[globals.time_name].values if globals.time_name in dataset.dims else np.array([None])
 
 class QA4SMImg(object):
     """
     A QA4SM validation results netcdf image.
     """
-    def __init__(self, filepath, extent=None, ignore_empty=True, metrics=None,
+    def __init__(self, filepath, period=None,
+                 extent=None, ignore_empty=True, metrics=None,
                  index_names=globals.index_names):
         """
         Initialise a common QA4SM results image.
@@ -25,6 +29,9 @@ class QA4SMImg(object):
         ----------
         filepath : str
             Path to the results netcdf file (as created by QA4SM)
+        period : Any, optional (default: None)
+            If results for multiple validation periods are stored in file,
+            load this period.
         extent : tuple, optional (default: None)
             Area to subset the values for.
             (min_lon, max_lon, min_lat, max_lat)
@@ -43,7 +50,12 @@ class QA4SMImg(object):
         self.index_names = index_names
 
         self.ignore_empty = ignore_empty
-        self.ds = xr.open_dataset(self.filepath)
+        dataset = xr.open_dataset(self.filepath)
+
+        if period is not None:
+            self.ds = dataset.sel(dict(period=period))
+        else:
+            self.ds = dataset
 
         self.common, self.double, self.triple = self._load_metrics_from_file(metrics)
 
@@ -109,7 +121,7 @@ class QA4SMImg(object):
         try:
             if varnames is None:
                 if globals.time_name in list(self.ds.variables.keys()):
-                    if len(self.ds[globals.time_name]) == 0:
+                    if self.ds[globals.time_name].values.size == 0:
                         self.ds = self.ds.drop_vars('time')
                 df = self.ds.to_dataframe()
             else:
