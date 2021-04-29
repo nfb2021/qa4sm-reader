@@ -30,6 +30,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         extent : tuple, optional (default: None)
             Area to subset the values for.
             (min_lon, max_lon, min_lat, max_lat)
+        get_intersection: bool, default is True
+            Whether to get the intersection or union of the two spatial exents
 
         Attributes
         ----------
@@ -123,6 +125,21 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             previous = ref
 
         return ref
+
+    @property
+    def common_metrics(self) -> list: # todo: it can only handle 2 images atm
+        """Get list of metrics that can be used in the comparison"""
+        if self.single_image:
+            common_metrics = list(self.comparison.metrics.keys())
+            common_metrics.remove("n_obs")  # cannot be compared
+        else:
+            common_metrics = []
+            imgs = [i[1] for i in self.comparison.values()]
+            for metric in imgs[0].metrics:
+                if metric in imgs[1].metrics:
+                    common_metrics.append(metric)
+
+        return common_metrics
 
     @property
     def overlapping(self) -> bool:
