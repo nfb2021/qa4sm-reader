@@ -10,6 +10,7 @@ import cartopy.crs as ccrs
 matplotlib_ppi = 72  # Don't change this, it's a matplotlib convention.
 index_names = ['lat', 'lon']  # Names used for 'lattitude' and 'longitude' coordinate.
 time_name = 'time' # not used at the moment, dropped on load
+period_name = 'period' # not used at the moment, dropped on load
 dpi = 100  # Resolution in which plots are going to be rendered.
 title_pad = 12.0  # Padding below the title in points. default padding is matplotlib.rcParams['axes.titlepad'] = 6.0
 data_crs = ccrs.PlateCarree()  # Default map projection. use one of
