@@ -87,7 +87,3 @@ def get_img_stats(filepath, extent=None):
     table = img.stats_df()
     
     return table
-
-
-if __name__ == '__main__':
-    plot_all("/home/wpreimes/Temp/plot/0-ERA5.swvl1_with_1-C3S.sm.nc", out_dir="/home/wpreimes/Temp/plot/qa4sm")

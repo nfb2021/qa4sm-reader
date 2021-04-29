@@ -13,7 +13,7 @@ import itertools
 
 def extract_periods(filepath) -> np.array:
     dataset = xr.open_dataset(filepath)
-    return dataset[globals.time_name].values if globals.time_name in dataset.dims else np.array([None])
+    return dataset[globals.period_name].values if globals.period_name in dataset.dims else np.array([None])
 
 class QA4SMImg(object):
     """
@@ -122,7 +122,7 @@ class QA4SMImg(object):
             if varnames is None:
                 if globals.time_name in list(self.ds.variables.keys()):
                     if self.ds[globals.time_name].values.size == 0:
-                        self.ds = self.ds.drop_vars('time')
+                        self.ds = self.ds.drop_vars(globals.time_name)
                 df = self.ds.to_dataframe()
             else:
                 df = self.ds[self.index_names + varnames].to_dataframe()
