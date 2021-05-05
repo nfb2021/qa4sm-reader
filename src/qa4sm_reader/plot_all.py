@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter
-from qa4sm_reader.img import QA4SMImg
+from qa4sm_reader.img import QA4SMImg, extract_periods
 from qa4sm_reader import globals
 import matplotlib.pyplot as plt
 
@@ -42,23 +42,36 @@ def plot_all(
         lists of filenames for created mapplots and boxplots
     """
     # initialise image and plotter
-    img = QA4SMImg(filepath, extent=extent, ignore_empty=True)
-    plotter = QA4SMPlotter(image=img, out_dir=out_dir)
-
-    if not metrics:
-        metrics = img.metrics
-    # iterate metrics and create files in output directory
     fnames_bplot, fnames_mapplot = [], []
-    for metric in metrics:
-        metric_bplots, metric_mapplots = plotter.plot_metric(metric=metric,
-                                                             out_types=out_type,
-                                                             save_all=save_all,
-                                                             **plotting_kwargs)
-        # there can be boxplots with no mapplots
-        if metric_bplots:
-            fnames_bplot.extend(metric_bplots)
-        if metric_mapplots:
-            fnames_mapplot.extend(metric_mapplots)
+    periods = extract_periods(filepath)
+    for period in periods:
+        img = QA4SMImg(
+            filepath,
+            period=period,
+            extent=extent,
+            ignore_empty=True
+        )
+        plotter = QA4SMPlotter(
+            image=img,
+            out_dir=os.path.join(out_dir, str(period)) if period else out_dir
+        )
+
+        if metrics is None:
+            metrics = img.metrics
+        # iterate metrics and create files in output directory
+
+        for metric in metrics:
+            metric_bplots, metric_mapplots = plotter.plot_metric(
+                metric=metric,
+                out_types=out_type,
+                save_all=save_all,
+                **plotting_kwargs
+            )
+            # there can be boxplots with no mapplots
+            if metric_bplots:
+                fnames_bplot.extend(metric_bplots)
+            if metric_mapplots:
+                fnames_mapplot.extend(metric_mapplots)
         
     return fnames_bplot, fnames_mapplot
 

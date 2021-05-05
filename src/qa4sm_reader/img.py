@@ -12,11 +12,21 @@ from collections import OrderedDict
 import itertools
 import pandas as pd
 
-class QA4SMImg():
-    """
-    A tool to analyze the results of a validation, which are stored in a netCDF file.
-    """
+
+def extract_periods(filepath) -> np.array:
+    """Get periods from .nc"""
+    dataset = xr.open_dataset(filepath)
+    if globals.period_name in dataset.dims:
+        return dataset[globals.period_name].values
+
+    else:
+        return np.array([None])
+
+
+class QA4SMImg(object):
+    """A tool to analyze the results of a validation, which are stored in a netCDF file."""
     def __init__(self, filepath,
+                 period=None,
                  extent=None,
                  ignore_empty=True,
                  metrics=None,
@@ -29,6 +39,9 @@ class QA4SMImg():
         ----------
         filepath : str
             Path to the results netcdf file (as created by QA4SM)
+        period : Any, optional (default: None)
+            If results for multiple validation periods are stored in file,
+            load this period.
         extent : tuple, optional (default: None)
             Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
         ignore_empty : bool, optional (default: True)
@@ -45,7 +58,7 @@ class QA4SMImg():
         self.index_names = index_names
 
         self.ignore_empty = ignore_empty
-        self.ds = self._open_ds(extent=extent)
+        self.ds = self._open_ds(extent=extent, period=period)
         self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
         self.datasets = QA4SMDatasets(self.ds.attrs)
         self.name = self.create_image_name()
@@ -56,15 +69,19 @@ class QA4SMImg():
             self.vars = self._load_vars()
             self.metrics = self._load_metrics()
             self.common, self.double, self.triple = self.group_metrics(metrics)
-
+            # this try here is to obey tests, withouth a necessity of changing and commiting test files again
             try:
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
             except:
                 self.ref_dataset_grid_stepsize = 'nan'
 
-    def _open_ds(self, extent=None):
+    def _open_ds(self, extent=None, period=None):
         """Open .nc as xarray datset, with selected extent"""
-        ds = xr.open_dataset(self.filepath)
+        dataset = xr.open_dataset(self.filepath)
+        if period is not None:
+            ds = dataset.sel(dict(period=period))
+        else:
+            ds = dataset
         # drop non-spatial variables (e.g.'time')
         if globals.time_name in ds.variables:
             ds = ds.drop_vars(globals.time_name)
@@ -278,8 +295,8 @@ class QA4SMImg():
         try:
             if varnames is None:
                 if globals.time_name in self.varnames:
-                    if len(self.ds[globals.time_name]) == 0:
-                        self.ds = self.ds.drop_vars('time')
+                    if self.ds[globals.time_name].values.size == 0:
+                         self.ds = self.ds.drop_vars(globals.time_name)
                 df = self.ds.to_dataframe()
             else:
                 df = self.ds[self.index_names + varnames].to_dataframe()
