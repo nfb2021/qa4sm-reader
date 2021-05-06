@@ -1,4 +1,4 @@
-from qa4sm_reader.comparing import QA4SMComparison
+from qa4sm_reader.comparing import QA4SMComparison, ComparisonError
 from qa4sm_reader.img import QA4SMImg
 
 import os
@@ -143,7 +143,7 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
                     method,
                     metric="R"
                 )
-            except AssertionError:
+            except ComparisonError:
                 works = True
 
         assert works
@@ -175,7 +175,7 @@ class TestQA4SMComparison_DoubleNonOverlapping(unittest.TestCase):
             comp = QA4SMComparison(
                 self.testfile_paths
             )
-        except AssertionError:
+        except ComparisonError:
             works = True
 
         assert works
