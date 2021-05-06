@@ -75,7 +75,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             if isinstance(self.paths, list):
                 self.paths = self.paths[0]
 
-            img = QA4SMImg(self.paths, extent=extent, load_data=False)
+            img = QA4SMImg(self.paths, extent=extent, empty=True)
             if not len(img.datasets.others) > 1:
                 raise ComparisonError("A single validation was initialized, with a single "
                                       "satellite dataset. You should add another comparison term.")
@@ -87,7 +87,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         if extent:
             try:
                 for n, path in enumerate(self.paths):
-                    img = QA4SMImg(path, extent=extent, load_data=False)
+                    img = QA4SMImg(path, extent=extent, empty=True)
                     imgs.append(img)
                     if path in comparison.keys():
                         raise ComparisonError("You are initializing the same validation twice")
@@ -106,7 +106,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 self.union = False
 
             for n, path in enumerate(self.paths):
-                img = QA4SMImg(path, extent=extent, load_data=False)
+                img = QA4SMImg(path, extent=extent, empty=True)
                 imgs.append(img)
                 if path in comparison.keys():
                     raise ComparisonError("You are initializing the same validation twice")

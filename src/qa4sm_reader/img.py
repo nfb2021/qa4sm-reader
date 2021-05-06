@@ -31,7 +31,8 @@ class QA4SMImg(object):
                  ignore_empty=True,
                  metrics=None,
                  index_names=globals.index_names,
-                 load_data=True):
+                 load_data=True,
+                 empty=False):
         """
         Initialise a common QA4SM results image.
 
@@ -66,7 +67,7 @@ class QA4SMImg(object):
         if load_data:
             self.varnames = list(self.ds.variables.keys())
             self.df = self._ds2df()
-            self.vars = self._load_vars()
+            self.vars = self._load_vars(empty=empty)
             self.metrics = self._load_metrics()
             self.common, self.double, self.triple = self.group_metrics(metrics)
             # this try here is to obey tests, withouth a necessity of changing and commiting test files again
@@ -148,8 +149,8 @@ class QA4SMImg(object):
 
             try:
                 Var = QA4SMMetricVariable(varname, self.ds.attrs, values=values)
-                if self.ignore_empty and Var.isempty:  # check whether there are values
-                    continue
+                # if self.ignore_empty and Var.isempty: todo: possible issues from non-metric variables
+                #     continue
             except IOError:
                 Var = None
                 continue
