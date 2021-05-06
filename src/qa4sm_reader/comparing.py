@@ -12,6 +12,9 @@ from scipy import stats
 
 import warnings as warn
 
+class ComparisonError(Exception):
+    pass
+
 # todo: take _get_pairwise outside plotting functions and handle at higher level
 
 class QA4SMComparison():  #todo: optimize initialization (slow with large gridded files)
@@ -72,8 +75,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             if isinstance(self.paths, list):
                 self.paths = self.paths[0]
             img = QA4SMImg(self.paths, extent=extent)
-            assert len(img.datasets.others) > 1, "A single validation was initialized, with a single" \
-                                                 "satellite dataset. You should add another comparison term."
+            if not len(img.datasets.others) > 1:
+                raise ComparisonError("A single validation was initialized, with a single "
+                                      "satellite dataset. You should add another comparison term.")
 
             return img
 
@@ -84,10 +88,12 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 for n, path in enumerate(self.paths):
                     img = QA4SMImg(path, extent=extent)
                     imgs.append(img)
-                    assert path not in comparison.keys(), "You are initializing the same validation twice"
+                    if path in comparison.keys():
+                        raise ComparisonError("You are initializing the same validation twice")
+
                     comparison[path] = (n, img)
 
-            except AssertionError as e:
+            except ComparisonError as e:
                 e.message = "One of the initialised validation result files has no points in the given spatial subset:" \
                             "{}. \nYou should change subset to a valid one, or not pass any.".format(extent)
                 raise e
@@ -101,7 +107,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             for n, path in enumerate(self.paths):
                 img = QA4SMImg(path, extent=extent)
                 imgs.append(img)
-                assert path not in comparison.keys(), "You are initializing the same validation twice"
+                if path in comparison.keys():
+                    raise ComparisonError("You are initializing the same validation twice")
+
                 comparison[path] = (n, img)
 
         return comparison
@@ -120,8 +128,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         for id, img in self.comparison.values():
             ref = img.datasets.ref
             if id != 0:
-                assert ref == previous, "The initialized validation results have different reference datasets. " \
-                                        "This is currently not supported"
+                if not ref == previous:
+                    raise ComparisonError("The initialized validation results have different reference "
+                                          "datasets. This is currently not supported")
             previous = ref
 
         return ref
@@ -215,8 +224,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 if img.datasets.n_datasets() > 2:
                     pairwise = False
 
-        assert pairwise, "For pairwise comparison methods, only two validation " \
-                         "results with two datasets each can be compared"
+        if not pairwise:
+            raise ComparisonError("For pairwise comparison methods, only two "
+                                  "validation results with two datasets each can be compared")
 
     @staticmethod
     def _combine_geometry(imgs:list, get_intersection:bool=True, visualize=False) -> tuple:
@@ -258,8 +268,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             else:  # get maximum common
                 output = output.intersection(Pol)
                 where = "Intersection"
-                assert output, "The spatial extents of the chosen validation results do not overlap. " \
-                               "Set 'get_intersection' to False to perform the comparison."
+                if not output:
+                    raise ComparisonError("The spatial extents of the chosen validation results do "
+                                          "not overlap. Set 'get_intersection' to False to perform the comparison.")
         name = '{} of the spatial subsets'.format(where)
         polys[name] = output
 
@@ -289,9 +300,11 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             img = QA4SMImg(path, extent=None, load_data=False)
             imgs.append(img)
 
-        return self._combine_geometry(imgs=imgs,
-                                      get_intersection=get_intersection,
-                                      visualize=visualize)
+        return self._combine_geometry(
+            imgs=imgs,
+            get_intersection=get_intersection,
+            visualize=visualize
+        )
 
     def _get_pairwise(self, metric:str) -> pd.DataFrame: #todo: create separate method for getting the difference and names
         """
@@ -350,11 +363,13 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         # these checks are for multiple images
         else:
             if overlapping:
-                assert self.overlapping, "This method works only in case the initialized validations " \
-                                         "have overlapping spatial extents."
+                if not self.overlapping:
+                    raise ComparisonError("This method works only in case the initialized "
+                                          "validations have overlapping spatial extents.")
             if union and not self.extent:  # todo: unexpected behavior here if union is initialized through init_union
-                assert not self.union, "If the comparison is based on the 'union' of spatial extents, this method " \
-                                       "cannot be called, as it is based on a point-by-point comparison"
+                if self.union:
+                    raise ComparisonError("If the comparison is based on the 'union' of spatial extents, "
+                                          "this method cannot be called, as it is based on a point-by-point comparison")
             if pairwise:
                 self._check_pairwise() # todo: handle other cases
 
@@ -565,8 +580,9 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             return diff_method()
 
         else:
-            assert metric, "If you chose '{}' as a method, you should specify a " \
-                           "metric (e.g. 'R').".format(method)
+            if not metric:
+                raise ComparisonError("If you chose '{}' as a method, you should specify "
+                                      "a metric (e.g. 'R').".format(method))
 
             return diff_method(
                 metric=metric,
