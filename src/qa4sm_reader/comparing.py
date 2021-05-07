@@ -139,15 +139,17 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
     @property
     def common_metrics(self) -> list: # todo: it can only handle 2 images atm
         """Get list of metrics that can be used in the comparison"""
+        common_metrics ={}
         if self.single_image:
-            common_metrics = list(self.comparison.metrics.keys())
-            common_metrics.remove("n_obs")  # cannot be compared
+            for metric in self.comparison.metrics.keys():
+                if metric == "n_obs":  # todo: hardcoded; reason is n_obs cannot be compared
+                    continue
+                common_metrics[metric] = glob._metric_name[metric]
         else:
-            common_metrics = []
             imgs = [i[1] for i in self.comparison.values()]
             for metric in imgs[0].metrics:
                 if metric in imgs[1].metrics:
-                    common_metrics.append(metric)
+                    common_metrics[metric] = glob._metric_name[metric]
 
         return common_metrics
 
@@ -307,7 +309,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             visualize=visualize
         )
 
-    def _get_varnames(self, metric):  # todo: get varnames for all metric groups
+    def _get_varnames(self, metric):  # todo: use varnames in file instead
         """
         Predict the variable name of the initialized image from the metric name
 
@@ -322,23 +324,14 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             list of the two variables
         """
         varlist = []
-        varname_template = metric + "_between_{}-{}_and_{}-{}"
         if self.single_image:
-            ds = self.comparison.datasets
-            for id in ds.others_id:
-                data = ds.dataset_metadata(ds.ref_id, "short_name") + \
-                       ds.dataset_metadata(id, "short_name")
-                varlist.append(
-                    varname_template.format(*data)
-                )
+            im = self.comparison
+            for Var in im._iter_vars(**{"metric":metric}):
+                varlist.append(Var.varname)
         else:
             for id, img in self.comparison.values():
-                ds = img.datasets
-                data = ds.dataset_metadata(ds.ref_id, "short_name") + \
-                       ds.dataset_metadata(ds.others_id[0], "short_name")
-                varlist.append(
-                    varname_template.format(*data)
-                )
+                for Var in img._iter_vars(**{"metric":metric}):
+                    varlist.append(Var.varname)
 
         return varlist
 
