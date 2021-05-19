@@ -74,7 +74,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         if self.single_image:
             if isinstance(self.paths, list):
                 self.paths = self.paths[0]
-            img = QA4SMImg(self.paths, extent=extent)
+
+            img = QA4SMImg(self.paths, extent=extent, empty=True)
             if not len(img.datasets.others) > 1:
                 raise ComparisonError("A single validation was initialized, with a single "
                                       "satellite dataset. You should add another comparison term.")
@@ -86,7 +87,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         if extent:
             try:
                 for n, path in enumerate(self.paths):
-                    img = QA4SMImg(path, extent=extent)
+                    img = QA4SMImg(path, extent=extent, empty=True)
                     imgs.append(img)
                     if path in comparison.keys():
                         raise ComparisonError("You are initializing the same validation twice")
@@ -105,7 +106,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 self.union = False
 
             for n, path in enumerate(self.paths):
-                img = QA4SMImg(path, extent=extent)
+                img = QA4SMImg(path, extent=extent, empty=True)
                 imgs.append(img)
                 if path in comparison.keys():
                     raise ComparisonError("You are initializing the same validation twice")
@@ -138,15 +139,17 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
     @property
     def common_metrics(self) -> list: # todo: it can only handle 2 images atm
         """Get list of metrics that can be used in the comparison"""
+        common_metrics ={}
         if self.single_image:
-            common_metrics = list(self.comparison.metrics.keys())
-            common_metrics.remove("n_obs")  # cannot be compared
+            for metric in self.comparison.metrics.keys():
+                if metric == "n_obs":  # todo: hardcoded; reason is n_obs cannot be compared
+                    continue
+                common_metrics[metric] = glob._metric_name[metric]
         else:
-            common_metrics = []
             imgs = [i[1] for i in self.comparison.values()]
             for metric in imgs[0].metrics:
                 if metric in imgs[1].metrics:
-                    common_metrics.append(metric)
+                    common_metrics[metric] = glob._metric_name[metric]
 
         return common_metrics
 
@@ -306,6 +309,32 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             visualize=visualize
         )
 
+    def _get_varnames(self, metric):  # todo: use varnames in file instead
+        """
+        Predict the variable name of the initialized image from the metric name
+
+        Parameters
+        ----------
+        metric: str
+            name of metric
+
+        Returns
+        -------
+        varlist: list
+            list of the two variables
+        """
+        varlist = []
+        if self.single_image:
+            im = self.comparison
+            for Var in im._iter_vars(**{"metric":metric}):
+                varlist.append(Var.varname)
+        else:
+            for id, img in self.comparison.values():
+                for Var in img._iter_vars(**{"metric":metric}):
+                    varlist.append(Var.varname)
+
+        return varlist
+
     def _get_pairwise(self, metric:str) -> pd.DataFrame: #todo: create separate method for getting the difference and names
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each.
@@ -321,37 +350,31 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         pair_df: pd.DataFrame
             Dataframe with the metric sets of values for each term of comparison
         """
+        to_plot, names = [], []  # todo: improve names
         # check wether the comparison has one single image and the number of sat datasets
         if self.single_image and self.perform_checks():
-            to_plot, names, ids = [], [], []  # todo: improve ids
-            for n, Var in enumerate(self.comparison._iter_vars(**{'metric':metric})):
-                ids.append(n)
-                to_plot.append(Var.values)
-                names.append("{}-{}".format(n, Var.pretty_name))
-            pair_df = pd.concat(to_plot, axis=1)
-            pair_df.columns = names
+            for n, varname in enumerate(self._get_varnames(metric)):
+                to_plot.append(
+                    self.comparison._ds2df(varnames=[varname])[varname]
+                )
+                names.append("{}-{}".format(n, varname))
 
         elif self.single_image and not self.perform_checks():
-            pass  # todo: handle situation with multiple datasets in validation
+            pass  # todo: handle situation with mor than 2 non-reference datasets in validation
 
         else:
-            to_plot, names, ids = [], [], []
-            for id, img in self.comparison.values():
-                ids.append(id)
-                Var = img.group_vars(**{'metric':metric})[0]
-                # below necessary to workaround identical variable names
-                names.append("{}: ".format(id) + Var.pretty_name)
-                df = Var.values
-                to_plot.append(df)
+            for n, (varname, values) in enumerate(
+                    zip(self._get_varnames(metric), self.comparison.values())
+            ):
+                id, img = values
+                to_plot.append(
+                    img._ds2df(varnames=[varname])[varname]
+                )
+                names.append("{}-{}".format(n, varname))
 
-            # if lon, lat in index are the same (e.g. multiple points in same ISMN station), needs workaround
-            pair_df = to_plot[0].join(to_plot[1],
-                                         how='outer',
-                                         lsuffix='_caller',
-                                         rsuffix='_other')
-            pair_df.columns = names
-        diff_name = 'Difference between {} and {}'.format(*ids)
-        pair_df[diff_name] = pair_df.iloc[:,0] - pair_df.iloc[:,1]
+        pair_df = pd.concat(to_plot, axis=1)
+        pair_df.columns = names
+        pair_df["Difference"] = pair_df.iloc[:,0] - pair_df.iloc[:,1]
 
         return pair_df
 
@@ -374,64 +397,37 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 self._check_pairwise() # todo: handle other cases
 
 
-    def diff_table(self) -> pd.DataFrame:  #todo: diff_table for single_image
+    def diff_table(self, metrics:list) -> pd.DataFrame:  #todo: diff_table for single_image
         """
         Create a table where all the metrics for the different validation runs are compared
+
+        Parameters
+        ----------
+        metrics: list
+            list of metrics to create the table for
         """
         self.perform_checks(pairwise=True)
+        table = {}
+        for metric in metrics:
+            ref = self._check_ref()["short_name"]
+            units = glob._metric_description_HTML[metric].format(
+                glob._metric_units_HTML[ref]
+            )
+            description = glob._metric_name[metric] + units
+            medians = self._get_pairwise(metric).median()
+            # a bit of a hack here
+            table[description] = [
+                medians[0],
+                medians[1],
+                medians[0] - medians[1]
+            ]
 
-        if self.single_image and self.perform_checks():
-            ids = self.comparison.datasets.others_id
-            stats = {}
-            for metric, Metr in self.comparison.metrics.items():
-                values, names = [], []
-                for id in ids:
-                    metric_stats = self.comparison._metric_stats(metric, id=id)
-                    if not metric_stats:
-                        continue
-                    values.append(metric_stats[0][1])  # get median only
-                    ds_name = self.comparison.datasets.dataset_metadata(
-                        id, element="pretty_title"
-                    )
-                    names.append("Median of {}-{}".format(*ds_name))
-                if not values:  # if metric is non-validation or belongs to group 0
-                    continue
-                diff = values[0] - values[1]
-                values.append(diff)
-                names.append("Difference of the medians ({} - {})".format(*ids))
-                stats[Metr.pretty_name] = values
-
-        else:
-            stats, names, ids = {}, [], []
-            for n, val in enumerate(self.comparison.values()):
-                id, img = val
-                names.append("Median of {}: {}".format(id, img.name))
-                ids.append(id)
-                for metric, Metr in img.metrics.items():
-                    metric_stats = img._metric_stats(metric)
-                    if metric_stats:
-                        median = metric_stats[0][1]  # get median only
-                    else:  # if metric is non-validation or belongs to group 0
-                        continue
-                    if Metr.pretty_name in stats.keys():
-                        stats[Metr.pretty_name].append(median)
-                    elif n == 0:
-                        stats[Metr.pretty_name] = [median]
-
-            for key, medians in stats.items():
-                if len(medians) == 1:  # this means the two images have different metrics
-                    del stats[key]
-                else:
-                    diff = medians[0] - medians[1]
-                    stats[key].append(diff)
-
-            names.append("Difference of the medians ({} - {})".format(*ids))
-        # create difference table from fetched values
         table = pd.DataFrame.from_dict(
-            data=stats,
+            data=table,
             orient="index",
-            columns=names
+            columns=["first", "second", "difference"]
         )
+
         table = table.applymap(_format_floats)
 
         return table
@@ -565,8 +561,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         **kwargs : kwargs
             plotting keyword arguments
         """
-        diff_methods_lut = {'table': self.diff_table,
-                            'boxplot': self.diff_boxplot,
+        diff_methods_lut = {'boxplot': self.diff_boxplot,
                             'correlation': self.corr_plot,
                             'difference': self.diff_plot,
                             'mapplot': self.diff_mapplot}
@@ -576,15 +571,12 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             warn('Difference method not valid. Choose one of %s' % ', '.join(diff_methods_lut.keys()))
             raise e
 
-        if method == "table":
-            return diff_method()
 
-        else:
-            if not metric:
-                raise ComparisonError("If you chose '{}' as a method, you should specify "
-                                      "a metric (e.g. 'R').".format(method))
+        if not metric:
+            raise ComparisonError("If you chose '{}' as a method, you should specify "
+                                  "a metric (e.g. 'R').".format(method))
 
-            return diff_method(
-                metric=metric,
-                **kwargs
-            )
+        return diff_method(
+            metric=metric,
+            **kwargs
+        )

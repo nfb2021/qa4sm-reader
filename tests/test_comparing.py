@@ -45,7 +45,6 @@ class TestQA4SMComparison_SingleImage(unittest.TestCase):
         plotting functions/table
         """
         methods = [
-            'table',
             'boxplot',
             'correlation',
             'difference',
@@ -109,7 +108,6 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
         plotting functions/table
         """
         methods = [
-            'table',
             'boxplot',
             'correlation',
             'difference',
