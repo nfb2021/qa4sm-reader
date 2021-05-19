@@ -22,7 +22,8 @@ This package should be installable through pip (not yet tough, see development):
 
 Usage
 =====
-# TODO
+
+This package is used to analyze a qa4sm netCDF output file and produce all relevant plots and maps.
 
 Development Setup
 =================
@@ -55,11 +56,11 @@ For testing, we use ``py.test``:
 
 .. code::
 
-    python setup.py pytest
+    pytest
 
 
 The dependencies are automatically installed by `pytest-runner`_ when you run the tests. The test-dependencies are listed in the ``testing`` field inside the ``[options.extras_require]`` section of ``setup.cfg``.
-For some reason, the dependencies are not installed as expected. To workaround, do:
+For some reasons, the dependencies are not installed as expected. To workaround, do:
 
 .. code::
 
@@ -70,13 +71,11 @@ The files used for testing are included in this package. They are however subjec
 Known Issues
 ------------
 
-When creating a boxplot with five or more boxes, the text might overlap.
-(see tests/test_ncplot/test_boxplot_GLDAS_nan_default() and tests/test_ncplot/test_boxplot_ISMN_nan_default() )
-
-For some
+No known issues - please `open an issue`_ in case you come across a malfunctioning in the package.
 
 
-.. _qa4sm service: https://qa4sm.eodc.eu
+.. _qa4sm service: https://qa4sm.eu
 .. _pyscaffold: https://pyscaffold.org
 .. _pytest-runner: https://github.com/pytest-dev/pytest-runner
-.. _terms and conditions: https://qa4sm.eodc.eu/terms
+.. _terms and conditions: https://qa4sm.eu/terms
+.. _open an issue: https://github.com/awst-austria/qa4sm-reader/issues
