@@ -305,7 +305,7 @@ def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturaleart
               add_topo=False, add_coastline=True,
               add_land=True, add_borders=True, add_us_states=False):
     ax.set_extent(plot_extent, crs=globals.data_crs)
-    ax.outline_patch.set_linewidth(0.4)
+    ax.spines["geo"].set_linewidth(0.4)
     if add_grid:
         # add gridlines. Bcs a bug in cartopy, draw girdlines first and then grid labels.
         # https://github.com/SciTools/cartopy/issues/1342
@@ -363,7 +363,7 @@ def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturaleart
 
     return ax
 
-def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.02): #todo: adjust space of watermark
+def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.02):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.

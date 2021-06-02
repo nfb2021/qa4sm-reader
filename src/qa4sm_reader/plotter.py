@@ -315,7 +315,7 @@ class QA4SMPlotter():
             df:pd.DataFrame,
             type:str,
             ci=None,
-            offset=0.08,
+            offset=0.07,
             Var=None,
             **kwargs
     ) -> tuple:
@@ -362,9 +362,9 @@ class QA4SMPlotter():
         ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if self.img.has_CIs:
-            offset = 0.1  # offset bigger as CI variables have a larger caption
+            offset = 0.06  # offset smaller as CI variables have a larger caption
         if Var.g == 0:
-            offset = 0.03  # offset smaller as common metrics have a shorter caption
+            offset = 0.02  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
             make_watermark(fig, offset=offset)
 
@@ -622,7 +622,7 @@ class QA4SMPlotter():
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, globals.watermark_pos, for_map=True)
+            make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
 
         # save file or just return the image
         if save_files:
@@ -706,3 +706,6 @@ class QA4SMPlotter():
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
+
+# im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/CIs/nc_from_TC_validation.nc")
+# pl = QA4SMPlotter(im)
