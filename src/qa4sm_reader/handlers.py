@@ -105,12 +105,12 @@ class QA4SMDatasets():  #  todo: change netCDF ids/dcs
     @property
     def ref_id(self):
         """Id of the reference dataset as in the variable names"""
-        return self._ref_dc() - self._offset_id_dc
+        return self._ref_dc() - self.offset
 
     @property
     def others_id(self):
         """Id of the other datasets as in the variable names"""
-        return [dc - self._offset_id_dc for dc in self._dcs().keys()]
+        return [dc - self.offset for dc in self._dcs().keys()]
 
     def _id2dc(self, id:int) -> int:
         """
@@ -217,7 +217,9 @@ class QA4SMMetricVariable():
         if self.g:
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
-            self.pretty_name = self._pretty_name()
+            # if this is a CI variable, get whether it's the upper or lower bound
+            if self.is_CI:
+                self.bound = self.parts["bound"]
 
     @property
     def isempty(self) -> bool:
@@ -237,19 +239,32 @@ class QA4SMMetricVariable():
             else:
                 return self.ref_ds[0]
 
-    def _pretty_name(self):
+    @property
+    def is_CI(self):
+        """True if the Variable is the confidence interval of a metric"""
+        if self.g:
+            return "bound" in self.parts.keys()
+        else:
+            return False
+
+    @property
+    def pretty_name(self):
         """Create a nice name for the variable"""
-        name = globals._variable_pretty_name[self.g]
+        template = globals._variable_pretty_name[self.g]
 
         if self.g == 0:
-            return name.format(self.metric)
+            name = template.format(self.metric)
 
         elif self.g == 2:
-            return name.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
+            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
                                self.ref_ds[1]['pretty_title'])
         elif self.g == 3:
-            return name.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
+            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
                                self.ref_ds[1]['pretty_title'], self.other_ds[1]['pretty_title'])
+        if self.is_CI:
+            name = "Confidence Interval of " + name
+
+        return name
 
     def _parse_varname(self) -> (str, int, dict):
         """
@@ -276,6 +291,12 @@ class QA4SMMetricVariable():
 
             if parts is not None and parts['metric'] in globals.metric_groups[g]:
                 return parts['metric'], g, parts.named
+            # perhaps it's a CI variable
+            else:
+                pattern = '{}{}'.format(globals.var_name_CI[g], template)
+                parts = parse(pattern, self.varname)
+                if parts is not None and parts['metric'] in globals.metric_groups[g]:
+                    return parts['metric'], g, parts.named
 
         return None, None, None
 
@@ -348,3 +369,13 @@ class QA4SMMetric():
 
         return value
 
+    @property
+    def has_CIs(self):
+        """Boolean property for metrics with or without confidence intervals"""
+        it_does = False
+        for n, Var in enumerate(self.variables):
+            if Var.is_CI():
+                it_does = True
+                break
+
+        return  it_does

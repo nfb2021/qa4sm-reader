@@ -98,6 +98,16 @@ class QA4SMImg(object):
         else:
             return ds
 
+    @property
+    def has_CIs(self):
+        """True if the validation result contains confidence intervals"""
+        cis = False
+        # check if there is any CI Var
+        for Var in self._iter_vars():
+            if Var.is_CI:
+                cis = True
+        return cis
+
     def create_image_name(self) -> str:
         """Create a unique name for the QA4SMImage from the netCDF file"""
         ref = self.datasets.ref['pretty_title']
@@ -202,8 +212,13 @@ class QA4SMImg(object):
                     continue
             if filter_parms:
                 for key, val in filter_parms.items():
-                    if getattr(Var, key) == val:
-                        yield Var
+                    if getattr(Var, key) == val:  # check all attribute individually
+                        check = True
+                    else:
+                        check = False  # does not match requirements
+                        break
+                if check == True:
+                    yield Var
             else:
                 yield Var
 
@@ -379,7 +394,7 @@ class QA4SMImg(object):
                     globals._metric_units_HTML[ds_name['short_name']]), Var.g])
             # put the separate variable statistics in the same list
             metric_stats.append(var_stats)
-        
+
         return metric_stats
     
     def stats_df(self) -> pd.DataFrame:
