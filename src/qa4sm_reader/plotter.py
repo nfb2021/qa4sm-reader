@@ -101,7 +101,7 @@ class QA4SMPlotter():
 
         met_str = []
         if med:
-            met_str.append('median: {:.3g}'.format(ds.median()))
+            met_str.append('Median: {:.3g}'.format(ds.median()))
         if iqr:
             met_str.append('IQR: {:.3g}'.format(iqr))
         if count:
@@ -570,11 +570,13 @@ class QA4SMPlotter():
         if save_files:
             return fnames
 
-    def mapplot_var(self, Var,
-                    out_name:str=None,
-                    out_types:str='png',
-                    save_files:bool=False,
-                    **plotting_kwargs) -> list:
+    def mapplot_var(
+            self, Var,
+            out_name:str=None,
+            out_types:str='png',
+            save_files:bool=False,
+            **plotting_kwargs
+    ) -> list:
         """
         Plots values to a map, using the values as color. Plots a scatterplot for
         ISMN and a image plot for other input values.
@@ -633,10 +635,12 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def mapplot_metric(self, metric:str,
-                       out_types:str='png',
-                       save_files:bool=False,
-                       **plotting_kwargs) -> list:
+    def mapplot_metric(
+            self, metric:str,
+            out_types:str='png',
+            save_files:bool=False,
+            **plotting_kwargs
+    ) -> list:
         """
         Mapplot for all variables for a given metric in the loaded file.
 
@@ -675,7 +679,12 @@ class QA4SMPlotter():
         if fnames:
             return fnames
 
-    def plot_metric(self, metric:str, out_types:str='png', save_all:bool=True, **plotting_kwargs) -> tuple:
+    def plot_metric(
+            self, metric:str,
+            out_types:str='png',
+            save_all:bool=True,
+            **plotting_kwargs
+    ) -> tuple:
         """
         Plot and save boxplot and mapplot for a certain metric
 
@@ -706,6 +715,3 @@ class QA4SMPlotter():
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
-
-# im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/CIs/nc_from_TC_validation.nc")
-# pl = QA4SMPlotter(im)
