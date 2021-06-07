@@ -453,7 +453,7 @@ class QA4SMPlotter():
         # put all Variables in the same dataframe
         values = pd.concat(values)
         # values are all Nan or NaNf - not plotted
-        if df.isnull().values.all():
+        if np.isnan(values.to_numpy()).all():
             return None
         # create plot
         fig, ax = self._boxplot_definition(
@@ -540,7 +540,7 @@ class QA4SMPlotter():
             dfs, Var = values
             df = pd.concat(dfs)
             # values are all Nan or NaNf - not plotted
-            if df.isnull().values.all():
+            if np.isnan(df.to_numpy()).all():
                 continue
             # necessary if statement to prevent key error when no CIs are in the netCDF
             if ci:
@@ -663,7 +663,7 @@ class QA4SMPlotter():
         """
         fnames = []
         for Var in self.img._iter_vars(**{'metric':metric}):
-            if not (Var.values.isnull().values.all() or Var.is_CI):
+            if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
                                        out_types=out_types,
