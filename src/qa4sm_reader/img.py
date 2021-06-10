@@ -62,7 +62,6 @@ class QA4SMImg(object):
         self.ds = self._open_ds(extent=extent, period=period)
         self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
         self.datasets = QA4SMDatasets(self.ds.attrs)
-        self.name = self.create_image_name()
 
         if load_data:
             self.varnames = list(self.ds.variables.keys())
@@ -99,13 +98,13 @@ class QA4SMImg(object):
         else:
             return ds
 
-    def create_image_name(self) -> str:
+    @property
+    def name(self) -> str:
         """Create a unique name for the QA4SMImage from the netCDF file"""
         ref = self.datasets.ref['pretty_title']
         others = [other['pretty_title'] for other in self.datasets.others]
 
-        name = "ref: {} v datasets: ".format(ref) + \
-               ", ".join(others)
+        name = ", ".join(others) + "\nv {} (ref)".format(ref)
 
         return name
 
@@ -149,7 +148,7 @@ class QA4SMImg(object):
 
             try:
                 Var = QA4SMMetricVariable(varname, self.ds.attrs, values=values)
-                # if self.ignore_empty and Var.isempty: todo: possible issues from non-metric variables
+                # if self.ignore_empty and Var.isempty: todo: possible issues from non-metric variables?
                 #     continue
             except IOError:
                 Var = None

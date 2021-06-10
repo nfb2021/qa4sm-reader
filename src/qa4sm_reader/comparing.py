@@ -2,6 +2,7 @@ from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader.plot_utils import diff_plot, mapplot, boxplot, plot_spatial_extent, _format_floats
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 import qa4sm_reader.globals as glob
+from qa4sm_reader.plotter import QA4SMPlotter
 
 from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
@@ -31,21 +32,21 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         paths : list or str
             list of paths or single path to .nc validation results files to use for the comparison
         extent : tuple, optional (default: None)
-            Area to subset the values for.
+            Area to subset the values for. At the moment has not been implemented as a choice in the service
             (min_lon, max_lon, min_lat, max_lat)
-        get_intersection: bool, default is True
+        get_intersection : bool, default is True
             Whether to get the intersection or union of the two spatial exents
 
         Attributes
         ----------
-        comparison : dict
-            dictionary with shape {path: (id, QA4SMImage)}
+        comparison : dict or <QA4SMImg object>
+            dictionary with shape {path: (id, QA4SMImage)} or single image
         ref : tuple
             QA4SMImage for the reference validation
         """
         self.paths = paths
         self.extent = extent
-
+        # todo: better distinction between single and double image
         self.comparison = self._init_imgs(extent=extent, get_intersection=get_intersection)
         self.ref = self._check_ref()
         self.union = not get_intersection
@@ -182,6 +183,28 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         else:
             return len(self.paths) == 1
 
+    @property
+    def validation_names(self) -> list:
+        """Create pretty names for the validations that are compared"""
+        names = []
+        template = "Validation {}:\n{} validated against {}"
+        if self.single_image:
+            datasets = self.comparison.datasets
+            for n, ds_meta in enumerate(datasets.others):
+                name = template.format(
+                    n, ds_meta["pretty_title"],
+                    datasets.ref["pretty_title"]
+                )
+                names.append(name)
+        else:
+            for n, im in enumerate(self.comparison.values()):
+                other = im.datasets.others[0]
+                name = template.format(
+                    n, other["pretty_title"],
+                    im.datasets.ref["pretty_title"]
+                )
+        return names
+
     def _check_initialized(self, paths:str or list):
         """
         Check that the given path has been initialized in the class. Only working
@@ -231,8 +254,14 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             raise ComparisonError("For pairwise comparison methods, only two "
                                   "validation results with two datasets each can be compared")
 
-    @staticmethod
-    def _combine_geometry(imgs:list, get_intersection:bool=True, visualize=False) -> tuple:
+    def _combine_geometry(
+            self,
+            imgs:list,
+            get_intersection:bool=True,
+            visualize=False,
+            plot_points=False,
+            **kwargs
+    ) -> tuple:
         """
         Return the union or the intersection of the spatial extents of the provided validations; in case of intersection,
         check that the validations are overlapping
@@ -247,6 +276,8 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             and diff_plot ALWAYS consider the intersection.
         visualize: bool, optional. Default is False.
             If true, an image is produced to visualize the output
+        plot_points: bool. Default is False.
+            If True, the reference points are plottend in the image
 
         Return
         ------
@@ -254,12 +285,17 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             spatial extent deriving from union or intersection of inputs
         """
         polys = {}
+        if isinstance(imgs, QA4SMImg):
+            imgs = [imgs]
         for n, img in enumerate(imgs):  # get names and extents for all images
             minlon, maxlon, minlat, maxlat = img.extent
             bounds = [(minlon,minlat), (maxlon, minlat),
                       (maxlon, maxlat), (minlon, maxlat)]
             Pol = Polygon(bounds)
-            name = "{}: ".format(n) + img.name
+            if self.single_image:
+                name = "Extent of the validation:\n{}".format(img.name)
+            else:
+                name = "Validation {}: ".format(n) + img.name
             polys[name] = Pol
 
         for n, Pol in enumerate(polys.values()):
@@ -267,25 +303,48 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 output = Pol  # define starting point
             if not get_intersection:  # get maximum extent
                 output = output.union(Pol)
-                where = "Union"
+                where = "all points"
             else:  # get maximum common
                 output = output.intersection(Pol)
-                where = "Intersection"
+                where = "common only"
                 if not output:
                     raise ComparisonError("The spatial extents of the chosen validation results do "
                                           "not overlap. Set 'get_intersection' to False to perform the comparison.")
-        name = '{} of the spatial subsets'.format(where)
+        if self.single_image:
+            name = "Bounding box of the validation"
+        else:
+            name = "Bounding box for {}\npoints of the two validations".format(where)
         polys[name] = output
 
         minlon, minlat, maxlon, maxlat = output.bounds
 
-        if visualize:
-            title = "Spatial extent of the {} of the given validations".format(where)
-            plot_spatial_extent(polys, output=name, title=title)
+        ref_points = None
+        if plot_points:
+            # get n_obs as it contains information on the location of the ref points
+            n_obs = self._get_pairwise("n_obs")
+            lat, lon = glob.index_names
+            lon = n_obs.index.get_level_values(lon).to_numpy()
+            lat = n_obs.index.get_level_values(lat).to_numpy()
+            ref_points = (lon, lat)
+
+            if visualize:
+                title = "Spatial extent of the validation"
+                plot_spatial_extent(
+                    polys,
+                    output=name,
+                    title=title,
+                    ref_points=ref_points,
+                )
 
         return minlon, maxlon, minlat, maxlat
 
-    def get_extent(self, get_intersection=True, visualize=False):
+    def get_extent(
+            self,
+            get_intersection=True,
+            visualize=False,
+            return_extent=True,
+            plot_points=False
+    ):
         """
         Method to get and visualize the output of 'union' or 'intersection' of the spatial extents.
 
@@ -298,16 +357,25 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         visualize : bool, default is False
             create an image showing the output of this method
         """
-        imgs = []
-        for n, path in enumerate(self.paths):
-            img = QA4SMImg(path, extent=None, load_data=False)
-            imgs.append(img)
+        # self.comparison has not been initialized yet
+        if self.single_image:
+            if isinstance(self.paths, list):
+                self.paths = self.paths[0]
+            imgs = [QA4SMImg(self.paths, extent=self.extent, empty=True)]
+        else:
+            imgs = [
+                QA4SMImg(path, extent=self.extent, empty=True) for path in self.paths
+            ]
 
-        return self._combine_geometry(
+        extent = self._combine_geometry(
             imgs=imgs,
             get_intersection=get_intersection,
-            visualize=visualize
+            visualize=visualize,
+            plot_points=plot_points,
         )
+
+        if return_extent:
+            return extent
 
     def _get_varnames(self, metric):  # todo: use varnames in file instead
         """
@@ -327,13 +395,35 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         if self.single_image:
             im = self.comparison
             for Var in im._iter_vars(**{"metric":metric}):
-                varlist.append(Var.varname)
+                varlist.append(Var)
         else:
             for id, img in self.comparison.values():
                 for Var in img._iter_vars(**{"metric":metric}):
-                    varlist.append(Var.varname)
+                    varlist.append(Var)
 
         return varlist
+
+    def _handle_multiindex(self, dfs:list) -> pd.DataFrame:
+        """
+        Handle ValueError 'cannot handle a non-unique multi-index!' when non-unique multi-index is different in
+        the two dfs (e.g. multiple station depths)
+
+        Parameters
+        ----------
+        dfs : list
+            list of (2) dataframes
+        """
+        try:
+            pair_df = pd.concat(dfs, axis=1, join="outer")
+        except ValueError:
+            unduplicate = []
+            intersect = dfs[0].index.intersection(dfs[1].index)
+            for df in dfs:
+                dropped = df[intersect]
+                unduplicate.append(dropped)
+            pair_df = pd.concat(unduplicate, axis=1, join="outer")
+
+        return pair_df
 
     def _get_pairwise(self, metric:str) -> pd.DataFrame: #todo: create separate method for getting the difference and names
         """
@@ -353,28 +443,37 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
         to_plot, names = [], []  # todo: improve names
         # check wether the comparison has one single image and the number of sat datasets
         if self.single_image and self.perform_checks():
-            for n, varname in enumerate(self._get_varnames(metric)):
-                to_plot.append(
-                    self.comparison._ds2df(varnames=[varname])[varname]
-                )
-                names.append("{}-{}".format(n, varname))
+            for n, Var in enumerate(self._get_varnames(metric)):
+                varname = Var.varname
+                col_name = "Validation {}:\n{}\n".format(n, Var.pretty_name)
+                data = self.comparison._ds2df(varnames=[varname])[varname]
+                col_name = col_name + QA4SMPlotter._box_stats(data)
+                data = data.rename(col_name)
+                to_plot.append(data)
 
         elif self.single_image and not self.perform_checks():
-            pass  # todo: handle situation with mor than 2 non-reference datasets in validation
+            pass  # todo: handle situation with more than 2 non-reference datasets in validation
 
         else:
-            for n, (varname, values) in enumerate(
+            for n, (Var, values) in enumerate(
                     zip(self._get_varnames(metric), self.comparison.values())
             ):
+                varname = Var.varname
+                col_name = "Validation {}:\n{}\n".format(n, Var.pretty_name)
                 id, img = values
-                to_plot.append(
-                    img._ds2df(varnames=[varname])[varname]
-                )
-                names.append("{}-{}".format(n, varname))
+                data = img._ds2df(varnames=[varname])[varname]
+                col_name = col_name + QA4SMPlotter._box_stats(data)
+                data = data.rename(col_name)
+                to_plot.append(data)
 
-        pair_df = pd.concat(to_plot, axis=1)
-        pair_df.columns = names
-        pair_df["Difference"] = pair_df.iloc[:,0] - pair_df.iloc[:,1]
+        pair_df = self._handle_multiindex(to_plot)
+        # n_obs produce errors if self.single_image because there is only one column
+        if not metric=="n_obs":
+            diff = pair_df.iloc[:,0] - pair_df.iloc[:,1]
+            diff = diff.rename(
+                "Difference between\nvalidations 0 and 1\n" + QA4SMPlotter._box_stats(diff)
+            )
+            pair_df = pd.concat([pair_df, diff], axis=1)
 
         return pair_df
 
@@ -421,11 +520,12 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                 medians[1],
                 medians[0] - medians[1]
             ]
-
+        columns = self.validation_names
+        columns.append("Difference of the medians (0 - 1)")
         table = pd.DataFrame.from_dict(
             data=table,
             orient="index",
-            columns=["first", "second", "difference"]
+            columns=columns,
         )
 
         table = table.applymap(_format_floats)
@@ -452,9 +552,6 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
 
         # plot data
         palette = sns.color_palette(palette=['paleturquoise', 'paleturquoise', 'pink'], n_colors=3)
-        if self.union:
-            palette = sns.color_palette(palette=['paleturquoise', 'paleturquoise'], n_colors=2)
-            boxplot_df = boxplot_df.drop(columns=boxplot_df.columns[-1])
         fig, axes = boxplot(boxplot_df,
                             label= "{} {}".format(Metric.pretty_name, um),
                             figsize=(16,10),
@@ -567,7 +664,7 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
                             'mapplot': self.diff_mapplot}
         try:
             diff_method = diff_methods_lut[method]
-        except IndexError as e:
+        except KeyError as e:
             warn('Difference method not valid. Choose one of %s' % ', '.join(diff_methods_lut.keys()))
             raise e
 
@@ -580,3 +677,6 @@ class QA4SMComparison():  #todo: optimize initialization (slow with large gridde
             metric=metric,
             **kwargs
         )
+
+# im = "../../tests/test_data/tc/3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc"
+# comp = QA4SMComparison(paths=im)

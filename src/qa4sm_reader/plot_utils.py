@@ -15,7 +15,7 @@ from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from pygeogrids.grids import BasicGrid, genreg_grid
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 import warnings
 
@@ -300,9 +300,12 @@ def get_extend_cbar(metric):
         else:
             return 'neither'
 
-def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturalearth_resolution,
+def style_map(ax, plot_extent, add_grid=True,
+              map_resolution=globals.naturalearth_resolution,
               add_topo=False, add_coastline=True,
-              add_land=True, add_borders=True, add_us_states=False):
+              add_land=True, add_borders=True, add_us_states=False,
+              grid_intervals=globals.grid_intervals,
+              ):
     ax.set_extent(plot_extent, crs=globals.data_crs)
     ax.outline_patch.set_linewidth(0.4)
     if add_grid:
@@ -311,9 +314,9 @@ def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturaleart
         try:
             grid_interval = max((plot_extent[1] - plot_extent[0]),
                                 (plot_extent[3] - plot_extent[2])) / 5  # create apprx. 5 gridlines in the bigger dimension
-            if grid_interval <= min(globals.grid_intervals):
+            if grid_interval <= min(grid_intervals):
                 raise RuntimeError
-            grid_interval = min(globals.grid_intervals, key=lambda x: abs(
+            grid_interval = min(grid_intervals, key=lambda x: abs(
                 x - grid_interval))  # select the grid spacing from the list which fits best
             gl = ax.gridlines(crs=globals.data_crs, draw_labels=False,
                               linewidth=0.5, color='grey', linestyle='--',
@@ -335,7 +338,7 @@ def style_map(ax, plot_extent, add_grid=True, map_resolution=globals.naturaleart
                 gltext.xformatter = LONGITUDE_FORMATTER
                 gltext.yformatter = LATITUDE_FORMATTER
                 gltext.top_labels = False
-                gltext.left_labels = False
+                gltext.right_labels = False
                 gltext.xlocator = mticker.FixedLocator(xticks)
                 gltext.ylocator = mticker.FixedLocator(yticks)
             except RuntimeError as e:
@@ -609,7 +612,12 @@ def diff_plot(df:pd.DataFrame, **kwargs):
 
     return fig, ax
 
-def plot_spatial_extent(polys:dict, output:str=None, title:str=None):
+def plot_spatial_extent(
+        polys:dict,
+        output:str=None,
+        title:str=None,
+        ref_points=None
+):
     """
     Plots the given Polygons on a map.
 
@@ -619,6 +627,8 @@ def plot_spatial_extent(polys:dict, output:str=None, title:str=None):
         dictionary with shape {name: shapely.geometry.Polygon}
     title : str
         plot title
+    ref_points: tuple
+        tuple of arrays (lon, lat) to show the reference points location
     """
     fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi)
     for n, items in enumerate(polys.items()):
@@ -635,13 +645,46 @@ def plot_spatial_extent(polys:dict, output:str=None, title:str=None):
             ax.plot(x, y, label=name)
         except:
             pass
+    if ref_points:
+        selected, outside = [], []
+        for lon, lat in zip(ref_points[0], ref_points[1]):
+            pair = Point(lon, lat)
+            # get border-defining points, too
+            if polys[name].contains(pair) or pair.distance(polys[name])<= 1e-15:
+                selected.append(pair)
+            else:
+                outside.append(pair)
+        marker_styles = [
+            {"marker": "o", "c":"g", "s":30},
+            {"marker": "o", "c":"r", "s":30},
+        ]
+        for point_set, style, name in zip(
+                (selected, outside),
+                marker_styles,
+                ("Selected reference validation points", "Validation points outside selection")
+        ):
+            if point_set:
+                xs = [point.x for point in point_set]
+                ys = [point.y for point in point_set]
+                im = ax.scatter(
+                    xs, ys,
+                    edgecolors='black', linewidths=0.1,
+                    zorder=2, transform=globals.data_crs,
+                    **style, label=name
+                )
+            else:
+                continue
 
-    plt.legend(loc='upper right')
-    ax.set_title(title)
+    ax.legend(bbox_to_anchor=(1.0, 1.0), fontsize='medium')
+    make_watermark(fig, offset=0.0)
+    title_style = {"fontsize": 12}
+    ax.set_title(title, **title_style)
     # provide extent of plot
     d_lon = abs(union.bounds[0] - union.bounds[2])* 1/8
     d_lat = abs(union.bounds[1] - union.bounds[3])* 1/8
     plot_extent = (union.bounds[0] - d_lon, union.bounds[2] + d_lon,
                    union.bounds[1] - d_lat, union.bounds[3] + d_lat)
+    plt.tight_layout()
 
-    style_map(ax, plot_extent)
+    grid_intervals= [1, 5, 10, 30]
+    style_map(ax, plot_extent,grid_intervals=grid_intervals)
