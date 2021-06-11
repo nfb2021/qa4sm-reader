@@ -28,9 +28,8 @@ max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if 
 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
-boxplot_figsize = [6.30, 4.68]  # size of the output figure in inches. NO MORE USED.
-boxplot_height = 4.68
-boxplot_width = 1.7  # times (n+1), where n is the number of boxes.
+boxplot_height = 6
+boxplot_width = 2 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 
 # === watermark defaults ===
@@ -59,19 +58,33 @@ _cclasses = {
 }
 
 # 0=common metrics, 2=paired metrics (2 datasets), 3=triple metrics (TC, 3 datasets)
-metric_groups = {0: ['n_obs'],
-                 2: ['R', 'p_R', 'rho','p_rho', 'RMSD', 'BIAS',
-                     'urmsd', 'mse', 'mse_corr', 'mse_bias', 'mse_var',
-                     'RSS', 'tau', 'p_tau'],
-                 3: ['snr', 'err_std', 'beta']}
+metric_groups = {
+    0: ['n_obs'],
+    2: ['R', 'p_R', 'rho','p_rho', 'RMSD', 'BIAS',
+        'urmsd', 'mse', 'mse_corr', 'mse_bias', 'mse_var',
+        'RSS', 'tau', 'p_tau'
+        ],
+    3: ['snr', 'err_std', 'beta']
+}
+
 
 # === variable template ===
 # how the metric is separated from the rest
-var_name_metric_sep = {0: "{metric}", 2: "{metric}_between_",
-                       3: "{metric}_{mds_id:d}-{mds}_between_"}
+var_name_metric_sep = {
+    0: "{metric}",
+    2: "{metric}_between_",
+    3: "{metric}_{mds_id:d}-{mds}_between_"
+}
+var_name_CI = {
+    0: "{metric}_ci_{bound}_between_",
+    2: "{metric}_ci_{bound}_between_",
+    3: "{metric}_ci_{bound}_{mds_id:d}-{mds}_between_"
+}
 # how two datasets are separated, ids must be marked as numbers with :d!
-var_name_ds_sep = {0: None, 2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",
-                   3: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"}
+var_name_ds_sep = {
+    0: None, 2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",
+    3: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"
+}
 
 # === metadata tempplates ===
 _ref_ds_attr = 'val_ref' # global meta values variable that links to the reference dc
@@ -80,8 +93,11 @@ _ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}' # attribute convention f
 _version_short_name_attr = 'val_dc_version{:d}' # attribute convention for other datasets
 _version_pretty_name_attr = 'val_dc_version_pretty_name{:d}' # attribute convention for other datasets
 
-_variable_pretty_name = {0: "{}", 2: "{} of {} \n with {} as reference",
-                         3: "{} of {} \n against {}, {}"}  # format should have (metric, ds, ref, other ds)
+# format should have (metric, ds, ref, other ds)
+_variable_pretty_name = {
+    0: "{}", 2: "{} of {} \n with {} as reference",
+    3: "{} of {} \n against {}, {}"
+}
 
 _colormaps = {  # from /qa4sm/validator/validation/graphics.py
     'R': _cclasses['div_better'],
@@ -179,17 +195,17 @@ _metric_description = {  # from /qa4sm/validator/validation/graphics.py
 
 # units for all datasets
 _metric_units = {  # from /qa4sm/validator/validation/graphics.py
-    'ISMN': r'm^3 m^{-3}',
-    'C3S': r'm^3 m^{-3}',
-    'GLDAS': r'm^3 m^{-3}',
+    'ISMN': r'm³/m³',
+    'C3S': r'm³/m³',
+    'GLDAS': r'm³/m³',
     'ASCAT': r'percentage of saturation',
-    'SMAP': r'm^3 m^{-3}',
-    'ERA5': r'm^3 m^{-3}',
-    'ERA5_LAND': r'm^3 m^{-3}',
+    'SMAP': r'm³/m³',
+    'ERA5': r'm³/m³',
+    'ERA5_LAND': r'm³/m³',
     'ESA_CCI_SM_active': r'percentage of saturation',
-    'ESA_CCI_SM_combined': r'm^3 m^{-3}',
-    'ESA_CCI_SM_passive': r'm^3 m^{-3}',
-    'SMOS': r'm^3 m^{-3}',
+    'ESA_CCI_SM_combined': r'm³/m³',
+    'ESA_CCI_SM_passive': r'm³/m³',
+    'SMOS': r'm³/m³',
 }
 
 # label name for all metrics

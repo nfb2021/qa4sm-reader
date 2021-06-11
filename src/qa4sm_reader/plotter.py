@@ -101,7 +101,7 @@ class QA4SMPlotter():
 
         met_str = []
         if med:
-            met_str.append('median: {:.3g}'.format(ds.median()))
+            met_str.append('Median: {:.3g}'.format(ds.median()))
         if iqr:
             met_str.append('IQR: {:.3g}'.format(iqr))
         if count:
@@ -294,7 +294,6 @@ class QA4SMPlotter():
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
-
             # changes if it's a common-type Var
             if Var.g == 0:
                 box_cap_ds = 'All datasets'
@@ -311,12 +310,15 @@ class QA4SMPlotter():
             yield df, Var
 
 
-    def _boxplot_definition(self, metric:str,
-                            df:pd.DataFrame,
-                            type:str,
-                            offset=0.08,
-                            Var=None,
-                            **kwargs) -> tuple:
+    def _boxplot_definition(
+            self, metric:str,
+            df:pd.DataFrame,
+            type:str,
+            ci=None,
+            offset=0.07,
+            Var=None,
+            **kwargs
+    ) -> tuple:
         """
         Define parameters of plot
 
@@ -326,6 +328,11 @@ class QA4SMPlotter():
             dataframe to plot
         type: str
             one of _titles_lut
+        ci: dict
+            Dict of dataframes with the lower and upper confidence intervals
+            shape: {"upper"/"lower": [CIs]}
+        xticks: list
+            caption to each boxplot (or triplet thereof)
         offset: float
             offset of boxplots
         Var: QA4SMMetricVariable, optional. Default is None
@@ -339,7 +346,13 @@ class QA4SMPlotter():
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
         figsize = [figwidth, globals.boxplot_height]
-        fig, ax = boxplot(df=df, label=label, figsize=figsize, dpi=globals.dpi)
+        fig, ax = boxplot(
+            df=df,
+            ci=ci,
+            label=label,
+            figsize=figsize,
+            dpi=globals.dpi
+        )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
             for Var in self.img._iter_vars(**{'metric':metric}):
@@ -348,8 +361,10 @@ class QA4SMPlotter():
         title = self.create_title(Var, type=type)
         ax.set_title(title, pad=globals.title_pad)
         # add watermark
+        if self.img.has_CIs:
+            offset = 0.06  # offset smaller as CI variables have a larger caption
         if Var.g == 0:
-            offset = 0.03  # offset smaller as common metrics have a shorter caption
+            offset = 0.02  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
             make_watermark(fig, offset=offset)
 
@@ -383,11 +398,13 @@ class QA4SMPlotter():
 
         return fnames
 
-    def boxplot_basic(self, metric:str,
-                      out_name:str=None,
-                      out_types:str='png',
-                      save_files:bool=False,
-                      **plotting_kwargs) -> list:
+    def boxplot_basic(
+            self, metric:str,
+            out_name:str=None,
+            out_types:str='png',
+            save_files:bool=False,
+            **plotting_kwargs
+    ) -> list:
         """
         Creates a boxplot for common and double metrics. Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
@@ -411,19 +428,41 @@ class QA4SMPlotter():
             list of file names with all the extensions
         """
         fnames, values = [], []
+        ci = []
         # we take the last iterated value for Var and use it for the file name
         for df, Var in self._yield_values(metric=metric):
-            values.append(df)
-
+            if not Var.is_CI:
+                # concat upper and lower CI bounds of Variable, if present
+                bounds = []
+                for ci_df, ci_Var in self._yield_values(metric=metric):
+                    # make sure they refer to the right variable
+                    if ci_Var.is_CI and (ci_Var.metric_ds == Var.metric_ds):
+                        ci_df.columns = [ci_Var.bound]
+                        bounds.append(ci_df)
+                if bounds:  # could be that variable doesn't have CIs
+                    bounds = pd.concat(bounds, axis=1)
+                    # get the mean CI range
+                    diff = bounds["upper"] - bounds["lower"]
+                    ci_range = float(diff.mean())
+                    df.columns = [
+                        df.columns[0] + "\nMean CI range:"
+                                        " {:.3g}".format(ci_range)
+                    ]
+                    ci.append(bounds)
+                values.append(df)
+        # put all Variables in the same dataframe
         values = pd.concat(values)
         # values are all Nan or NaNf - not plotted
-        if df.isnull().values.all():
+        if np.isnan(values.to_numpy()).all():
             return None
         # create plot
-        fig, ax = self._boxplot_definition(metric=metric,
-                                           df=values,
-                                           type='boxplot_basic',
-                                           **plotting_kwargs)
+        fig, ax = self._boxplot_definition(
+            metric=metric,
+            df=values,
+            type='boxplot_basic',
+            ci=ci,
+            **plotting_kwargs
+        )
         if not out_name:
             out_name = self.create_filename(Var, type='boxplot_basic')
         # save or return plotting objects
@@ -436,11 +475,13 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def boxplot_tc(self, metric:str,
-                   out_name:str=None,
-                   out_types:str='png',
-                   save_files:bool=False,
-                   **plotting_kwargs) -> list:
+    def boxplot_tc(  # todo: set limits to show confidence intervals
+            self, metric:str,
+            out_name:str=None,
+            out_types:str='png',
+            save_files:bool=False,
+            **plotting_kwargs
+    ) -> list:
         """
         Creates a boxplot for TC metrics. Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
@@ -464,26 +505,57 @@ class QA4SMPlotter():
             list of file names with all the extensions
         """
         fnames = []
-        metric_tc = {}  # group Vars relative to the same dataset
+        # group Vars and CIs relative to the same dataset
+        metric_tc, ci = {}, {}
         for df, Var in self._yield_values(metric=metric, tc=True):
-            ref_meta, mds_meta, other_meta = Var.get_varmeta()
-            id, names = mds_meta
-            if id in metric_tc.keys():
-                metric_tc[id][0].append(df)
-            else:
-                metric_tc[id] = [df], Var
+            if not Var.is_CI:
+                id, names = Var.metric_ds
+                bounds = []
+                for ci_df, ci_Var in self._yield_values(metric=metric):
+                    # make sure they refer to the right variable
+                    if ci_Var.is_CI and \
+                            (ci_Var.metric_ds == Var.metric_ds) and \
+                            (ci_Var.other_dss == Var.other_dss):
+                        ci_df.columns = [ci_Var.bound]
+                        bounds.append(ci_df)
+                if bounds:  # could be that variable doesn't have CIs
+                    bounds = pd.concat(bounds, axis=1)
+                    # get the mean CI range
+                    diff = bounds["upper"] - bounds["lower"]
+                    ci_range = diff.mean()
+                    df.columns = [
+                        df.columns[0] + "\nMean CI range:"
+                                        " {:.3g}".format(ci_range)
+                    ]
+                    if id in ci.keys():
+                        ci[id].append(bounds)
+                    else:
+                        ci[id] = [bounds]
+                if id in metric_tc.keys():
+                    metric_tc[id][0].append(df)
+                else:
+                    metric_tc[id] = [df], Var
 
-        for dfs, Var in metric_tc.values():
+        for id, values in metric_tc.items():
+            dfs, Var = values
             df = pd.concat(dfs)
             # values are all Nan or NaNf - not plotted
-            if df.isnull().values.all():
+            if np.isnan(df.to_numpy()).all():
                 continue
+            # necessary if statement to prevent key error when no CIs are in the netCDF
+            if ci:
+                bounds = ci[id]
+            else:
+                bounds = ci
             # create plot
-            fig, ax = self._boxplot_definition(metric=metric,
-                                               df=df,
-                                               type='boxplot_tc',
-                                               Var=Var,
-                                               **plotting_kwargs)
+            fig, ax = self._boxplot_definition(
+                metric=metric,
+                df=df,
+                ci=bounds,
+                type='boxplot_tc',
+                Var=Var,
+                **plotting_kwargs
+            )
             # save. Below workaround to avoid same names
             if not out_name:
                 save_name = self.create_filename(Var, type='boxplot_tc')
@@ -498,11 +570,13 @@ class QA4SMPlotter():
         if save_files:
             return fnames
 
-    def mapplot_var(self, Var,
-                    out_name:str=None,
-                    out_types:str='png',
-                    save_files:bool=False,
-                    **plotting_kwargs) -> list:
+    def mapplot_var(
+            self, Var,
+            out_name:str=None,
+            out_types:str='png',
+            save_files:bool=False,
+            **plotting_kwargs
+    ) -> list:
         """
         Plots values to a map, using the values as color. Plots a scatterplot for
         ISMN and a image plot for other input values.
@@ -550,7 +624,7 @@ class QA4SMPlotter():
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, globals.watermark_pos, for_map=True)
+            make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
 
         # save file or just return the image
         if save_files:
@@ -561,10 +635,12 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def mapplot_metric(self, metric:str,
-                       out_types:str='png',
-                       save_files:bool=False,
-                       **plotting_kwargs) -> list:
+    def mapplot_metric(
+            self, metric:str,
+            out_types:str='png',
+            save_files:bool=False,
+            **plotting_kwargs
+    ) -> list:
         """
         Mapplot for all variables for a given metric in the loaded file.
 
@@ -587,7 +663,7 @@ class QA4SMPlotter():
         """
         fnames = []
         for Var in self.img._iter_vars(**{'metric':metric}):
-            if not Var.values.isnull().values.all():
+            if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
                                        out_types=out_types,
@@ -603,7 +679,12 @@ class QA4SMPlotter():
         if fnames:
             return fnames
 
-    def plot_metric(self, metric:str, out_types:str='png', save_all:bool=True, **plotting_kwargs) -> tuple:
+    def plot_metric(
+            self, metric:str,
+            out_types:str='png',
+            save_all:bool=True,
+            **plotting_kwargs
+    ) -> tuple:
         """
         Plot and save boxplot and mapplot for a certain metric
 

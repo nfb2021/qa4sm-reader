@@ -4,7 +4,7 @@ import unittest
 
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 
-from tests.test_attr import test_attributes, test_tc_attributes
+from tests.test_attr import test_attributes, test_tc_attributes, test_CI_attributes
 
 
 class TestQA4SMDatasets(unittest.TestCase):
@@ -72,8 +72,7 @@ class TestMetricVariableTC(unittest.TestCase):
         assert self.beta.ismetric
 
     def test_pretty_name(self):
-        print(self.beta._pretty_name())
-        assert self.beta._pretty_name() == "TC scaling coefficient of C3S (v201812) \n against ERA5-Land (ERA5-Land test), H-SAF ASCAT SSM CDR (H113)"
+        assert self.beta.pretty_name == "TC scaling coefficient of C3S (v201812) \n against ERA5-Land (ERA5-Land test), H-SAF ASCAT SSM CDR (H113)"
 
     def test_parse_varname(self):
         for var in [self.beta, self.r, self.n_obs]:
@@ -190,6 +189,23 @@ class TestQA4SMMetric(unittest.TestCase):
     def test_get_attribute(self):
         assert self.R.g == self.r1.g == self.r2.g
 
+
+class TestMetricVariableCI(unittest.TestCase): # todo: update with correct CI .nc file
+    """Test variables in image with confidence intervals"""
+    def setUp(self) -> None:
+        attrs = test_CI_attributes()
+        self.CI_Var = QA4SMMetricVariable(
+            "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined",
+            attrs
+        )
+
+    def test_CI_var(self):
+        assert  self.CI_Var.ismetric
+        assert self.CI_Var.is_CI
+        print(self.CI_Var.pretty_name)
+        assert self.CI_Var.pretty_name == "Confidence Interval of Root-mean-square deviation of ESA CCI " \
+                                          "SM combined (v05.2) \n with ERA5 (v20190613) as reference"
+        assert self.CI_Var.bound == "upper"
 
 if __name__ == '__main__':
     unittest.main()
