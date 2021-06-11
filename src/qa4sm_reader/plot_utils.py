@@ -11,6 +11,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.gridspec as gridspec
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -576,115 +578,104 @@ def mapplot(df, metric, ref_short, ref_grid_stepsize=None,
 
         return fig, ax
 
-def diff_plot(df:pd.DataFrame, **kwargs):
-    """
-    Create a Bland Altman plot for a Dataframe and a list of other Dataframes. Difference is other - reference.
-
-    Parameters
-    ----------
-    ref_df : pd.DataFrame
-        Dataframe of the reference values
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        the boxplot
-    ax : matplotlib.axes.Axes
-    """
-    fig, ax = plt.subplots(figsize=(16,10))
-
-    mean = "Mean with {}".format(df.columns[0])
-    diff = "Difference with {}".format(df.columns[0])
-
-    df[diff] = df.iloc[:,1] - df.iloc[:,0]
-    df[mean] = np.mean(df, axis=1)
-    md = np.mean(df[diff])
-    sd = np.std(df[diff])
-    ax = sns.scatterplot(x=df[mean], y=df[diff], **kwargs)
-    # mean line
-    ax.axhline(md, linestyle='-', label="Mean difference with {}".format(df.columns[1]))
-    # higher STD bound
-    ax.axhline(md + 1.96*sd, linestyle='--', label="Standard intervals")
-    # lower STD bound
-    ax.axhline(md - 1.96*sd, linestyle='--')
-
-    plt.legend()
-
-    return fig, ax
-
 def plot_spatial_extent(
         polys:dict,
-        output:str=None,
-        title:str=None,
-        ref_points=None
+        ref_points:bool=None,
+        overlapping:bool=False,
+        intersection_extent:tuple=None,
+        ref_grid=False,
+        **kwargs,
 ):
     """
-    Plots the given Polygons on a map.
+    Plots the given Polygons and optionally the reference points on a map.
 
     Parameters
     ----------
     polys : dict
         dictionary with shape {name: shapely.geometry.Polygon}
-    title : str
-        plot title
-    ref_points: tuple
-        tuple of arrays (lon, lat) to show the reference points location
+    ref_points : 2D array
+        array of lon, lat for the reference points positions
+    overlapping : bool, dafault is False.
+        Whether the polygons have an overlap
+    intersection_extent : tuple | None
+        if given, corresponds to the extent of the intersection. Shape (minlon, maxlon, minlat, maxlat)
+    reg_grid: bool, default is False,
+        plotting oprion for regular grids (satellites)
     """
     fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi)
+    legend_elements = []
+    # plot polygons
     for n, items in enumerate(polys.items()):
         name, Pol = items
         if n == 0:
             union = Pol
-        union = union.union(Pol)  # get maximum extent
-        try:
+         # get maximum extent
+        union = union.union(Pol)
+        style = {'color':'powderblue', 'alpha':0.4}
+        # shade the union/intersection of the polygons
+        if overlapping:
             x, y = Pol.exterior.xy
-            if name == output:
-                style = {'color':'powderblue', 'alpha':0.4}
-                ax.fill(x, y, label=name, **style, zorder=5)
+            if name == "selection":
+                ax.fill(x, y, **style, zorder=5)
                 continue
             ax.plot(x, y, label=name)
-        except:
-            pass
-    if ref_points:
-        selected, outside = [], []
-        for lon, lat in zip(ref_points[0], ref_points[1]):
-            pair = Point(lon, lat)
-            # get border-defining points, too
-            if polys[name].contains(pair) or pair.distance(polys[name])<= 1e-15:
-                selected.append(pair)
-            else:
-                outside.append(pair)
+        # shade the areas individually
+        else:
+            if name == "selection":
+                continue
+            x, y = Pol.exterior.xy
+            ax.fill(x, y, **style, zorder=5)
+            ax.plot(x, y, label=name)
+    # add reference points to the figure
+    if ref_points is not None:
+        if overlapping and intersection_extent is not None:
+            minlon, maxlon, minlat, maxlat = intersection_extent
+            mask = (ref_points[:,0]>=minlon) & (ref_points[:,0]<=maxlon) &\
+                   (ref_points[:,1]>=minlat) & (ref_points[:,1]<=maxlat)
+            selected = ref_points[mask]
+            outside = ref_points[~ mask]
+        else:
+            selected, outside = ref_points, np.array([])
         marker_styles = [
-            {"marker": "o", "c":"g", "s":30},
-            {"marker": "o", "c":"r", "s":30},
+            {"marker": "o", "c":"turquoise", "s":15},
+            {"marker": "o", "c":"tomato", "s":15},
         ]
         for point_set, style, name in zip(
                 (selected, outside),
                 marker_styles,
                 ("Selected reference validation points", "Validation points outside selection")
         ):
-            if point_set:
-                xs = [point.x for point in point_set]
-                ys = [point.y for point in point_set]
-                im = ax.scatter(
-                    xs, ys,
-                    edgecolors='black', linewidths=0.1,
-                    zorder=2, transform=globals.data_crs,
-                    **style, label=name
-                )
+            if point_set.size != 0:
+                if ref_grid:  # todo: implement working option
+                    point_set = pd.DataFrame(
+                        data=1,
+                        index=pd.MultiIndex.from_arrays(point_set, names=('lon', 'lat'))
+                    )
+                    zz, zz_extent, origin = geotraj_to_geo2d(point_set, grid_stepsize=None)  # todo: assign from reference of image
+                    cmap = plt.colors.ListedColormap([marker_styles["c"]])
+                    im = ax.imshow(zz, cmap=cmap,
+                           origin=origin, extent=zz_extent,
+                           transform=globals.data_crs, zorder=5)
+                else:
+                    im = ax.scatter(
+                        point_set[:,0], point_set[:,1],
+                        edgecolors='black', linewidths=0.1,
+                        zorder=5, transform=globals.data_crs,
+                        **style, label=name
+                    )
             else:
                 continue
-
-    ax.legend(bbox_to_anchor=(1.0, 1.0), fontsize='medium')
+    # create legend
+    plt.legend(bbox_to_anchor=(1.05, 1), fontsize='medium')
+    # style plot
     make_watermark(fig, offset=0.0)
     title_style = {"fontsize": 12}
-    ax.set_title(title, **title_style)
+    ax.set_title("Spatial extent of the comparison", **title_style)
     # provide extent of plot
     d_lon = abs(union.bounds[0] - union.bounds[2])* 1/8
     d_lat = abs(union.bounds[1] - union.bounds[3])* 1/8
     plot_extent = (union.bounds[0] - d_lon, union.bounds[2] + d_lon,
                    union.bounds[1] - d_lat, union.bounds[3] + d_lat)
     plt.tight_layout()
-
-    grid_intervals= [1, 5, 10, 30]
-    style_map(ax, plot_extent,grid_intervals=grid_intervals)
+    grid_intervals = [1, 5, 10, 30]
+    style_map(ax, plot_extent, grid_intervals=grid_intervals)
