@@ -95,7 +95,7 @@ _version_pretty_name_attr = 'val_dc_version_pretty_name{:d}' # attribute convent
 
 # format should have (metric, ds, ref, other ds)
 _variable_pretty_name = {
-    0: "{}", 2: "{} of {} \n with {} as reference",
+    0: "{}", 2: "{}\nof {}\nwith {} as reference",
     3: "{} of {} \n against {}, {}"
 }
 

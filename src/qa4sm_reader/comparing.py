@@ -1,5 +1,5 @@
 from qa4sm_reader.img import QA4SMImg
-from qa4sm_reader.plot_utils import mapplot, boxplot, plot_spatial_extent, _format_floats
+from qa4sm_reader.plot_utils import mapplot, boxplot, plot_spatial_extent, _format_floats, make_watermark
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 import qa4sm_reader.globals as glob
 from qa4sm_reader.plotter import QA4SMPlotter
@@ -12,7 +12,7 @@ import seaborn as sns
 from scipy import stats
 
 from typing import Union
-import warnings as warn
+from warnings import warn
 
 class ComparisonError(Exception):
     pass
@@ -42,19 +42,19 @@ class QA4SMComparison():
 
         Attributes
         ----------
-        comparison : dict or <QA4SMImg object>
-            dictionary with shape {path: (id, QA4SMImage)} or single image
+        compared : list of <QA4SMImg object>
+            all the initialized images for the comparison
         ref : tuple
             QA4SMImage for the reference validation
         """
         self.paths = paths
         self.extent = extent
         # todo: better distinction between single and double image
-        self.comparison = self._init_imgs(extent=extent, get_intersection=get_intersection)
+        self.compared = self._init_imgs(extent=extent, get_intersection=get_intersection)
         self.ref = self._check_ref()
         self.union = not get_intersection
 
-    def _init_imgs(self, extent:tuple=None, get_intersection:bool=True) -> dict:
+    def _init_imgs(self, extent:tuple=None, get_intersection:bool=True) -> list:
         """
         Initialize the QA4SMImages for the selected validation results files. If 'extent' is specified, this is used. If
         not, by default the intersection of results is taken and the images are initialized with it, unless 'get_union'
@@ -71,9 +71,8 @@ class QA4SMComparison():
 
         Returns
         -------
-        comparison : dict or Image
-            if more nc files are initialized, a dictionary with shape {path: (id, img)}. Otherwise, the single QASMImg
-            initialized for the specified path
+        compared : list of <QA4SMImg object>
+            all the initialized images for the comparison
         """
         if self.single_image:
             if isinstance(self.paths, list):
@@ -81,67 +80,57 @@ class QA4SMComparison():
 
             img = QA4SMImg(self.paths, extent=extent, empty=True)
             if not len(img.datasets.others) > 1:
-                raise ComparisonError("A single validation was initialized, with a single "
-                                      "non-reference dataset. You should add another comparison term.")
+                raise ComparisonError(
+                    "A single validation was initialized, with a single "
+                    "non-reference dataset. You should add another comparison term."
+                )
 
-            return img
+            return [img]
 
-        comparison = {}
-        imgs = []
+        compared = []
         for n, path in enumerate(self.paths):
             if extent:
                 try:
                     img = QA4SMImg(path, extent=extent, empty=True)
-                    imgs.append(img)
-                    if path in comparison.keys():
-                        warn(
-                            "You are initializing the same validation twice"
-                        )
-
-                    comparison[path] = (n, img)
+                    compared.append(img)
                 # todo: not sure if this will show up
                 except SpatialExtentError as e:
                     e.message = "One of the initialised validation result files has no points in the given spatial subset:" \
                                 "{}. \nYou should change subset to a valid one, or not pass any.".format(extent)
                     raise e
             else:
-                self.union = True  # save the state 'union' or 'intersection' to a class attribute
+                # save the state 'union' or 'intersection' to a class attribute
+                self.union = True
                 img = QA4SMImg(path, empty=True)
-                imgs.append(img)
-                if path in comparison.keys():
-                    warn(
-                        "You are initializing the same validation twice"
-                    )
 
-                comparison[path] = (n, img)
+                compared.append(img)
 
         if get_intersection:
             extent = self._combine_geometry(
                 get_intersection=get_intersection,
-                imgs=imgs,
+                imgs=compared,
             )
             self.extent = extent
             self.union = False
 
-        return comparison
+        return compared
 
     def init_union(self):
         """Re-initialize the images using the union of spatial extents"""
-        self.comparison = self._init_imgs(extent=None, get_intersection=False)
+        self.compared = self._init_imgs(extent=None, get_intersection=False)
         # make sure the new state is stored in the class attribute
         assert self.union
 
     def _check_ref(self) -> str:
         """Check that all initialized validation results have the same dataset as reference """
-        if self.single_image:
-            return self.comparison.datasets.ref
-
-        for id, img in self.comparison.values():
+        for n, img in enumerate(self.compared):
             ref = img.datasets.ref
-            if id != 0:
+            if n != 0:
                 if not ref == previous:
-                    raise ComparisonError("The initialized validation results have different reference "
-                                          "datasets. This is currently not supported")
+                    raise ComparisonError(
+                        "The initialized validation results have different reference "
+                        "datasets. This is currently not supported"
+                    )
             previous = ref
 
         return ref
@@ -149,7 +138,7 @@ class QA4SMComparison():
     @property
     def common_metrics(self) -> dict:
         """Get dict {short_name: pretty_name} of metrics that can be used in the comparison"""
-        for n, img in enumerate(self._iter_imgs()):
+        for n, img in enumerate(self.compared):
             img_metrics = {}
             for metric in img.metrics:
                 # hardcoded because n_obs cannot be compared
@@ -171,7 +160,7 @@ class QA4SMComparison():
             return True
 
         polys = []
-        for img in self._iter_imgs():  # get names and extents for all images
+        for img in self.compared:  # get names and extents for all images
             minlon, maxlon, minlat, maxlat = img.extent
             bounds = [(minlon,minlat), (maxlon, minlat),
                       (maxlon, maxlat), (minlon, maxlat)]
@@ -193,20 +182,12 @@ class QA4SMComparison():
         else:
             return len(self.paths) == 1
 
-    def _iter_imgs(self) -> iter:
-        """Iterate over the images in the comparison (regardless of single- or double-images)"""
-        if self.single_image:
-            yield self.comparison
-        else:
-            for n, img in self.comparison.values():
-                yield img
-
     @property
     def validation_names(self) -> list:
         """Create pretty names for the validations that are compared. Should always return 2 values"""
         names = []
-        template = "Validation {}:\n{} validated against {}"
-        for n, img in enumerate(self._iter_imgs()):
+        template = "Validation {}: {} validated against {}"
+        for n, img in enumerate(self.compared):
             datasets = img.datasets
             if len(datasets.others)==2:
                 for n, ds_meta in enumerate(datasets.others):
@@ -235,14 +216,16 @@ class QA4SMComparison():
         ComparisonException : if not
         """
         pairwise = True
-        for n, img in enumerate(self._iter_imgs()):
+        for n, img in enumerate(self.compared):
             if img.datasets.n_datasets() > 2 or n > 1:
                 pairwise = False
                 break
 
         if not pairwise:
-            raise ComparisonError("For pairwise comparison methods, only two "
-                                  "validation results with two datasets each can be compared")
+            raise ComparisonError(
+                "For pairwise comparison methods, only two "
+                "validation results with two datasets each can be compared"
+            )
 
     def get_reference_points(self) -> tuple:
         """
@@ -257,7 +240,7 @@ class QA4SMComparison():
         lat, lon = glob.index_names
 
         lon_list, lat_list = [], []
-        for img in self._iter_imgs():
+        for img in self.compared:
             lon_list.append(img.ds[lon].values)
             lat_list.append(img.ds[lat].values)
         ref_points = np.vstack((
@@ -312,8 +295,10 @@ class QA4SMComparison():
             else:
                 output = output.intersection(Pol)
                 if not output:
-                    raise SpatialExtentError("The spatial extents of the chosen validation results do "
-                                             "not overlap. Set 'get_intersection' to False to perform the comparison.")
+                    raise SpatialExtentError(
+                        "The spatial extents of the chosen validation results do "
+                        "not overlap. Set 'get_intersection' to False to perform the comparison."
+                    )
         polys["selection"] = output
 
         minlon, minlat, maxlon, maxlat = output.bounds
@@ -339,11 +324,9 @@ class QA4SMComparison():
         plot_points : bool, default is False.
             whether to show the reference points in the image
         """
-        # self.comparison has not been initialized yet
-        imgs = [img for img in self._iter_imgs()]
-
+        # self.compared has not been initialized yet
         extent, polys = self._combine_geometry(
-            imgs=imgs,
+            imgs=self.compared,
             get_intersection=intersection,
             return_polys=True,
         )
@@ -375,7 +358,7 @@ class QA4SMComparison():
             dict of {"varlist":[list of normal vars], "ci_list":[list of CIs]
         """
         varnames = {"varlist":[], "ci_list":[]}
-        for img in self._iter_imgs():
+        for img in self.compared:
             for Var in img._iter_vars(**{"metric":metric}):
                 if Var.is_CI:
                     varnames["ci_list"].append(Var)
@@ -475,18 +458,17 @@ class QA4SMComparison():
         elif self.single_image:
             for n, Var in enumerate(self._get_varnames(metric)["varlist"]):
                 varname = Var.varname
-                col_name = "Validation {}:\n{}\n".format(n, Var.pretty_name)
-                data = self.comparison._ds2df(varnames=[varname])[varname]
+                col_name = "Validation {}:\n{}\n".format(n, self.compared[0].name)
+                data = self.compared[0]._ds2df(varnames=[varname])[varname]
                 data = data.rename(col_name)
                 to_plot.append(data)
 
         else:
-            for n, (Var, values) in enumerate(
-                    zip(self._get_varnames(metric)["varlist"], self.comparison.values())
+            for n, (Var, img) in enumerate(
+                    zip(self._get_varnames(metric)["varlist"], self.compared)
             ):
                 varname = Var.varname
-                col_name = "Validation {}:\n{}\n".format(n, Var.pretty_name)
-                id, img = values
+                col_name = "Validation {}:\n{}\n".format(n, img.name)
                 data = img._ds2df(varnames=[varname])[varname]
                 data = data.rename(col_name)
                 to_plot.append(data)
@@ -508,23 +490,27 @@ class QA4SMComparison():
     def perform_checks(self, overlapping=False, union=False, pairwise=False):
         """Performs selected checks and throws error is they're not passed"""
         if self.single_image:
-            return len(self.comparison.datasets.others) <= 2
+            return len(self.compared[0].datasets.others) <= 2
 
         # these checks are for multiple images
         else:
             if overlapping:
                 if not self.overlapping:
-                    raise SpatialExtentError("This method works only in case the initialized "
-                                             "validations have overlapping spatial extents.")
+                    raise SpatialExtentError(
+                        "This method works only in case the initialized "
+                        "validations have overlapping spatial extents."
+                    )
             # todo: unexpected behavior here if union is initialized through init_union
             if union and not self.extent:
                 if self.union:
-                    raise SpatialExtentError("If the comparison is based on the 'union' of spatial extents, "
-                                             "this method cannot be called, as it is based on a point-by-point comparison")
+                    raise SpatialExtentError(
+                        "If the comparison is based on the 'union' of spatial extents, "
+                        "this method cannot be called, as it is based on a point-by-point comparison"
+                    )
             if pairwise:
                 self._check_pairwise()
 
-    def diff_table(self, metrics:list) -> pd.DataFrame:  #todo: diff_table for single_image
+    def diff_table(self, metrics:list) -> pd.DataFrame:
         """
         Create a table where all the metrics for the different validation runs are compared
 
@@ -571,21 +557,26 @@ class QA4SMComparison():
             metric name which the plot is based on
         """
         self.perform_checks(pairwise=True)
-        boxplot_df = self._get_pairwise(metric=metric)
+        df = self._get_pairwise(metric=metric)
         # prepare axis name
         Metric = QA4SMMetric(metric)
         ref_ds = self.ref['short_name']
         um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
+        figwidth = glob.boxplot_width * (len(df.columns) + 1)
+        figsize = [figwidth, glob.boxplot_height + 0.1]
         fig, axes = boxplot(
-            boxplot_df,
+            df,
             label= "{} {}".format(Metric.pretty_name, um),
+            figsize=figsize,
         )
         # titles for the plot
-        fonts = {"fontsize":15}
+        fonts = {"fontsize":12}
         title_plot = "Comparison of {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
+        make_watermark(fig, glob.watermark_pos, for_map=True)
+
+    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs): #todo: overlap in labels
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -606,15 +597,17 @@ class QA4SMComparison():
         # make mapplot
         cbar_label = "Difference between {} and {}".format(*df.columns)
         fig, axes = mapplot(
-            df.iloc[:,2],  # todo: hack on ids
+            df.iloc[:,2],
             metric,
             self.ref['short_name'],
             diff_range=diff_range,
             label=cbar_label
         )
-        fonts = {"fontsize":15}
+        fonts = {"fontsize":12}
         title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
+
+        make_watermark(fig, glob.watermark_pos, for_map=True)
 
     def wrapper(self, method:str, metric=None, **kwargs):
         """
@@ -643,14 +636,15 @@ class QA4SMComparison():
         if not metric:
             raise ComparisonError(
                 "If you chose '{}' as a method, you should specify"
-                " a metric (e.g. 'R').".format(method))
+                " a metric (e.g. 'R').".format(method)
+            )
 
         return diff_method(
             metric=metric,
             **kwargs
         )
 
-im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc"
-im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst (3).nc"
+# im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc"
+# im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst (3).nc"
 # im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.nc"
-comp = QA4SMComparison(paths=[im1,im2], get_intersection=True)
+# comp = QA4SMComparison(paths=[im1, im2], get_intersection=True)

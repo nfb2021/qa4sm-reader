@@ -1,5 +1,4 @@
-from qa4sm_reader.comparing import QA4SMComparison, ComparisonError
-from qa4sm_reader.img import QA4SMImg
+from qa4sm_reader.comparing import QA4SMComparison, ComparisonError, SpatialExtentError
 
 import os
 import unittest
@@ -13,12 +12,12 @@ class TestQA4SMComparison_SingleImage(unittest.TestCase):
 
     def setUp(self) -> None:
         self.testfile = '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc'
-        self.testfile_path = os.path.join(os.path.dirname(__file__), '..','tests',
+        self.testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
                                           'test_data', 'tc', self.testfile)
         self.comp = QA4SMComparison(self.testfile_path)
 
     def test_init(self):
-        assert isinstance(self.comp.comparison, QA4SMImg)
+        assert isinstance(self.comp.compared, list)
 
     def test_check_ref(self):
         assert self.comp._check_ref() == {
@@ -46,17 +45,13 @@ class TestQA4SMComparison_SingleImage(unittest.TestCase):
         """
         methods = [
             'boxplot',
-            'correlation',
-            'difference',
             'mapplot'
         ]
         for method in methods:
             out = self.comp.wrapper(method, "R")
             plt.close("all")
-            if method == "table":
-                assert out is not None  # generates a pandas dataframe
-            else:
-                assert not out  # generates a plot and returns nothing
+            assert not out  # generates a plot and returns nothing
+
 
 class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
     """Test cases where two partially overlapping validations are initilized"""
@@ -67,7 +62,7 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
         self.testfile_paths = [
             os.path.join(
                 os.path.dirname(__file__),
-                '..','tests','test_data', 'comparing',
+                '..', 'tests', 'test_data', 'comparing',
                 i
             ) for i in [
                 self.first,
@@ -79,13 +74,9 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
     def test_intersection(self):
         assert not self.comp.union
 
-    def test_init(self):
-        assert [
-            i for i in self.comp.comparison.keys()
-        ] == self.testfile_paths
-
     def test_geometry(self):
-        assert self.comp.get_extent() != self.comp.get_extent(get_intersection=False)
+        assert self.comp._combine_geometry(self.comp.compared) \
+               != self.comp._combine_geometry(self.comp.compared, get_intersection=False)
 
     def test_get_pairwise(self):
         pair = self.comp._get_pairwise("R")
@@ -109,8 +100,6 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
         """
         methods = [
             'boxplot',
-            'correlation',
-            'difference',
             'mapplot'
         ]
         for method in methods:
@@ -133,8 +122,7 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
         )  # todo: solve unexpected behavior on perform_checks
         works = False
         methods = [
-            'correlation',
-            'difference',
+            'boxplot',
             'mapplot'
         ]
         for method in methods:
@@ -143,7 +131,7 @@ class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
                     method,
                     metric="R"
                 )
-            except ComparisonError:
+            except SpatialExtentError:
                 works = True
 
         assert works
@@ -158,7 +146,7 @@ class TestQA4SMComparison_DoubleNonOverlapping(unittest.TestCase):
         self.testfile_paths = [
             os.path.join(
                 os.path.dirname(__file__),
-                '..','tests','test_data', 'comparing',
+                '..', 'tests', 'test_data', 'comparing',
                 i
             ) for i in [
                 self.first,
@@ -175,16 +163,11 @@ class TestQA4SMComparison_DoubleNonOverlapping(unittest.TestCase):
             comp = QA4SMComparison(
                 self.testfile_paths
             )
-        except ComparisonError:
+        except SpatialExtentError:
             works = True
 
         assert works
 
-    def test_check_initialized(self):
-        for path in self.comp.comparison.keys():
-            self.comp._check_initialized(path)
-
-    # todo: tests for initialized different extent
 
 if __name__ == '__main__':
     unittest.main()

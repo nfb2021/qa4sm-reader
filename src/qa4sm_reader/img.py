@@ -114,7 +114,7 @@ class QA4SMImg(object):
         ref = self.datasets.ref['pretty_title']
         others = [other['pretty_title'] for other in self.datasets.others]
 
-        name = ", ".join(others) + "\nv {} (ref)".format(ref)
+        name = ",\n".join(others) + "\nv {} (ref)".format(ref)
 
         return name
 

@@ -732,8 +732,8 @@ def plot_spatial_extent(
             if name == "selection":
                 continue
             x, y = Pol.exterior.xy
-            ax.fill(x, y, **style, zorder=5)
-            ax.plot(x, y, label=name)
+            ax.fill(x, y, **style, zorder=6)
+            ax.plot(x, y, label=name, zorder=6)
     # add reference points to the figure
     if ref_points is not None:
         if overlapping and intersection_extent is not None:
@@ -765,7 +765,7 @@ def plot_spatial_extent(
                     )
                     plot_df.append(point_set)
                     # plot point to 'fake' legend entry
-                    ax.scatter(0, 0, label=name, **style)
+                    ax.scatter(0, 0, label=name, marker="s", s=10, c=style["c"])
                 else:
                     continue
             plot_df = pd.concat(plot_df, axis=0)
@@ -774,7 +774,7 @@ def plot_spatial_extent(
             im = ax.imshow(
                 zz, cmap=cmap,
                 origin=origin, extent=zz_extent,
-                transform=globals.data_crs, zorder=5
+                transform=globals.data_crs, zorder=4
             )
         # scatterplot for ISMN reference
         else:
@@ -787,7 +787,7 @@ def plot_spatial_extent(
                     im = ax.scatter(
                         point_set[:,0], point_set[:,1],
                         edgecolors='black', linewidths=0.1,
-                        zorder=5, transform=globals.data_crs,
+                        zorder=4, transform=globals.data_crs,
                         **style, label=name
                     )
                 else:
@@ -795,7 +795,7 @@ def plot_spatial_extent(
     # create legend
     plt.legend(bbox_to_anchor=(1.05, 1), fontsize='medium')
     # style plot
-    make_watermark(fig, offset=0.0)
+    make_watermark(fig, offset=0.05)
     title_style = {"fontsize": 12}
     ax.set_title("Spatial extent of the comparison", **title_style)
     # provide extent of plot
