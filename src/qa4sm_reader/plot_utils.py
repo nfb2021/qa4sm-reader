@@ -9,6 +9,7 @@ import os.path
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcol
 import matplotlib.ticker as mticker
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch, PathPatch
@@ -747,31 +748,50 @@ def plot_spatial_extent(
             {"marker": "o", "c":"turquoise", "s":15},
             {"marker": "o", "c":"tomato", "s":15},
         ]
-        for point_set, style, name in zip(
-                (selected, outside),
-                marker_styles,
-                ("Selected reference validation points", "Validation points outside selection")
-        ):
-            if point_set.size != 0:
-                if ref_grid:  # todo: implement working option
-                    point_set = pd.DataFrame(
-                        data=1,
-                        index=pd.MultiIndex.from_arrays(point_set, names=('lon', 'lat'))
+        # mapplot with imshow for gridded (non-ISMN) references
+        if ref_grid:
+            plot_df = []
+            for n, (point_set, style, name) in enumerate(zip(
+                    (selected, outside),
+                    marker_styles,
+                    ("Selected reference validation points", "Validation points outside selection")
+            )):
+                if point_set.size != 0:
+                    point_set = point_set.transpose()
+                    index = pd.MultiIndex.from_arrays(point_set, names=('lon', 'lat'))
+                    point_set = pd.Series(
+                        data=n,
+                        index=index,
                     )
-                    zz, zz_extent, origin = geotraj_to_geo2d(point_set, grid_stepsize=None)  # todo: assign from reference of image
-                    cmap = plt.colors.ListedColormap([marker_styles["c"]])
-                    im = ax.imshow(zz, cmap=cmap,
-                           origin=origin, extent=zz_extent,
-                           transform=globals.data_crs, zorder=5)
+                    plot_df.append(point_set)
+                    # plot point to 'fake' legend entry
+                    ax.scatter(0, 0, label=name, **style)
                 else:
+                    continue
+            plot_df = pd.concat(plot_df, axis=0)
+            zz, zz_extent, origin = geotraj_to_geo2d(plot_df, grid_stepsize=None)  # todo: assign from reference of image
+            cmap = mcol.LinearSegmentedColormap.from_list('mycmap', ['turquoise', 'tomato'])
+            im = ax.imshow(
+                zz, cmap=cmap,
+                origin=origin, extent=zz_extent,
+                transform=globals.data_crs, zorder=5
+            )
+        # scatterplot for ISMN reference
+        else:
+            for point_set, style, name in zip(
+                    (selected, outside),
+                    marker_styles,
+                    ("Selected reference validation points", "Validation points outside selection")
+            ):
+                if point_set.size != 0:
                     im = ax.scatter(
                         point_set[:,0], point_set[:,1],
                         edgecolors='black', linewidths=0.1,
                         zorder=5, transform=globals.data_crs,
                         **style, label=name
                     )
-            else:
-                continue
+                else:
+                    continue
     # create legend
     plt.legend(bbox_to_anchor=(1.05, 1), fontsize='medium')
     # style plot

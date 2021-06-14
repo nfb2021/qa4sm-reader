@@ -357,6 +357,7 @@ class QA4SMComparison():
             ref_points=ref_points,
             overlapping=self.overlapping,
             intersection_extent=extent,
+            ref_grid=(ref!="ISMN"),
         )
 
     def _get_varnames(self, metric:str) -> dict:
@@ -447,7 +448,7 @@ class QA4SMComparison():
 
         return pair_df
 
-    def _get_pairwise(self, metric:str) -> pd.DataFrame:
+    def _get_pairwise(self, metric:str, add_stats:bool=True) -> pd.DataFrame:
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each. Includes
         a method to subset the metric values to the selected spatial extent.
@@ -456,6 +457,8 @@ class QA4SMComparison():
         ----------
         metric: str
             name of metric to get data on
+        add_stats: bool
+            If true, add statistics to the label
 
         Returns
         -------
@@ -497,9 +500,10 @@ class QA4SMComparison():
                 "Difference of common points\nbetween validations 0 and 1\n"
             )
             pair_df = pd.concat([pair_df, diff], axis=1)
-        renamed = self.rename_with_stats(pair_df)
+        if add_stats:
+            pair_df = self.rename_with_stats(pair_df)
 
-        return renamed
+        return pair_df
 
     def perform_checks(self, overlapping=False, union=False, pairwise=False):
         """Performs selected checks and throws error is they're not passed"""
@@ -577,12 +581,11 @@ class QA4SMComparison():
             label= "{} {}".format(Metric.pretty_name, um),
         )
         # titles for the plot
-        fonts = {"fontsize":18}
+        fonts = {"fontsize":15}
         title_plot = "Comparison of {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
-        axes.labelsize = 18
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs): # todo: fig size and label
+    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -597,8 +600,7 @@ class QA4SMComparison():
             plotting keyword arguments
         """
         self.perform_checks(overlapping=True, union=True, pairwise=True)
-        # todo: fix index names after get_pairwise
-        df = self._get_pairwise(metric=metric).dropna()
+        df = self._get_pairwise(metric=metric, add_stats=False).dropna()
         Metric = QA4SMMetric(metric)
         um = glob._metric_description[metric].format(glob._metric_units[self.ref['short_name']])
         # make mapplot
@@ -610,8 +612,9 @@ class QA4SMComparison():
             diff_range=diff_range,
             label=cbar_label
         )
+        fonts = {"fontsize":15}
         title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
-        axes.set_title(title_plot, pad=glob.title_pad)
+        axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
     def wrapper(self, method:str, metric=None, **kwargs):
         """
@@ -647,7 +650,7 @@ class QA4SMComparison():
             **kwargs
         )
 
-# im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.middle_US.nc"
-# im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.west_US.nc"
-# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/CIs_0-ISMN.soil_moisture_with_1-ERA5.swvl1_with_2-ESA_CCI_SM_passive.sm.nc"
-# comp = QA4SMComparison(paths=im, get_intersection=True)
+im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc"
+im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst (3).nc"
+# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.nc"
+comp = QA4SMComparison(paths=[im1,im2], get_intersection=True)
