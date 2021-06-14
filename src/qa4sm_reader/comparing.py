@@ -222,6 +222,7 @@ class QA4SMComparison():
                     n, other["pretty_title"],
                     img.datasets.ref["pretty_title"]
                 )
+                names.append(name)
 
         return names
 
@@ -358,7 +359,7 @@ class QA4SMComparison():
             intersection_extent=extent,
         )
 
-    def _get_varnames(self, metric):
+    def _get_varnames(self, metric:str) -> dict:
         """
         Get the list of image Variable names from a metric
 
@@ -369,15 +370,18 @@ class QA4SMComparison():
 
         Returns
         -------
-        varlist: list
-            list of the variables
+        varnames: dict
+            dict of {"varlist":[list of normal vars], "ci_list":[list of CIs]
         """
-        varlist = []
+        varnames = {"varlist":[], "ci_list":[]}
         for img in self._iter_imgs():
             for Var in img._iter_vars(**{"metric":metric}):
-                varlist.append(Var)
+                if Var.is_CI:
+                    varnames["ci_list"].append(Var)
+                else:
+                    varnames["varlist"].append(Var)
 
-        return varlist
+        return varnames
 
     def subset_with_extent(self, dfs:list) -> list:
         """
@@ -430,12 +434,16 @@ class QA4SMComparison():
                 for df in dfs:
                     df = df.groupby(df.index).mean()
                     pair_df.append(df)
+                pair_df = pd.concat(pair_df, axis=1)
+                lat, lon = glob.index_names
+                pair_df.index.set_names([lat, lon], inplace=True)
             else:
-                # take all values; they cannot be compared directly anyway
+                # take all values; they cannot be compared directly anyway. Index can be dropped as lon, lat info
+                # will not be used in this comparison
                 for df in dfs:
                     df.reset_index(drop=True, inplace=True)
                     pair_df.append(df)
-            pair_df = pd.concat(pair_df, axis=1)
+                pair_df = pd.concat(pair_df, axis=1)
 
         return pair_df
 
@@ -462,7 +470,7 @@ class QA4SMComparison():
             )
 
         elif self.single_image:
-            for n, Var in enumerate(self._get_varnames(metric)):
+            for n, Var in enumerate(self._get_varnames(metric)["varlist"]):
                 varname = Var.varname
                 col_name = "Validation {}:\n{}\n".format(n, Var.pretty_name)
                 data = self.comparison._ds2df(varnames=[varname])[varname]
@@ -471,7 +479,7 @@ class QA4SMComparison():
 
         else:
             for n, (Var, values) in enumerate(
-                    zip(self._get_varnames(metric), self.comparison.values())
+                    zip(self._get_varnames(metric)["varlist"], self.comparison.values())
             ):
                 varname = Var.varname
                 col_name = "Validation {}:\n{}\n".format(n, Var.pretty_name)
@@ -564,22 +572,17 @@ class QA4SMComparison():
         Metric = QA4SMMetric(metric)
         ref_ds = self.ref['short_name']
         um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
-        # plot data
-        palette = sns.color_palette(
-            palette=['paleturquoise', 'paleturquoise', 'pink'],
-            n_colors=3
-        )
         fig, axes = boxplot(
             boxplot_df,
             label= "{} {}".format(Metric.pretty_name, um),
-            **{'palette':palette}
         )
         # titles for the plot
         fonts = {"fontsize":18}
-        title_plot = "Boxplot comparison of {} {}".format(Metric.pretty_name, um)
+        title_plot = "Comparison of {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
+        axes.labelsize = 18
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
+    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs): # todo: fig size and label
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -595,13 +598,13 @@ class QA4SMComparison():
         """
         self.perform_checks(overlapping=True, union=True, pairwise=True)
         # todo: fix index names after get_pairwise
-        df_diff = self._get_pairwise(metric=metric).dropna()
+        df = self._get_pairwise(metric=metric).dropna()
         Metric = QA4SMMetric(metric)
         um = glob._metric_description[metric].format(glob._metric_units[self.ref['short_name']])
         # make mapplot
-        cbar_label = "Difference between {} and {}".format(*df_diff.columns)
+        cbar_label = "Difference between {} and {}".format(*df.columns)
         fig, axes = mapplot(
-            df_diff.iloc[:,2],  # todo: hack on ids
+            df.iloc[:,2],  # todo: hack on ids
             metric,
             self.ref['short_name'],
             diff_range=diff_range,
@@ -644,7 +647,7 @@ class QA4SMComparison():
             **kwargs
         )
 
-im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.middle_US.nc"
-im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.west_US.nc"
-# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.nc"
-comp = QA4SMComparison(paths=[im1, im2], get_intersection=True)
+# im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.middle_US.nc"
+# im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ISMN.soil moisture_with_1-C3S.sm.west_US.nc"
+# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/CIs_0-ISMN.soil_moisture_with_1-ERA5.swvl1_with_2-ESA_CCI_SM_passive.sm.nc"
+# comp = QA4SMComparison(paths=im, get_intersection=True)

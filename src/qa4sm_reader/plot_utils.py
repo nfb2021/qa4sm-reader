@@ -656,7 +656,6 @@ def mapplot(
             cmap = globals._colormaps[metric]
         else:
             cmap = colormap
-
         # scatter point or mapplot
         if ref_short in globals.scattered_datasets:  # scatter
             if not plot_extent:
