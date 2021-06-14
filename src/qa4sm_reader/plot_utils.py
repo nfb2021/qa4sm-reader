@@ -795,7 +795,7 @@ def plot_spatial_extent(
     # create legend
     plt.legend(bbox_to_anchor=(1.05, 1), fontsize='medium')
     # style plot
-    make_watermark(fig, offset=0.05)
+    make_watermark(fig)
     title_style = {"fontsize": 12}
     ax.set_title("Spatial extent of the comparison", **title_style)
     # provide extent of plot
