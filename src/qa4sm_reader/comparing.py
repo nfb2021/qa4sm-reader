@@ -334,13 +334,17 @@ class QA4SMComparison():
         if plot_points:
             ref_points = self.get_reference_points()
 
+        # same for all initialized images, as reference dataset is the same
+        ref_grid_stepsize = self.compared[0].ref_dataset_grid_stepsize
+
         ref = self._check_ref()["short_name"]
         plot_spatial_extent(
             polys=polys,
             ref_points=ref_points,
             overlapping=self.overlapping,
             intersection_extent=extent,
-            ref_grid=(ref!="ISMN"),
+            reg_grid=(ref!="ISMN"),
+            grid_stepsize=ref_grid_stepsize
         )
 
     def _get_varnames(self, metric:str) -> dict:
@@ -651,5 +655,5 @@ class QA4SMComparison():
 
 # im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc"
 # im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst (3).nc"
-# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/CIs_0-ISMN.soil_moisture_with_1-ERA5.swvl1_with_2-ESA_CCI_SM_passive.sm.nc"
-# comp = QA4SMComparison(paths=[im1, im2], get_intersection=True)
+im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/CIs_0-ISMN.soil_moisture_with_1-ERA5.swvl1_with_2-ESA_CCI_SM_passive.sm.nc"
+comp = QA4SMComparison(paths=im, get_intersection=True)
