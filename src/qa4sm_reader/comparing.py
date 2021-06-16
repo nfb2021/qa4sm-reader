@@ -347,7 +347,7 @@ class QA4SMComparison():
             grid_stepsize=ref_grid_stepsize
         )
 
-    def _get_varnames(self, metric:str) -> dict:
+    def _get_data(self, metric:str) -> dict:
         """
         Get the list of image Variable names from a metric
 
@@ -359,15 +359,38 @@ class QA4SMComparison():
         Returns
         -------
         varnames: dict
-            dict of {"varlist":[list of normal vars], "ci_list":[list of CIs]
+            dict of {"varlist":[list of var dfs], "ci_list":[list of CIs dfs]
         """
         varnames = {"varlist":[], "ci_list":[]}
-        for img in self.compared:
+        n = 0
+        for i, img in enumerate(self.compared):
             for Var in img._iter_vars(**{"metric":metric}):
-                if Var.is_CI:
-                    varnames["ci_list"].append(Var)
-                else:
-                    varnames["varlist"].append(Var)
+                var_cis = []
+                id = i
+                varname = Var.varname
+                data = img._ds2df(varnames=[varname])[varname]
+                if not Var.is_CI:
+                    if self.single_image:
+                        id = n
+                    col_name = "Validation {}:\n{}\n".format(
+                        id, QA4SMPlotter._box_caption(Var, tc=Var.g==3)
+                    )
+                    data = data.rename(col_name)
+                    varnames["varlist"].append(data)
+                    n += 1
+                    # get CIs too, if present
+                    for CI_Var in img._iter_vars(
+                            **{"metric":metric, "is_CI":True,"metric_ds":Var.metric_ds}
+                    ):
+                        # a bit of necessary code repetition
+                        varname = Var.varname
+                        data = img._ds2df(varnames=[varname])[varname]
+                        col_name = CI_Var.bound
+                        data = data.rename(col_name)
+                        var_cis.append(data)
+
+                if var_cis:
+                    varnames["ci_list"].append(var_cis)
 
         return varnames
 
@@ -410,8 +433,8 @@ class QA4SMComparison():
 
         Parameters
         ----------
-        dfs : list
-            list of (2) dataframes
+        dfs : pd.DataFrame
+            DataFrame of variables to be plotted
         """
         try:
             pair_df = pd.concat(dfs, axis=1, join="outer")
@@ -435,7 +458,7 @@ class QA4SMComparison():
 
         return pair_df
 
-    def _get_pairwise(self, metric:str, add_stats:bool=True) -> pd.DataFrame:
+    def _get_pairwise(self, metric:str, add_stats:bool=True, return_cis=False) -> pd.DataFrame:
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each. Includes
         a method to subset the metric values to the selected spatial extent.
@@ -458,31 +481,10 @@ class QA4SMComparison():
             raise ComparisonError(
                 "More than two non-reference datasets are not supported at the moment"
             )
+        var_data = self._get_data(metric)
 
-        elif self.single_image:
-            for n, Var in enumerate(self._get_varnames(metric)["varlist"]):
-                varname = Var.varname
-                col_name = "Validation {}:\n{}\n".format(
-                    n, QA4SMPlotter._box_caption(Var, tc=Var.g==3)
-                )
-                data = self.compared[0]._ds2df(varnames=[varname])[varname]
-                data = data.rename(col_name)
-                to_plot.append(data)
-
-        else:
-            for n, (Var, img) in enumerate(
-                    zip(self._get_varnames(metric)["varlist"], self.compared)
-            ):
-                varname = Var.varname
-                col_name = "Validation {}:\n{}\n".format(
-                    n, QA4SMPlotter._box_caption(Var, tc=Var.g==3)
-                )
-                data = img._ds2df(varnames=[varname])[varname]
-                data = data.rename(col_name)
-                to_plot.append(data)
-
-        to_plot = self.subset_with_extent(to_plot)
-        pair_df = self._handle_multiindex(to_plot)
+        subset = self.subset_with_extent(var_data["varlist"])
+        pair_df = self._handle_multiindex(subset)
 
         if self.overlapping:
             diff = pair_df.iloc[:,0] - pair_df.iloc[:,1]
@@ -493,7 +495,21 @@ class QA4SMComparison():
         if add_stats:
             pair_df = self.rename_with_stats(pair_df)
 
-        return pair_df
+        if return_cis and var_data["ci_list"]:
+
+            cis_dfs = []
+            for var_cis in var_data["ci_list"]:
+                cis_subset = self.subset_with_extent(var_cis)
+                ci_df = self._handle_multiindex(cis_subset)
+                cis_dfs.append(ci_df)
+
+            return pair_df, cis_dfs
+
+        elif return_cis and not var_data["ci_list"]:
+            return pair_df, None
+
+        else:
+            return pair_df
 
     def perform_checks(self, overlapping=False, union=False, pairwise=False):
         """Performs selected checks and throws error is they're not passed"""
@@ -565,7 +581,7 @@ class QA4SMComparison():
             metric name which the plot is based on
         """
         self.perform_checks(pairwise=True)
-        df = self._get_pairwise(metric=metric)
+        df, ci = self._get_pairwise(metric=metric, return_cis=True)
         # prepare axis name
         Metric = QA4SMMetric(metric)
         ref_ds = self.ref['short_name']
@@ -574,6 +590,7 @@ class QA4SMComparison():
         figsize = [figwidth, glob.boxplot_height]
         fig, axes = boxplot(
             df,
+            ci=ci,
             label= "{} {}".format(Metric.pretty_name, um),
             figsize=figsize,
         )
@@ -652,8 +669,3 @@ class QA4SMComparison():
             metric=metric,
             **kwargs
         )
-
-# im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc"
-# im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst (3).nc"
-im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/CIs_0-ISMN.soil_moisture_with_1-ERA5.swvl1_with_2-ESA_CCI_SM_passive.sm.nc"
-comp = QA4SMComparison(paths=im, get_intersection=True)

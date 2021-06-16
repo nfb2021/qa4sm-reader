@@ -482,6 +482,17 @@ def _CI_difference(fig, ax, ci):
             horizontalalignment="center"
         )
 
+def _add_dummies(df:pd.DataFrame, to_add:int) -> list:
+    """
+    Add empty columns in dataframe to avoid error in matplotlib when not all boxplot groups have the same
+    number of values
+    """
+    for n, col in enumerate(np.arange(to_add)):
+        # add columns while avoiding name clashes
+        df[str(n)] = np.nan
+
+    return df
+
 def patch_styling(
         box_dict,
         facecolor
@@ -546,8 +557,14 @@ def boxplot(
         for n, intervals in enumerate(ci):
             lower.append(intervals["lower"])
             upper.append(intervals["upper"])
-        lower = pd.concat(lower, ignore_index=True, axis=1)
-        upper = pd.concat(upper, ignore_index=True, axis=1)
+        lower = _add_dummies(
+            pd.concat(lower, ignore_index=True, axis=1),
+            len(center_pos)-len(ci),
+        )
+        upper = _add_dummies(
+            pd.concat(upper, ignore_index=True, axis=1),
+            len(center_pos)-len(ci),
+        )
         low = lower.boxplot(
             positions=center_pos - spacing,
             showfliers=False,
