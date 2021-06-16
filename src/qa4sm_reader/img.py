@@ -23,6 +23,11 @@ def extract_periods(filepath) -> np.array:
         return np.array([None])
 
 
+class SpatialExtentError(Exception):
+    """Class to handle errors derived from the spatial extent of validations"""
+    pass
+
+
 class QA4SMImg(object):
     """A tool to analyze the results of a validation, which are stored in a netCDF file."""
     def __init__(self, filepath,
@@ -74,6 +79,8 @@ class QA4SMImg(object):
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
             except:
                 self.ref_dataset_grid_stepsize = 'nan'
+        # close .nc file to allow reopening (e.g. in comparison feature)
+        self.ds.close()
 
     def _open_ds(self, extent=None, period=None):
         """Open .nc as xarray datset, with selected extent"""
@@ -91,7 +98,10 @@ class QA4SMImg(object):
             mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
                    (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
 
-            assert True in mask, "The selected subset is not overlapping the validation domain"
+            if True not in mask:
+                raise SpatialExtentError(
+                    "The selected subset is not overlapping the validation domain"
+                )
 
             return ds.where(mask, drop=True)
 

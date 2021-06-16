@@ -404,7 +404,7 @@ def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0
                      xycoords='figure fraction', textcoords='offset points')
         bottom = fig.subplotpars.bottom
         if not for_map:
-            fig.subplots_adjust(bottom=bottom + offset)  # defaults to rc when none!
+            fig.subplots_adjust(bottom=bottom + offset)
     else:
         raise NotImplementedError
 
@@ -793,9 +793,9 @@ def plot_spatial_extent(
                 else:
                     continue
     # create legend
-    plt.legend(bbox_to_anchor=(1.05, 1), fontsize='medium')
+    plt.legend(bbox_to_anchor=(1, 1), fontsize='medium')
     # style plot
-    make_watermark(fig)
+    make_watermark(fig, globals.watermark_pos, offset=0)
     title_style = {"fontsize": 12}
     ax.set_title("Spatial extent of the comparison", **title_style)
     # provide extent of plot

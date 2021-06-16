@@ -1,4 +1,4 @@
-from qa4sm_reader.img import QA4SMImg
+from qa4sm_reader.img import QA4SMImg, SpatialExtentError
 from qa4sm_reader.plot_utils import mapplot, boxplot, plot_spatial_extent, _format_floats, make_watermark
 from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
 import qa4sm_reader.globals as glob
@@ -15,9 +15,6 @@ from typing import Union
 from warnings import warn
 
 class ComparisonError(Exception):
-    pass
-
-class SpatialExtentError(Exception):
     pass
 
 
@@ -49,7 +46,7 @@ class QA4SMComparison():
         """
         self.paths = paths
         self.extent = extent
-        # todo: better distinction between single and double image
+
         self.compared = self._init_imgs(extent=extent, get_intersection=get_intersection)
         self.ref = self._check_ref()
         self.union = not get_intersection
@@ -93,10 +90,10 @@ class QA4SMComparison():
                 try:
                     img = QA4SMImg(path, extent=extent, empty=True)
                     compared.append(img)
-                # todo: not sure if this will show up
                 except SpatialExtentError as e:
-                    e.message = "One of the initialised validation result files has no points in the given spatial subset:" \
-                                "{}. \nYou should change subset to a valid one, or not pass any.".format(extent)
+                    e.message = "One of the initialised validation result files has no points in the " \
+                                "given spatial subset: " + ", ".join(*extent) + \
+                                ".\nYou should change subset to a valid one, or not pass any."
                     raise e
             else:
                 # save the state 'union' or 'intersection' to a class attribute
@@ -243,6 +240,9 @@ class QA4SMComparison():
         for img in self.compared:
             lon_list.append(img.ds[lon].values)
             lat_list.append(img.ds[lat].values)
+            # close the netcdf file after having opened it
+            img.ds.close()
+
         ref_points = np.vstack((
             np.concatenate(lon_list),
             np.concatenate(lat_list),
@@ -500,7 +500,7 @@ class QA4SMComparison():
                         "This method works only in case the initialized "
                         "validations have overlapping spatial extents."
                     )
-            # todo: unexpected behavior here if union is initialized through init_union
+            # todo: check behavior here if union is initialized through init_union
             if union and not self.extent:
                 if self.union:
                     raise SpatialExtentError(
@@ -563,7 +563,7 @@ class QA4SMComparison():
         ref_ds = self.ref['short_name']
         um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
         figwidth = glob.boxplot_width * (len(df.columns) + 1)
-        figsize = [figwidth, glob.boxplot_height + 0.1]
+        figsize = [figwidth, glob.boxplot_height]
         fig, axes = boxplot(
             df,
             label= "{} {}".format(Metric.pretty_name, um),
@@ -574,9 +574,10 @@ class QA4SMComparison():
         title_plot = "Comparison of {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        make_watermark(fig, glob.watermark_pos, for_map=True)
+        make_watermark(fig, glob.watermark_pos, offset= 0.04)
+        plt.tight_layout()
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs): #todo: overlap in labels
+    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -607,7 +608,7 @@ class QA4SMComparison():
         title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        make_watermark(fig, glob.watermark_pos, for_map=True)
+        make_watermark(fig, glob.watermark_pos, offset= 0.08)
 
     def wrapper(self, method:str, metric=None, **kwargs):
         """
