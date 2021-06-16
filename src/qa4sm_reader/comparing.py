@@ -458,7 +458,9 @@ class QA4SMComparison():
         elif self.single_image:
             for n, Var in enumerate(self._get_varnames(metric)["varlist"]):
                 varname = Var.varname
-                col_name = "Validation {}:\n{}\n".format(n, self.compared[0].name)
+                col_name = "Validation {}:\n{}\n".format(
+                    n, QA4SMPlotter._box_caption(Var, tc=Var.g==3)
+                )
                 data = self.compared[0]._ds2df(varnames=[varname])[varname]
                 data = data.rename(col_name)
                 to_plot.append(data)
@@ -468,7 +470,9 @@ class QA4SMComparison():
                     zip(self._get_varnames(metric)["varlist"], self.compared)
             ):
                 varname = Var.varname
-                col_name = "Validation {}:\n{}\n".format(n, img.name)
+                col_name = "Validation {}:\n{}\n".format(
+                    n, QA4SMPlotter._box_caption(Var, tc=Var.g==3)
+                )
                 data = img._ds2df(varnames=[varname])[varname]
                 data = data.rename(col_name)
                 to_plot.append(data)
@@ -647,5 +651,5 @@ class QA4SMComparison():
 
 # im1 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst.nc"
 # im2 = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-C3S.sm_with_1-GLDAS.SoilMoi40_100cm_inst (3).nc"
-# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm.nc"
+# im = "~/shares/home/Data4projects/qa4sm-reader/Difference_plot_data/CIs_0-ISMN.soil_moisture_with_1-ERA5.swvl1_with_2-ESA_CCI_SM_passive.sm.nc"
 # comp = QA4SMComparison(paths=[im1, im2], get_intersection=True)
