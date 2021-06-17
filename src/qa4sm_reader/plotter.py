@@ -198,7 +198,7 @@ class QA4SMPlotter():
             message = "type '{}' is not in the lookup table".format(type)
             warn(message)
 
-    @staticmethod  # todo: cange file names and convention in qa4sm
+    @staticmethod
     def _filenames_lut(type:str) -> str:
         """
         Lookup table for file names
@@ -475,7 +475,7 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def boxplot_tc(  # todo: set limits to show confidence intervals
+    def boxplot_tc(
             self, metric:str,
             out_name:str=None,
             out_types:str='png',

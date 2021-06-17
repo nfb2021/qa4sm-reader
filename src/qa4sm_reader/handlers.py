@@ -5,7 +5,77 @@ from parse import *
 import warnings as warn
 
 
-class QA4SMDatasets():  #  todo: change netCDF ids/dcs
+class MixinVarmeta:
+    """Mixin class to provide functions that are common to the MetricVariable and ConfidenceInterval subclasses"""
+
+    @property
+    def pretty_name(self):
+        """Create a nice name for the variable"""
+        # remove CI part
+        if self.is_CI:
+            template = "Confidence interval ({}) of ".format(self.bound)
+        else:
+            template = ""
+        template = template + globals._variable_pretty_name[self.g]
+
+        if self.g == 0:
+            name = template.format(self.metric)
+
+        elif self.g == 2:
+            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
+                               self.ref_ds[1]['pretty_title'])
+        elif self.g == 3:
+            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
+                               self.ref_ds[1]['pretty_title'], self.other_ds[1]['pretty_title'])
+
+        return name
+
+    @property
+    def id(self):
+        """Id of the metric dataset for g = 2 or 3, of the reference dataset for g = 0"""
+        if self.metric_ds:
+            return self.metric_ds[0]
+        else:
+            return self.ref_ds[0]
+
+    def get_varmeta(self) -> (tuple, tuple, tuple):
+        """
+        Get the datasets from the current variable. Each dataset is provided with shape
+        (id, dict{names})
+
+        Returns
+        -------
+        ref_ds : id, dict
+            reference dataset
+        mds : id, dict
+            this is the dataset for which the metric is calculated
+        dss : id, dict
+            this is the additional dataset in TC variables
+        """
+        if self.g == 0:
+            ref_ds = self.Datasets.dataset_metadata(self.Datasets._ref_id())
+            mds, dss = None, None
+
+        else:
+            ref_ds = self.Datasets.dataset_metadata(self.parts['ref_id'])
+            mds = self.Datasets.dataset_metadata(self.parts['sat_id0'])
+            dss = None
+            # if metric is TC, add third dataset
+            if self.g == 3:
+                mds = self.Datasets.dataset_metadata(self.parts['mds_id'])
+                dss = self.Datasets.dataset_metadata(self.parts['sat_id1'])
+                if dss == mds:
+                    dss = self.Datasets.dataset_metadata(self.parts['sat_id0'])
+                # need this to respect old file naming convention
+                self.other_dss = [
+                    self.Datasets.dataset_metadata(self.parts['sat_id0']),
+                    self.Datasets.dataset_metadata(self.parts['sat_id1'])
+                ]
+
+        return ref_ds, mds, dss
+
+
+class QA4SMDatasets():
     """
     Class that provides information on all datasets in the results file. Ids and dcs refer to the
     1-based and 0-based index number of the datasets, respectively. For newer validations, these are always
@@ -177,10 +247,11 @@ class QA4SMDatasets():  #  todo: change netCDF ids/dcs
 
         return (id, meta)
 
-class QA4SMMetricVariable():
-    """Class that describes a metric variable, i.e. the metric for a specific set of Datasets"""
 
-    def __init__(self, varname, global_attrs, values=None):
+class QA4SMVariable():
+    """Super class for all variable types in the validations (MetricVariable, CI and Metadata)"""
+
+    def __init__(self, varname, global_attrs, values=None):  # todo: use MetricVariable as superclass for metric, CI and metadata types
         """
         Validation results for a validation metric and a combination of datasets.
 
@@ -213,31 +284,22 @@ class QA4SMMetricVariable():
 
         self.metric, self.g, self.parts = self._parse_varname()
         self.Datasets = QA4SMDatasets(self.attrs)
-        # do not initialize idx, gpi, time, _row_size (non-validation variables)
-        if not self.g is None:
-            self.Metric = QA4SMMetric(self.metric)
-            self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
-            # if this is a CI variable, get whether it's the upper or lower bound
-            if self.is_CI:
-                self.bound = self.parts["bound"]
+
+    def initialize(self):
+        """Initialize the subclass for the variable type (metric, CI or metadata)"""
+        if self.ismetric and not self.is_CI:
+            return MetricVariable(self.varname, self.attrs, self.values)
+
+        elif self.ismetric and self.is_CI:
+            return ConfidenceInterval(self.varname, self.attrs, self.values)
+
+        else:
+            return Metadata(self.varname, self.attrs, self.values)
 
     @property
     def isempty(self) -> bool:
         """Check whether values are associated with the object or not"""
         return self.values is None or self.values.empty
-
-    @property
-    def ismetric(self) -> bool:
-        return self.g is not None
-
-    @property
-    def id(self):
-        """Id of the metric dataset for g = 2 or 3, of the reference dataset for g = 0"""
-        if self.g:
-            if self.metric_ds:
-                return self.metric_ds[0]
-            else:
-                return self.ref_ds[0]
 
     @property
     def is_CI(self):
@@ -248,23 +310,8 @@ class QA4SMMetricVariable():
             return False
 
     @property
-    def pretty_name(self):
-        """Create a nice name for the variable"""
-        template = globals._variable_pretty_name[self.g]
-
-        if self.g == 0:
-            name = template.format(self.metric)
-
-        elif self.g == 2:
-            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
-                               self.ref_ds[1]['pretty_title'])
-        elif self.g == 3:
-            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
-                               self.ref_ds[1]['pretty_title'], self.other_ds[1]['pretty_title'])
-        if self.is_CI:
-            name = "Confidence Interval of " + name
-
-        return name
+    def ismetric(self) -> bool:
+        return self.g is not None
 
     def _parse_varname(self) -> (str, int, dict):
         """
@@ -300,41 +347,45 @@ class QA4SMMetricVariable():
 
         return None, None, None
 
-    def get_varmeta(self) -> (tuple, tuple, tuple):
-        """
-        Get the datasets from the current variable. Each dataset is provided with shape
-        (id, dict{names})
 
-        Returns
-        -------
-        ref_ds : id, dict
-            reference dataset
-        mds : id, dict
-            this is the dataset for which the metric is calculated
-        dss : id, dict
-            this is the additional dataset in TC variables
-        """
-        if self.g == 0:
-            ref_ds = self.Datasets.dataset_metadata(self.Datasets._ref_id())
-            mds, dss = None, None
+class MetricVariable(QA4SMVariable, MixinVarmeta):
+    """Class that describes a metric variable, i.e. the metric for a specific set of Datasets"""
 
-        else:
-            ref_ds = self.Datasets.dataset_metadata(self.parts['ref_id'])
-            mds = self.Datasets.dataset_metadata(self.parts['sat_id0'])
-            dss = None
-            # if metric is TC, add third dataset
-            if self.g == 3:
-                mds = self.Datasets.dataset_metadata(self.parts['mds_id'])
-                dss = self.Datasets.dataset_metadata(self.parts['sat_id1'])
-                if dss == mds:
-                    dss = self.Datasets.dataset_metadata(self.parts['sat_id0'])
-                # need this to respect old file naming convention
-                self.other_dss = [
-                    self.Datasets.dataset_metadata(self.parts['sat_id0']),
-                    self.Datasets.dataset_metadata(self.parts['sat_id1'])
-                ]
+    def __init__(self, varname, global_attrs, values=None):
+        super().__init__(varname, global_attrs, values)
 
-        return ref_ds, mds, dss
+        self.Metric = QA4SMMetric(self.metric)
+        self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
+
+
+class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
+    """Class for a MetricVariable representing confidence intervals"""
+
+    def __init__(self, varname, global_attrs, values=None):
+        super().__init__(varname, global_attrs, values)
+
+        self.Metric = QA4SMMetric(self.metric)
+        self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
+
+        self.bound = self.parts["bound"]
+
+
+class Metadata(QA4SMVariable):
+    """Class for a MetricVariable representing metadata (only with ISMN as reference)"""
+
+    def __init__(self, varname, global_attrs, values=None):
+        super().__init__(varname, global_attrs, values)
+
+    @property
+    def ismetadata(self) -> bool:
+        """Filter out variables such as idx, gpi, time, _row_size (non-metadata variables)"""
+        return self.varname in globals.metadata.keys()  # todo: retrieve without globals?
+
+    @property
+    def pretty_name(self) -> str:
+        """Pretty name of the metadata"""
+        return globals.metadata[self.varname]
+
 
 class QA4SMMetric():
     """Class for validation metric"""

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from qa4sm_reader import globals
-from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
+import qa4sm_reader.handlers as hdl
 from qa4sm_reader.plot_utils import _format_floats
 
 from parse import *
@@ -66,7 +66,7 @@ class QA4SMImg(object):
         self.ignore_empty = ignore_empty
         self.ds = self._open_ds(extent=extent, period=period)
         self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
-        self.datasets = QA4SMDatasets(self.ds.attrs)
+        self.datasets = hdl.QA4SMDatasets(self.ds.attrs)
 
         if load_data:
             self.varnames = list(self.ds.variables.keys())
@@ -111,12 +111,9 @@ class QA4SMImg(object):
     @property
     def has_CIs(self):
         """True if the validation result contains confidence intervals"""
-        cis = False
-        # check if there is any CI Var
-        for Var in self._iter_vars():
-            if Var.is_CI:
-                cis = True
-        return cis
+        itdoes = hdl.ConfidenceInterval in [type(var) for var in self.vars]
+
+        return itdoes
 
     @property
     def name(self) -> str:
@@ -127,6 +124,17 @@ class QA4SMImg(object):
         name = ",\n".join(others) + "\nv {} (ref)".format(ref)
 
         return name
+
+    @property
+    def metadata(self):
+        """If the image has metadata (ISMN reference), return a list wiith the names. Else, False."""
+        metadata = []
+        # check if there is any CI Var
+        for Var in self._iter_vars(**{"ismetadata":True}):
+            metadata.append(Var.varname)
+        if metadata:
+            return metadata
+        return False
 
     def _get_extent(self, extent) -> tuple:
         """Get extent of the results from the netCDF file"""
@@ -153,7 +161,7 @@ class QA4SMImg(object):
         Returns
         -------
         vars : list
-            list of QA4SMMetricVariable objects for the validation variables
+            list of QA4SMVariable objects for the validation variables
         """
         vars = []
         for varname in self.varnames:
@@ -166,19 +174,12 @@ class QA4SMImg(object):
                 except KeyError:
                     values = None
 
-            try:
-                Var = QA4SMMetricVariable(varname, self.ds.attrs, values=values)
-                # if self.ignore_empty and Var.isempty: todo: possible issues from non-metric variables?
-                #     continue
-            except IOError:
-                Var = None
-                continue
+            Var = hdl.QA4SMVariable(varname, self.ds.attrs, values=values).initialize()
 
-            if not Var is None:
-                if only_metrics and Var.ismetric:
-                    vars.append(Var)
-                elif not only_metrics:
-                    vars.append(Var)
+            if only_metrics and isinstance(Var, hdl.MetricVariable):
+                vars.append(Var)
+            elif not only_metrics:
+                vars.append(Var)
 
         return vars
 
@@ -200,21 +201,21 @@ class QA4SMImg(object):
                     metric_vars.append(Var)
 
                 if metric_vars != []:
-                    Metric = QA4SMMetric(metric, metric_vars)
+                    Metric = hdl.QA4SMMetric(metric, metric_vars)
                     Metrics[metric] = Metric
 
         return Metrics
 
     def _iter_vars(self, only_metrics=False, **filter_parms) -> iter:
         """
-        Iter through QA4SMMetricVariable objects that are in the file
+        Iter through QA4SMVariable objects that are in the file
 
         Parameters
         ----------
         only_metrics: bool, optional. Default is Fales.
             If True, only Vars that belong to a group are taken
         **filter_parms : kwargs, dict
-            dictionary with QA4SMMetricVariable attributes as keys and filter value as values (e.g. {g: 0})
+            dictionary with QA4SMVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
         for Var in self.vars:
             if only_metrics:
@@ -248,12 +249,12 @@ class QA4SMImg(object):
 
     def group_vars(self, **filter_parms):
         """
-        Return a list of QA4SMMetricVariable that match filters
+        Return a list of QA4SMVariable that match filters
 
         Parameters
         ----------
         **filter_parms : kwargs, dict
-            dictionary with QA4SMMetricVariable attributes as keys and filter value as values (e.g. {g: 0})
+            dictionary with QA4SMVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
         vars = []
         for Var in self._iter_vars(**filter_parms):
@@ -295,7 +296,7 @@ class QA4SMImg(object):
         Parameters
         ----------
         varnames : list or None
-            list of QA4SMMetricVariables to be placed in the DataFrame
+            list of QA4SMVariables to be placed in the DataFrame
 
         Return
         ------

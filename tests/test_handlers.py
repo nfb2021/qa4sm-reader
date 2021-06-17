@@ -2,7 +2,8 @@
 import pandas as pd
 import unittest
 
-from qa4sm_reader.handlers import QA4SMDatasets, QA4SMMetricVariable, QA4SMMetric
+from qa4sm_reader.handlers import QA4SMDatasets, QA4SMVariable, MetricVariable, Metadata, ConfidenceInterval, \
+    QA4SMMetric
 
 from tests.test_attr import test_attributes, test_tc_attributes, test_CI_attributes
 
@@ -58,14 +59,15 @@ class TestQA4SMDatasets(unittest.TestCase):
         also_meta_ref = self.Datasets._dc_names(5)
         assert meta_ref == also_meta_ref
 
+
 class TestMetricVariableTC(unittest.TestCase):
 
     def setUp(self) -> None:
         attrs = test_tc_attributes()
         df_nobs = pd.DataFrame(index=range(10), data={'n_obs': range(10)})
-        self.n_obs = QA4SMMetricVariable('n_obs', attrs, values=df_nobs)
-        self.r = QA4SMMetricVariable('R_between_3-ERA5_LAND_and_1-C3S', attrs)
-        self.beta = QA4SMMetricVariable('beta_1-C3S_between_3-ERA5_LAND_and_1-C3S_and_2-ASCAT', attrs)
+        self.n_obs = QA4SMVariable('n_obs', attrs, values=df_nobs).initialize()
+        self.r = QA4SMVariable('R_between_3-ERA5_LAND_and_1-C3S', attrs).initialize()
+        self.beta = QA4SMVariable('beta_1-C3S_between_3-ERA5_LAND_and_1-C3S_and_2-ASCAT', attrs).initialize()
 
     def test_properties(self):
         assert self.beta.isempty
@@ -133,10 +135,10 @@ class TestMetricVariableBasic(unittest.TestCase):
     def setUp(self) -> None:
         attrs = test_attributes()
         df_nobs = pd.DataFrame(index=range(10), data={'n_obs': range(10)})
-        self.n_obs = QA4SMMetricVariable('n_obs', attrs, values=df_nobs)
 
-        self.r = QA4SMMetricVariable('R_between_6-ISMN_and_4-SMAP', attrs)
-        self.pr = QA4SMMetricVariable('p_rho_between_6-ISMN_and_5-ASCAT', attrs)
+        self.n_obs = QA4SMVariable('n_obs', attrs, values=df_nobs).initialize()
+        self.r = QA4SMVariable('R_between_6-ISMN_and_4-SMAP', attrs).initialize()
+        self.pr = QA4SMVariable('p_rho_between_6-ISMN_and_5-ASCAT', attrs).initialize()
 
     def test_get_varmeta(self):
         # n_obs
@@ -182,30 +184,31 @@ class TestQA4SMMetric(unittest.TestCase):
     def setUp(self) -> None:
         attrs = test_tc_attributes()
 
-        self.r1 = QA4SMMetricVariable('R_between_3-ERA5_LAND_and_2-ASCAT', attrs)
-        self.r2 = QA4SMMetricVariable('R_between_3-ERA5_LAND_and_1-C3S', attrs)
+        self.r1 = QA4SMVariable('R_between_3-ERA5_LAND_and_2-ASCAT', attrs).initialize()
+        self.r2 = QA4SMVariable('R_between_3-ERA5_LAND_and_1-C3S', attrs).initialize()
         self.R = QA4SMMetric('R', variables_list=[self.r1, self.r2])
 
     def test_get_attribute(self):
         assert self.R.g == self.r1.g == self.r2.g
 
 
-class TestMetricVariableCI(unittest.TestCase): # todo: update with correct CI .nc file
+class TestMetricVariableCI(unittest.TestCase):  # todo: update with correct CI .nc file
     """Test variables in image with confidence intervals"""
+
     def setUp(self) -> None:
         attrs = test_CI_attributes()
-        self.CI_Var = QA4SMMetricVariable(
+        self.CI_Var = QA4SMVariable(
             "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined",
             attrs
-        )
+        ).initialize()
 
     def test_CI_var(self):
-        assert  self.CI_Var.ismetric
+        assert self.CI_Var.ismetric
         assert self.CI_Var.is_CI
-        print(self.CI_Var.pretty_name)
-        assert self.CI_Var.pretty_name == "Confidence Interval of Root-mean-square deviation\nof ESA CCI " \
+        assert self.CI_Var.pretty_name == "Confidence interval (upper) of Root-mean-square deviation\nof ESA CCI " \
                                           "SM combined (v05.2)\nwith ERA5 (v20190613) as reference"
         assert self.CI_Var.bound == "upper"
+
 
 if __name__ == '__main__':
     unittest.main()

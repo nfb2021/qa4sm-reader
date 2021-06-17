@@ -3,7 +3,6 @@
 from qa4sm_reader.img import QA4SMImg
 import os
 import numpy as np
-import pandas as pd
 import unittest
 from qa4sm_reader import globals
 

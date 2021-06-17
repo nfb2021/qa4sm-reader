@@ -317,3 +317,21 @@ _metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
     'CGLS_CSAR_SSM1km': '% sat',
     'CGLS_SCATSAR_SWI1km': '% sat',
 }
+
+metadata = {
+    "clay_fraction":"Clay fraction [-]",
+    "climate_KG":"Koeppen-Geiger climate class",
+    "climate_insitu":"Climate in-situ",
+    "elevation":"Elevation [m]",
+    "instrument":"Instrument type",
+    "lc_2000":"Land cover class (2000)",
+    "lc_2005":"Land cover class (2005)",
+    "lc_2010":"Land cover class (2010)",
+    "lc_insitu":"Land cover class in-situ",
+    "network":"Network",
+    "organic_carbon":"Concentration of organic carbon [ppm]",
+    "sand_fraction":"Sand fraction [-]",
+    "saturation":"Saturation [%]",
+    "silt_fraction":"Silt fraction [-]",
+    "station":"Station",
+}
