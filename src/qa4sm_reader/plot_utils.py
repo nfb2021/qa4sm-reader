@@ -3,9 +3,11 @@
 Contains helper functions for plotting qa4sm results.
 """
 from qa4sm_reader import globals
+
 import numpy as np
 import pandas as pd
 import os.path
+from typing import Union
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -14,9 +16,11 @@ import matplotlib.ticker as mticker
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch, PathPatch
 from matplotlib.lines import Line2D
+
 from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+
 from pygeogrids.grids import BasicGrid, genreg_grid
 from shapely.geometry import Polygon, Point
 
@@ -188,7 +192,7 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
 
     return v_min, v_max
 
-def get_quantiles(ds, quantiles):
+def get_quantiles(ds, quantiles) -> tuple:
     """
     Gets lower and upper quantiles from pandas.Series or pandas.DataFrame
 
@@ -215,7 +219,7 @@ def get_quantiles(ds, quantiles):
     else:
         raise TypeError("Inappropriate argument type. 'ds' must be pandas.Series or pandas.DataFrame.")
 
-def get_plot_extent(df, grid_stepsize=None, grid=False):
+def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
     """
     Gets the plot_extent from the values. Uses range of values and
     adds a padding fraction as specified in globals.map_pad
@@ -261,9 +265,10 @@ def get_plot_extent(df, grid_stepsize=None, grid=False):
         extent[2] = -90
     if extent[3] > 90:
         extent[3] = 90
+
     return extent
 
-def init_plot(figsize, dpi, add_cbar=None, projection=None):
+def init_plot(figsize, dpi, add_cbar=None, projection=None) -> tuple:
     if not projection:
         projection=globals.crs
     fig = plt.figure(figsize=figsize, dpi=dpi)
@@ -275,6 +280,7 @@ def init_plot(figsize, dpi, add_cbar=None, projection=None):
         gs = gridspec.GridSpec(nrows=1, ncols=1)
         ax = fig.add_subplot(gs[0], projection=projection)
         cax = None
+
     return fig, ax, cax
 
 def get_extend_cbar(metric):
@@ -369,7 +375,12 @@ def style_map(
 
     return ax
 
-def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.02):
+def make_watermark(
+        fig,
+        placement=globals.watermark_pos,
+        for_map=False,
+        offset=0.02
+):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.
@@ -513,7 +524,7 @@ def boxplot(
         dpi=100,
         spacing=0.35,
         **kwargs
-):
+) -> tuple:
     """
     Create a boxplot_basic from the variables in df.
     The box shows the quartiles of the dataset while the whiskers extend
@@ -606,6 +617,98 @@ def boxplot(
 
     return fig, ax
 
+def boxplot_metadata(
+        df:pd.DataFrame,
+        metadata_values:pd.DataFrame,
+        metric_lable:str=None,
+        offset=0.02,
+        apply_bins=False,
+        nbins=5,
+        **bplot_kwargs,
+) -> tuple:
+    """
+    Plot only stations that correspond to the given metadata key (with CIs). If no key is given, create a single plot
+    with all the keys.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame or list
+        DataFrame containing 'lat', 'lon' and (multiple) 'var' Series.
+    metadata_key : pd.DataFrame
+        Dataframe containing the metadata values to use for the plot
+    metric_lable: str
+        Lable of the metric (for y-axis)
+    apply_bins: bool
+        If true, divide metadata variable in bins and use for plotting (for variables with range)
+    nbins: int. Default is 5.
+        Bins to divide the metadata range into
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        the boxplot
+    ax : matplotlib.axes.Axes
+    """
+    if metric_lable is None:
+        metric_lable = "values"
+    to_plot = []
+    for dataset in df:
+        dataset_df = df[dataset].to_frame(name=metric_lable)
+        dataset_df["Datasets"] = dataset
+        dataset_df = pd.concat(
+            [dataset_df, metadata_values],
+            axis=1,
+        )
+        to_plot.append(dataset_df)
+    to_plot = pd.concat(to_plot, axis=0)
+    meta_name = metadata_values.columns[0]
+    n_boxes = metadata_values[meta_name].drop_duplicates().count()
+    if apply_bins:
+        meta_range = metadata_values[meta_name].to_numpy()
+        bin_edges = np.linspace(0, 100, nbins + 1)
+        perc = np.percentile(meta_range, bin_edges, interpolation="linear")  # todo: bin sizes
+        bin_name = "Ranges of {}".format(meta_name)
+        to_plot[bin_name], bins = pd.cut(to_plot[meta_name], perc, retbins=True, duplicates="raise")
+        n_boxes = len(bins)-1
+        meta_name = bin_name
+        bin_ticks = []
+        n = 0
+        while n < len(bins)-1:
+            lower, upper = bins[n], bins[n+1]
+            bin_name = "{:.2f}-{:.2f}".format(lower, upper)
+            bin_ticks.append(bin_name)
+            n += 1
+    box_width = 1.8
+    if n_boxes > 5:
+        print(n_boxes)
+        box_width = 0.8
+    figsize = [
+        n_boxes*box_width,
+        globals.boxplot_height
+    ]
+    fig, axes = plt.subplots(figsize=figsize)
+    axes.grid()
+    axes.set_axisbelow(True)
+    axes.spines['right'].set_visible(False)
+    axes.spines['top'].set_visible(False)
+    sns.boxplot(
+        x=meta_name,
+        y=metric_lable,
+        hue="Datasets",
+        data=to_plot,
+        palette="husl",
+        showfliers = False,
+        zorder=1,
+    )
+    # style plot
+    if apply_bins:  # todo: styling
+        axes.set_xticklabels(bin_ticks)
+    make_watermark(fig, offset=offset)
+    plt.setp(axes.artists, edgecolor='gray')
+    plt.setp(axes.lines, color='gray')
+
+    return fig, axes
+
 def mapplot(
         df, metric,
         ref_short,
@@ -619,7 +722,7 @@ def mapplot(
         dpi=globals.dpi,
         diff_range=None,
         **style_kwargs
-):
+) -> tuple:
         """
         Create an overview map from df using values as color. Plots a scatterplot for ISMN and an image plot for other
         input values.

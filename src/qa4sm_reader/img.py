@@ -6,10 +6,11 @@ from qa4sm_reader.plot_utils import _format_floats
 
 from parse import *
 from pathlib import Path
-import numpy as np
-import xarray as xr
 from collections import OrderedDict
 import itertools
+
+import numpy as np
+import xarray as xr
 import pandas as pd
 
 
@@ -79,8 +80,6 @@ class QA4SMImg(object):
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
             except:
                 self.ref_dataset_grid_stepsize = 'nan'
-        # close .nc file to allow reopening (e.g. in comparison feature)
-        self.ds.close()
 
     def _open_ds(self, extent=None, period=None):
         """Open .nc as xarray datset, with selected extent"""
@@ -126,15 +125,16 @@ class QA4SMImg(object):
         return name
 
     @property
-    def metadata(self):
-        """If the image has metadata (ISMN reference), return a list wiith the names. Else, False."""
-        metadata = []
+    def metadata(self) -> dict:
+        """If the image has metadata (ISMN reference), return a dict of shape {varname: Metadata}. Else, False."""
+        metadata = {}
         # check if there is any CI Var
-        for Var in self._iter_vars(**{"ismetadata":True}):
-            metadata.append(Var.varname)
-        if metadata:
-            return metadata
-        return False
+        for Var in self._iter_vars():
+            if isinstance(Var, hdl.Metadata):
+                if Var.key_meta:
+                    metadata[Var.varname] = Var
+
+        return metadata
 
     def _get_extent(self, extent) -> tuple:
         """Get extent of the results from the netCDF file"""
@@ -206,20 +206,28 @@ class QA4SMImg(object):
 
         return Metrics
 
-    def _iter_vars(self, only_metrics=False, **filter_parms) -> iter:
+    def _iter_vars(self, only_metrics=False, name=None, **filter_parms) -> iter: # todo: improve function
         """
         Iter through QA4SMVariable objects that are in the file
 
         Parameters
         ----------
-        only_metrics: bool, optional. Default is Fales.
+        only_metrics : bool, optional. Default is Fales.
             If True, only Vars that belong to a group are taken
+        name : str
+            yield a specific variable by its name
         **filter_parms : kwargs, dict
             dictionary with QA4SMVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
         for Var in self.vars:
+            if name:
+                if name in [Var.varname, Var.pretty_name]:
+                    yield Var
+                    break
+                else:
+                    continue
             if only_metrics:
-                if Var.g is None:
+                if not type(Var) in [hdl.MetricVariable, hdl.ConfidenceInterval]:
                     continue
             if filter_parms:
                 for key, val in filter_parms.items():
@@ -319,6 +327,7 @@ class QA4SMImg(object):
             lat, lon = globals.index_names
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
+            df["gpi"] = df.index.get_level_values("gpi")
 
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)

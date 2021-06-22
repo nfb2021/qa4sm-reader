@@ -377,14 +377,17 @@ class Metadata(QA4SMVariable):
         super().__init__(varname, global_attrs, values)
 
     @property
-    def ismetadata(self) -> bool:
-        """Filter out variables such as idx, gpi, time, _row_size (non-metadata variables)"""
+    def key_meta(self) -> bool:
+        """Filter out variables such as idx, lat, lon, gpi, time, _row_size etc."""
         return self.varname in globals.metadata.keys()  # todo: retrieve without globals?
 
     @property
     def pretty_name(self) -> str:
         """Pretty name of the metadata"""
-        return globals.metadata[self.varname]
+        if self.varname in globals.metadata.keys():
+            return globals.metadata[self.varname]
+        else:
+            return self.varname
 
 
 class QA4SMMetric():

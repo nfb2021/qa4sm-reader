@@ -270,7 +270,7 @@ class QA4SMPlotter():
 
         return name
 
-    def _yield_values(self, metric:str, tc:bool=False) -> tuple:
+    def _yield_values(self, metric:str, tc:bool=False, stats:bool=True) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
@@ -282,6 +282,8 @@ class QA4SMPlotter():
             Add stats of median, iqr and N to the box bottom.
         tc: bool, default is False
             True if TC. Then, caption starts with "Other Data:"
+        stats: bool
+            If true, append the statistics to the caption
 
         Yield
         -----
@@ -290,7 +292,7 @@ class QA4SMPlotter():
         Var: QA4SMMetricVariable
             variable corresponding to the dataframe
         """
-        Vars = self.img._iter_vars(**{'metric':metric})
+        Vars = self.img._iter_vars(only_metrics=True, **{'metric':metric})
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
@@ -302,7 +304,9 @@ class QA4SMPlotter():
             # setting in global for caption stats
             if globals.boxplot_printnumbers:
                 box_stats = self._box_stats(values)
-                box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
+                box_cap = '{}'.format(box_cap_ds)
+                if stats:
+                    box_cap = box_cap + "\n{}".format(box_stats)
             else:
                 box_cap = box_cap_ds
             df = values.to_frame(box_cap)
@@ -355,7 +359,7 @@ class QA4SMPlotter():
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
-            for Var in self.img._iter_vars(**{'metric':metric}):
+            for Var in self.img._iter_vars(only_metrics=True, **{'metric':metric}):
                 Var = Var
                 break
         title = self.create_title(Var, type=type)
@@ -662,7 +666,7 @@ class QA4SMPlotter():
             List of files that were created
         """
         fnames = []
-        for Var in self.img._iter_vars(**{'metric':metric}):
+        for Var in self.img._iter_vars(only_metrics=True, **{'metric':metric}):
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
@@ -715,3 +719,56 @@ class QA4SMPlotter():
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
+
+    def plot_metadata(
+            self,
+            metric:str,
+            metadata:str,
+            apply_bins:bool=False,
+            **plotting_kwargs
+    ) -> tuple:
+        """
+        Boxplot of a metric grouped by the given metadata.
+
+        Parameters
+        ----------
+        metric : str
+            specified metric
+        metadata: str
+            specified metadata
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
+        """
+        values = []
+        for df, Var in self._yield_values(metric=metric, stats=False):
+            if not Var.is_CI:
+                values.append(df)
+        # put all Variables in the same dataframe
+        values = pd.concat(values, axis=1)
+        # values are all Nan or NaNf - not plotted
+        if np.isnan(values.to_numpy()).all():
+            return None
+        Meta = self.img.metadata[metadata]
+        meta_values = Meta.values
+        meta_values.columns = [Meta.pretty_name]
+        # create plot
+        fig, ax = boxplot_metadata(
+            df=values,
+            metadata_values=meta_values,
+            metric_lable=Var.Metric.pretty_name,
+            apply_bins=apply_bins,
+            **plotting_kwargs
+        )
+        fig.suptitle(
+            "Intercomparison of {} by {}".format(Var.Metric.pretty_name, Meta.pretty_name)#
+        )
+
+        return fig, ax
+
+
+# im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-SMAP.soil_moisture_with_2-ESA_CCI_SM_passive.sm.nc")
+# pl = QA4SMPlotter(im)
