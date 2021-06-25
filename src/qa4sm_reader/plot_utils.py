@@ -233,7 +233,7 @@ def get_plot_extent(df, grid_stepsize=None, grid=False):
         (x_min, x_max, y_min, y_max) in Data coordinates.
     
     """
-    lat, lon = globals.index_names
+    lat, lon, gpi = globals.index_names
     if grid and grid_stepsize in ['nan', None]:
         x_min, x_max, dx, len_x = _get_grid(df.index.get_level_values(lon))
         y_min, y_max, dy, len_y = _get_grid(df.index.get_level_values(lat))
@@ -681,7 +681,7 @@ def mapplot(
                 plot_extent = get_plot_extent(df)
 
             markersize = globals.markersize ** 2
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             im = ax.scatter(df.index.get_level_values(lon),
                             df.index.get_level_values(lat),
                             c=df, cmap=cmap, s=markersize,

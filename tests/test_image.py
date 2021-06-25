@@ -63,7 +63,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def test_ds2df(self):
         df = self.img._ds2df()
-        assert len(df.columns) == len(self.img.varnames) - 2  # minus lon, lat
+        assert len(df.columns) == len(self.img.varnames) - 3  # minus lon, lat, gpi
 
     def test_metric_df(self):
         df = self.img.metric_df(['R'])

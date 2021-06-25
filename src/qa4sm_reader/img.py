@@ -79,12 +79,18 @@ class QA4SMImg(object):
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
             except:
                 self.ref_dataset_grid_stepsize = 'nan'
-        # close .nc file to allow reopening (e.g. in comparison feature)
-        self.ds.close()
 
     def _open_ds(self, extent=None, period=None):
         """Open .nc as xarray datset, with selected extent"""
-        dataset = xr.open_dataset(self.filepath)
+        dataset = xr.load_dataset(
+            self.filepath,
+            drop_variables="time",
+            engine="h5netcdf",
+            decode_cf=False,
+            decode_times=False,
+            decode_timedelta=False,
+            decode_coords=False,
+        )
         if period is not None:
             ds = dataset.sel(dict(period=period))
         else:
@@ -94,7 +100,7 @@ class QA4SMImg(object):
             ds = ds.drop_vars(globals.time_name)
         # geographical subset of the results
         if extent:
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
                    (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
 
@@ -131,7 +137,7 @@ class QA4SMImg(object):
     def _get_extent(self, extent) -> tuple:
         """Get extent of the results from the netCDF file"""
         if not extent:
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
             lons = min(lon_coord), max(lon_coord)
             lats = min(lat_coord), max(lat_coord)
@@ -315,10 +321,11 @@ class QA4SMImg(object):
             raise Exception("The variable name '{}' does not match any name in the input values.".format(e.args[0]))
 
         if isinstance(df.index, pd.MultiIndex):
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
-
+            df[gpi] = df.index.get_level_values(gpi)
+        # import pdb; pdb.set_trace()
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
 

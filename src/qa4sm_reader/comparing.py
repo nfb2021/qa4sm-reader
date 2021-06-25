@@ -234,14 +234,12 @@ class QA4SMComparison():
         ref_points: np.array
             2D array of lons, lats
         """
-        lat, lon = glob.index_names
+        lat, lon, gpi = glob.index_names
 
         lon_list, lat_list = [], []
         for img in self.compared:
             lon_list.append(img.ds[lon].values)
             lat_list.append(img.ds[lat].values)
-            # close the netcdf file after having opened it
-            img.ds.close()
 
         ref_points = np.vstack((
             np.concatenate(lon_list),
@@ -407,7 +405,7 @@ class QA4SMComparison():
         if self.extent is None:
             return dfs
 
-        lat, lon = glob.index_names
+        lat, lon, gpi = glob.index_names
         subset = []
         for df in dfs:
             mask = (df.index.get_level_values(lon) >= self.extent[0]) & (df.index.get_level_values(lon) <= self.extent[1]) &\
@@ -446,7 +444,7 @@ class QA4SMComparison():
                     df = df.groupby(df.index).mean()
                     pair_df.append(df)
                 pair_df = pd.concat(pair_df, axis=1)
-                lat, lon = glob.index_names
+                lat, lon, gpi = glob.index_names
                 pair_df.index.set_names([lat, lon], inplace=True)
             else:
                 # take all values; they cannot be compared directly anyway. Index can be dropped as lon, lat info
@@ -596,7 +594,7 @@ class QA4SMComparison():
         )
         # titles for the plot
         fonts = {"fontsize":12}
-        title_plot = "Comparison of {} {}".format(Metric.pretty_name, um)
+        title_plot = "Comparison of {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
         make_watermark(fig, glob.watermark_pos, offset= 0.04)
@@ -630,7 +628,7 @@ class QA4SMComparison():
             label=cbar_label
         )
         fonts = {"fontsize":12}
-        title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
+        title_plot = "Overview of the difference in {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
         make_watermark(fig, glob.watermark_pos, offset= 0.08)

@@ -8,7 +8,7 @@ import cartopy.crs as ccrs
 
 # === plot defaults ===
 matplotlib_ppi = 72  # Don't change this, it's a matplotlib convention.
-index_names = ['lat', 'lon']  # Names used for 'lattitude' and 'longitude' coordinate.
+index_names = ['lat', 'lon', 'gpi']  # Names used for 'lattitude' and 'longitude' coordinate.
 time_name = 'time' # not used at the moment, dropped on load
 period_name = 'period' # not used at the moment, dropped on load
 
