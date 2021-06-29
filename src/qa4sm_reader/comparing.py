@@ -345,7 +345,7 @@ class QA4SMComparison():
             grid_stepsize=ref_grid_stepsize
         )
 
-    def _get_data(self, metric:str) -> dict:
+    def _get_data(self, metric:str) -> dict:  # todo: use new handlers to get metadata for Variable
         """
         Get the list of image Variable names from a metric
 
@@ -362,7 +362,7 @@ class QA4SMComparison():
         varnames = {"varlist":[], "ci_list":[]}
         n = 0
         for i, img in enumerate(self.compared):
-            for Var in img._iter_vars(**{"metric":metric}):
+            for Var in img._iter_vars(**{"metric":metric, "is_CI":False}):
                 var_cis = []
                 id = i
                 varname = Var.varname
@@ -381,7 +381,7 @@ class QA4SMComparison():
                             **{"metric":metric, "is_CI":True,"metric_ds":Var.metric_ds}
                     ):
                         # a bit of necessary code repetition
-                        varname = Var.varname
+                        varname = CI_Var.varname
                         data = img._ds2df(varnames=[varname])[varname]
                         col_name = CI_Var.bound
                         data = data.rename(col_name)
@@ -456,7 +456,12 @@ class QA4SMComparison():
 
         return pair_df
 
-    def _get_pairwise(self, metric:str, add_stats:bool=True, return_cis=False) -> pd.DataFrame:
+    def _get_pairwise(
+            self,
+            metric:str,
+            add_stats:bool=True,
+            return_cis=False
+    ) -> pd.DataFrame:
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each. Includes
         a method to subset the metric values to the selected spatial extent.
