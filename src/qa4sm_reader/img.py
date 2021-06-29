@@ -86,10 +86,6 @@ class QA4SMImg(object):
             self.filepath,
             drop_variables="time",
             engine="h5netcdf",
-            decode_cf=False,
-            decode_times=False,
-            decode_timedelta=False,
-            decode_coords=False,
         )
         if period is not None:
             ds = dataset.sel(dict(period=period))
