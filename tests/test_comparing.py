@@ -1,173 +1,218 @@
-from qa4sm_reader.comparing import QA4SMComparison, ComparisonError, SpatialExtentError
-
+import threading
 import os
-import unittest
+import time
+
+import pytest
+from qa4sm_reader.comparing import QA4SMComparison, SpatialExtentError
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
 
-class TestQA4SMComparison_SingleImage(unittest.TestCase):
-    """Test cases where a single validation is initialized, with two satellite datasets"""
+# for profiling with cProfile, on the command line run
+# python -m cProfile -o ascat_ismn_validation.profile test_validation.py
 
-    def setUp(self) -> None:
-        self.testfile = '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc'
-        self.testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                          'test_data', 'tc', self.testfile)
-        self.comp = QA4SMComparison(self.testfile_path)
+@pytest.fixture
+def single_img():
+    testfile = '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc'
+    testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
+                                 'test_data', 'tc', testfile)
+    return QA4SMComparison(testfile_path)
 
-    def test_init(self):
-        assert isinstance(self.comp.compared, list)
 
-    def test_check_ref(self):
-        assert self.comp._check_ref() == {
-            'short_name': 'ERA5_LAND',
-            'pretty_name': 'ERA5-Land',
-            'short_version': 'ERA5_LAND_TEST',
-            'pretty_version': 'ERA5-Land test',
-            'pretty_title': 'ERA5-Land (ERA5-Land test)'
-        }
+@pytest.fixture
+def double_img_paths():
+    first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
+    second = '0-ISMN.soil moisture_with_1-C3S.sm-overlap.nc'
+    testfile_paths = [
+        os.path.join(
+            os.path.dirname(__file__),
+            '..', 'tests', 'test_data', 'comparing',
+            i
+        ) for i in [
+            first,
+            second]
+    ]
+    # initialized with intersection
+    return testfile_paths
 
-    def test_checks(self):
-        assert self.comp.perform_checks()
 
-    def test_get_pairwise(self):
-        pair = self.comp._get_pairwise("R")
+@pytest.fixture
+def double_img_overlap(double_img_paths):
+    """Initialized souble image comparison with intersection"""
+    return QA4SMComparison(double_img_paths)
 
-        assert isinstance(pair, pd.DataFrame)
-        assert len(pair.columns) == 3, "There should be one column for comparison term" \
-                                       "plus the column with difference values"
 
-    def test_wrapper(self):
-        """
-        This tests the wrapper function but more in general also the
-        plotting functions/table
-        """
-        methods = [
-            'boxplot',
-            'mapplot'
-        ]
-        for method in methods:
-            out = self.comp.wrapper(method, "R")
-            plt.close("all")
+def test_init(single_img):
+    assert isinstance(single_img.compared, list)
+
+
+def test_check_ref(single_img):
+    assert single_img._check_ref() == {
+        'short_name': 'ERA5_LAND',
+        'pretty_name': 'ERA5-Land',
+        'short_version': 'ERA5_LAND_TEST',
+        'pretty_version': 'ERA5-Land test',
+        'pretty_title': 'ERA5-Land (ERA5-Land test)'
+    }
+
+
+def test_intersection(double_img_overlap):
+    assert not double_img_overlap.union
+
+
+def test_geometry(double_img_overlap):
+    assert double_img_overlap._combine_geometry(double_img_overlap.compared) \
+           != double_img_overlap._combine_geometry(double_img_overlap.compared, get_intersection=False)
+
+
+def test_get_pairwise(single_img, double_img_overlap):
+    pair = single_img._get_pairwise("R")
+
+    assert isinstance(pair, pd.DataFrame)
+    assert len(pair.columns) == 3, "There should be one column for comparison term" \
+                                   "plus the column with difference values"
+    pair = double_img_overlap._get_pairwise("R")
+
+    assert isinstance(pair, pd.DataFrame)
+    assert len(pair.columns) == 3, "There should be one column for comparison term" \
+                                   "plus the column with difference values"
+
+
+def test_checks(single_img, double_img_overlap):
+    """No assertion, but will throw error if any of the checks are not passed"""
+    assert single_img.perform_checks()
+
+    double_img_overlap.perform_checks(
+        overlapping=True,
+        union=True,
+        pairwise=True
+    )
+
+
+def test_wrapper(single_img, double_img_overlap):
+    """
+    This tests the wrapper function but more in general also the
+    plotting functions/table
+    """
+    methods = [
+        'boxplot',
+        'mapplot'
+    ]
+    for method in methods:
+        out = single_img.wrapper(method, "R")
+        plt.close("all")
+        assert not out  # generates a plot and returns nothing
+
+    for method in methods:
+        out = double_img_overlap.wrapper(method, "R")
+        plt.close("all")
+        if method == "table":
+            assert out is not None  # generates a pandas dataframe
+        else:
             assert not out  # generates a plot and returns nothing
 
 
-class TestQA4SMComparison_DoubleOverlapping(unittest.TestCase):
-    """Test cases where two partially overlapping validations are initilized"""
-
-    def setUp(self) -> None:
-        self.first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
-        self.second = '0-ISMN.soil moisture_with_1-C3S.sm-overlap.nc'
-        self.testfile_paths = [
-            os.path.join(
-                os.path.dirname(__file__),
-                '..', 'tests', 'test_data', 'comparing',
-                i
-            ) for i in [
-                self.first,
-                self.second]
-        ]
-        # initialized with intersection
-        self.comp = QA4SMComparison(self.testfile_paths)
-
-    def test_intersection(self):
-        assert not self.comp.union
-
-    def test_geometry(self):
-        assert self.comp._combine_geometry(self.comp.compared) \
-               != self.comp._combine_geometry(self.comp.compared, get_intersection=False)
-
-    def test_get_pairwise(self):
-        pair = self.comp._get_pairwise("R")
-
-        assert isinstance(pair, pd.DataFrame)
-        assert len(pair.columns) == 3, "There should be one column for comparison term" \
-                                       "plus the column with difference values"
-
-    def test_checks(self):
-        """No assertion, but will throw error if any of the checks are not passed"""
-        self.comp.perform_checks(
-            overlapping=True,
-            union=True,
-            pairwise=True
-        )
-
-    def test_wrapper(self):
-        """
-        This tests the wrapper function but more in general also the
-        plotting functions/table
-        """
-        methods = [
-            'boxplot',
-            'mapplot'
-        ]
-        for method in methods:
-            out = self.comp.wrapper(method, "R")
-            plt.close("all")
-            if method == "table":
-                assert out is not None  # generates a pandas dataframe
-            else:
-                assert not out  # generates a plot and returns nothing
-
-    def test_init_union(self):
-        """Should go at the end as it chnages the attributes"""
-        self.comp.init_union()
-        assert self.comp.union
-
-    def test_pairwise_methods(self):
-        comp = QA4SMComparison(
-            self.testfile_paths,
-            get_intersection=False
-        )  # todo: solve unexpected behavior on perform_checks
-        works = False
-        methods = [
-            'boxplot',
-            'mapplot'
-        ]
-        for method in methods:
-            try:  # they all have same behavior
-                comp.wrapper(
-                    method,
-                    metric="R"
-                )
-            except SpatialExtentError:
-                works = True
-
-        assert works
+def test_init_union(double_img_overlap):
+    """Should go at the end as it chnages the attributes"""
+    double_img_overlap.init_union()
+    assert double_img_overlap.union
 
 
-class TestQA4SMComparison_DoubleNonOverlapping(unittest.TestCase):
-    """Test cases where two non overlapping validations are initilized"""
-
-    def setUp(self) -> None:
-        self.first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
-        self.second = '0-ISMN.soil moisture_with_1-C3S.sm-nonoverlap.nc'
-        self.testfile_paths = [
-            os.path.join(
-                os.path.dirname(__file__),
-                '..', 'tests', 'test_data', 'comparing',
-                i
-            ) for i in [
-                self.first,
-                self.second]
-        ]
-        self.comp = QA4SMComparison(
-            self.testfile_paths,
-            get_intersection=False
-        )
-
-    def test_init(self):
-        works = False
-        try:
-            comp = QA4SMComparison(
-                self.testfile_paths
+def test_pairwise_methods(double_img_paths):
+    comp = QA4SMComparison(
+        double_img_paths,
+        get_intersection=False
+    )  # todo: solve unexpected behavior on perform_checks
+    works = False
+    methods = [
+        'boxplot',
+        'mapplot'
+    ]
+    for method in methods:
+        try:  # they all have same behavior
+            comp.wrapper(
+                method,
+                metric="R"
             )
         except SpatialExtentError:
             works = True
 
-        assert works
+    assert works
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.fixture
+def double_paths_nonoverlap():
+    first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
+    second = '0-ISMN.soil moisture_with_1-C3S.sm-nonoverlap.nc'
+    testfile_paths = [
+        os.path.join(
+            os.path.dirname(__file__),
+            '..', 'tests', 'test_data', 'comparing',
+            i
+        ) for i in [
+            first,
+            second]
+    ]
+    # initialize the comparison with intersection and check that no error is raised
+    QA4SMComparison(
+        testfile_paths,
+        get_intersection=False
+    )
+
+    return testfile_paths
+
+
+def test_init_error(double_paths_nonoverlap):
+    works = False
+    try:
+        QA4SMComparison(
+            double_paths_nonoverlap
+        )
+    except SpatialExtentError:
+        works = True
+
+    assert works
+
+
+def load_extent_image(paths):
+    comp = QA4SMComparison(paths)
+    comp.visualize_extent(
+        intersection=True,
+        plot_points=True
+    )
+    print("{}".format(time.time()))
+
+
+def load_table(paths):
+    comp = QA4SMComparison(paths)
+    metrics = comp.common_metrics
+    comp = QA4SMComparison(paths)
+    comp.diff_table(metrics=list(metrics.keys()))
+    print("{}".format(time.time()))
+
+
+def load_plots(paths):
+    comp = QA4SMComparison(paths)
+    metrics = comp.common_metrics
+    first_called = list(metrics.keys())[0]
+    comp = QA4SMComparison(paths)
+    comp.wrapper(
+        method="boxplot",
+        metric=first_called
+    )
+    comp = QA4SMComparison(paths)
+    comp.wrapper(
+        method="mapplot",
+        metric=first_called
+    )
+    print("{}".format(time.time()))
+
+
+def test_simultaneous_netcdf_loading(double_img_paths):
+    # this test should reproduce the calls that are made simultaneously from the server, causing a problem with the
+    # netcdf loading function. The calls are made from the view:
+    # https://github.com/pstradio/qa4sm/blob/comparison2angular_issue-477/479/api/views/comparison_view.py
+    threading.Thread(target=load_extent_image(double_img_paths)).start()
+    threading.Thread(target=load_table(double_img_paths)).start()
+    threading.Thread(target=load_plots(double_img_paths)).start()
