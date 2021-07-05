@@ -12,7 +12,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def setUp(self) -> None:
         self.testfile = '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-SMOS.Soil_Moisture.nc'
-        self.testfile_path = os.path.join(os.path.dirname(__file__), '..','tests',
+        self.testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
                                           'test_data', 'basic', self.testfile)
         self.img = QA4SMImg(self.testfile_path, ignore_empty=False)
 
@@ -39,16 +39,16 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def test_iter_vars(self):
         for Var in self.img._iter_vars(only_metrics=True):
-            assert Var.g in [0,2,3]
-        for Var in self.img._iter_vars(**{'metric':'R'}):
+            assert Var.g in [0, 2, 3]
+        for Var in self.img._iter_vars(**{'metric': 'R'}):
             Var.varname in ['R_between_3-ERA5_LAND_and_2-SMOS', 'R_between_3-ERA5_LAND_and_1-C3S']
 
     def test_iter_metrics(self):
-        for Metr in self.img._iter_metrics(**{'g':2}):
+        for Metr in self.img._iter_metrics(**{'g': 2}):
             assert Metr.name in globals.metric_groups[2]
 
     def test_group_vars(self):
-        Vars = self.img.group_vars(**{'metric':'R'})
+        Vars = self.img.group_vars(**{'metric': 'R'})
         names = [Var.varname for Var in Vars]
         assert names == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
 
@@ -74,7 +74,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
         assert list(self.img.common.keys()) == globals.metric_groups[0]
         for m in self.img.double.keys():  # tau is not in the results
             assert m in globals.metric_groups[2]
-        assert list(self.img.triple.keys()) == []  #  this is not the TC test case
+        assert list(self.img.triple.keys()) == []  # this is not the TC test case
 
         # with merged return value
         ms = self.img.metrics
@@ -103,7 +103,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
             assert Metric.name in globals.metric_groups[0]
             assert len(Metric.variables) == 1
             common_group.append(name)
-        double_group =[]
+        double_group = []
         for name, Metric in self.img.double.items():
             assert Metric.name in globals.metric_groups[2]
             assert len(Metric.variables) == 2
@@ -113,7 +113,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def test_variable_datasets(self):
         """Test the metadata associated with the ref dataset of the double group variables"""
-        for Var in self.img._iter_vars(**{'g':2}):
+        for Var in self.img._iter_vars(**{'g': 2}):
             ref_ds, metric_ds, other_ds = Var.get_varmeta()
             assert ref_ds[1]['short_name'] == 'ERA5_LAND'
             assert ref_ds[1]['pretty_name'] == 'ERA5-Land'
@@ -130,7 +130,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def test_var_meta(self):
         """Test datasets associated with a specific variable"""
-        for Var in self.img._iter_vars(**{'varname':'R_between_3-ERA5_LAND_and_1-C3S'}):
+        for Var in self.img._iter_vars(**{'varname': 'R_between_3-ERA5_LAND_and_1-C3S'}):
             ref_id, ref_meta = Var.ref_ds
             assert ref_id == 3
             assert ref_meta['short_name'] == 'ERA5_LAND'
@@ -142,7 +142,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
             assert metric_meta['short_name'] == 'C3S'
             assert metric_meta['pretty_name'] == 'C3S'
             assert metric_meta['pretty_version'] == 'v201812'
-    
+
     def test_metric_stats(self):
         """Test the function metric_stats"""
         for name, Metric in self.img.metrics.items():
@@ -153,7 +153,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
                     assert len(stats) == 1
                 elif group == 2:
                     assert len(stats) == 2
-    
+
     def test_stats_df(self):
         """Test the stats dataframe"""
         df = self.img.stats_df()
@@ -166,16 +166,16 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
                 elif Metric.g == 2:  # stats table has an entry for metric, for sat dataset (in common and triple metrics)
                     empty_metrics += 2
 
-        tot_stats = len(self.img.common.keys()) + 2*len(self.img.double.keys()) - empty_metrics
+        tot_stats = len(self.img.common.keys()) + 2 * len(self.img.double.keys()) - empty_metrics
         assert tot_stats == len(df)
 
 
-class TestQA4SMImgWithCI(unittest.TestCase): # todo: update with correct CI .nc file
+class TestQA4SMImgWithCI(unittest.TestCase):  # todo: update with correct CI .nc file
     """Test image where some of the variables are confidence intervals"""
 
     def setUp(self) -> None:
         self.testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc"
-        self.testfile_path = os.path.join(os.path.dirname(__file__), '..','tests',
+        self.testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
                                           'test_data', 'tc', self.testfile)
         self.img = QA4SMImg(self.testfile_path, ignore_empty=False)
 
@@ -193,12 +193,13 @@ class TestQA4SMImgWithCI(unittest.TestCase): # todo: update with correct CI .nc 
     def test_CI_in_Vars(self):
         """Test that CI Variables are correctly assigned to a metric"""
         for CI_varname in self.img._iter_vars(**{
-            "metric":"RMSD",
-            "metric_ds":"2-ESA_CCI_SM_combined"}):
+            "metric": "RMSD",
+            "metric_ds": "2-ESA_CCI_SM_combined"}):
             assert CI_varname in [
                 "RMSD_ci_lower_between_0-ERA5_and_2-ESA_CCI_SM_combined",
                 "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined"
             ]
+
 
 if __name__ == '__main__':
     unittest.main()
