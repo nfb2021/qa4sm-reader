@@ -385,7 +385,7 @@ class Metadata(QA4SMVariable):
     def pretty_name(self) -> str:
         """Pretty name of the metadata"""
         if self.varname in globals.metadata.keys():
-            return globals.metadata[self.varname]
+            return globals.metadata[self.varname][0]
         else:
             return self.varname
 

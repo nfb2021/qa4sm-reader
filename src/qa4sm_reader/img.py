@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
 from qa4sm_reader.plot_utils import _format_floats
@@ -12,6 +11,7 @@ import itertools
 import numpy as np
 import xarray as xr
 import pandas as pd
+from typing import Union
 
 
 def extract_periods(filepath) -> np.array:
@@ -139,7 +139,7 @@ class QA4SMImg(object):
     def _get_extent(self, extent) -> tuple:
         """Get extent of the results from the netCDF file"""
         if not extent:
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
             lons = min(lon_coord), max(lon_coord)
             lats = min(lat_coord), max(lat_coord)
@@ -197,7 +197,7 @@ class QA4SMImg(object):
         for group in all_groups:
             for metric in group:
                 metric_vars = []
-                for Var in self._iter_vars(**{'metric': metric}):
+                for Var in self._iter_vars(filter_parms={'metric': metric}):
                     metric_vars.append(Var)
 
                 if metric_vars != []:
@@ -206,19 +206,24 @@ class QA4SMImg(object):
 
         return Metrics
 
-    def _iter_vars(self, only_metrics=False, name=None, **filter_parms) -> iter: # todo: improve function
+    def _iter_vars(self, type:str=None, name:str=None, filter_parms:dict=None) -> iter: # todo: update code to function
         """
         Iter through QA4SMVariable objects that are in the file
 
         Parameters
         ----------
-        only_metrics : bool, optional. Default is Fales.
-            If True, only Vars that belong to a group are taken
-        name : str
+        type : str, default is None
+            One of 'metric', 'ci', 'metadata' can be specified to only iterate through the specific group
+        name : str, default is None
             yield a specific variable by its name
-        **filter_parms : kwargs, dict
+        filter_parms : dict
             dictionary with QA4SMVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
+        type_lut = {
+            "metric": hdl.MetricVariable,
+            "ci": hdl.ConfidenceInterval,
+            "metadata": hdl.Metadata,
+        }
         for Var in self.vars:
             if name:
                 if name in [Var.varname, Var.pretty_name]:
@@ -226,8 +231,7 @@ class QA4SMImg(object):
                     break
                 else:
                     continue
-            if only_metrics:
-                if not type(Var) in [hdl.MetricVariable, hdl.ConfidenceInterval]:
+            if type and not isinstance(Var, type_lut[type]):
                     continue
             if filter_parms:
                 for key, val in filter_parms.items():
@@ -324,11 +328,10 @@ class QA4SMImg(object):
             raise Exception("The variable name '{}' does not match any name in the input values.".format(e.args[0]))
 
         if isinstance(df.index, pd.MultiIndex):
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
-            df["gpi"] = df.index.get_level_values("gpi")
-
+            df[gpi] = df.index.get_level_values(gpi)
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
 
@@ -360,6 +363,25 @@ class QA4SMImg(object):
         metrics_df = self._ds2df(varnames=varnames)
 
         return metrics_df
+
+    def get_cis(self, Var:hdl.MetricVariable) -> Union[list, None]:
+        """Return the CIs of a variable as a list of dfs, if they exist in the netcdf"""
+        cis = []
+        if not self.has_CIs:
+            return cis
+
+        for ci in self._iter_vars(
+                type="ci",
+                filter_parms={
+                    "metric":Var.metric,
+                    "metric_ds":Var.metric_ds,
+                }
+        ):
+            values = ci.values
+            values.columns = [ci.bound]
+            cis.append(values)
+
+        return cis
 
     def _metric_stats(self, metric, id=None)  -> list:
         """

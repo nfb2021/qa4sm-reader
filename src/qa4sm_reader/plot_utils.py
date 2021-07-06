@@ -523,6 +523,7 @@ def boxplot(
         figsize=None,
         dpi=100,
         spacing=0.35,
+        axis=None,
         **kwargs
 ) -> tuple:
     """
@@ -554,8 +555,6 @@ def boxplot(
     ax : matplotlib.axes.Axes
     """
     values = df.copy()
-    # make plot
-    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
     center_pos = np.arange(len(values.columns))*2
     # styling
     ticklabels = values.columns
@@ -590,11 +589,16 @@ def boxplot(
         )
         patch_styling(low, 'skyblue')
         patch_styling(up, 'tomato')
-    # create plot
+    # make plot
+    if axis is None:
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
     cen = values.boxplot(
         positions=center_pos,
         showfliers=False,
         widths=0.3,
+        ax=axis,
         **kwargs
     )
     patch_styling(cen, 'white')
@@ -612,36 +616,96 @@ def boxplot(
     if label is not None:
         plt.ylabel(label, weight='normal')
     plt.grid(axis='x')
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
 
-    return fig, ax
+    if axis is None:
+        return fig, ax
 
-def boxplot_metadata(
+def resize_bins(sorted, nbins):
+    """Resize the bins for "continuous" metadata types"""
+    bin_edges = np.linspace(0, 100, nbins + 1)
+    p_rank = 100.0 * (np.arange(sorted.size) + 0.5) / sorted.size
+    # use +- 1 to make sure nothing falls outside bins
+    bin_edges = np.interp(bin_edges, p_rank, sorted, left=sorted[0]-1, right=sorted[-1]+1)
+    bin_values = np.digitize(sorted, bin_edges)
+    unique_values, counts = np.unique(bin_values, return_counts=True)
+    bin_size = max(counts)
+
+    return bin_values, unique_values, bin_size
+
+def bin_continuous(
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
-        metric_lable:str=None,
-        offset=0.02,
-        apply_bins=False,
-        nbins=5,
-        **bplot_kwargs,
-) -> tuple:
+        meta_key:str,
+        ci=None,
+        nbins=4,
+        min_size=5,
+):
     """
-    Plot only stations that correspond to the given metadata key (with CIs). If no key is given, create a single plot
-    with all the keys.
+    Subset the continuous metadata types
 
     Parameters
     ----------
-    df : pandas.DataFrame or list
-        DataFrame containing 'lat', 'lon' and (multiple) 'var' Series.
-    metadata_key : pd.DataFrame
-        Dataframe containing the metadata values to use for the plot
-    metric_lable: str
-        Lable of the metric (for y-axis)
-    apply_bins: bool
-        If true, divide metadata variable in bins and use for plotting (for variables with range)
-    nbins: int. Default is 5.
+    df : pd.DataFrame
+        Dataframe of the values to plot
+    metadata_values : pd.DataFrame
+        metadata values
+    meta_key : str
+        name of the metadata
+    nbins : int. Default is 4.
         Bins to divide the metadata range into
+    min_size : int. Default is 5
+        Minimum number of values to have in a bin
+
+    Returns
+    -------
+    subset: dict
+        dictionary with metadata subsets as keys
+    """
+    meta_range = metadata_values[meta_key].to_numpy()
+    sorted = np.sort(meta_range)
+    if len(meta_range) < min_size:
+        pass  # implement
+    bin_values, unique_values, bin_size = resize_bins(sorted, nbins)
+    # adjust bins to have the specified number of bins if possible, otherwise enough valoues per bin
+    while bin_size < min_size:
+        nbins -= 1
+        bin_values, unique_values, bin_size = resize_bins(sorted, nbins)
+
+    # use metadata to sort dataframe
+    df = pd.concat([df, metadata_values], axis=1).sort_values(meta_key)
+    df.drop(columns=meta_key, inplace=True)
+    # put binned data in dataframe
+    to_plot = {}
+    for bin in unique_values:
+        bin_index = np.where(bin_values==bin)
+        bin_sorted = sorted[bin_index]
+        bin_df = df.iloc[bin_index]
+        bin_label = "{:.2f}-{:.2f}".format(min(bin_sorted), max(bin_sorted))
+
+        to_plot[bin_label] = bin_df
+
+    return to_plot
+
+def boxplot_metadata( # todo: include cis, boxplots for other metadata types
+        df:pd.DataFrame,
+        metadata_values:pd.DataFrame,
+        ci:list,
+        offset=0.02,
+        **bplot_kwargs,
+) -> tuple:
+    """
+    Boxplots by metadata. The result type depends on the metadata type:
+
+    - "continuous"
+    - "discrete"
+    - "classes"
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe with values for all variables (in metric)
+    metadata_values : pd.DataFrame
+        Dataframe containing the metadata values to use for the plot
 
     Returns
     -------
@@ -649,63 +713,42 @@ def boxplot_metadata(
         the boxplot
     ax : matplotlib.axes.Axes
     """
-    if metric_lable is None:
-        metric_lable = "values"
-    to_plot = []
-    for dataset in df:
-        dataset_df = df[dataset].to_frame(name=metric_lable)
-        dataset_df["Datasets"] = dataset
-        dataset_df = pd.concat(
-            [dataset_df, metadata_values],
-            axis=1,
-        )
-        to_plot.append(dataset_df)
-    to_plot = pd.concat(to_plot, axis=0)
-    meta_name = metadata_values.columns[0]
-    n_boxes = metadata_values[meta_name].drop_duplicates().count()
-    if apply_bins:
-        meta_range = metadata_values[meta_name].to_numpy()
-        bin_edges = np.linspace(0, 100, nbins + 1)
-        perc = np.percentile(meta_range, bin_edges, interpolation="linear")  # todo: bin sizes
-        bin_name = "Ranges of {}".format(meta_name)
-        to_plot[bin_name], bins = pd.cut(to_plot[meta_name], perc, retbins=True, duplicates="raise")
-        n_boxes = len(bins)-1
-        meta_name = bin_name
-        bin_ticks = []
-        n = 0
-        while n < len(bins)-1:
-            lower, upper = bins[n], bins[n+1]
-            bin_name = "{:.2f}-{:.2f}".format(lower, upper)
-            bin_ticks.append(bin_name)
-            n += 1
-    box_width = 1.8
-    if n_boxes > 5:
-        print(n_boxes)
-        box_width = 0.8
-    figsize = [
-        n_boxes*box_width,
-        globals.boxplot_height
-    ]
-    fig, axes = plt.subplots(figsize=figsize)
-    axes.grid()
-    axes.set_axisbelow(True)
-    axes.spines['right'].set_visible(False)
-    axes.spines['top'].set_visible(False)
-    sns.boxplot(
-        x=meta_name,
-        y=metric_lable,
-        hue="Datasets",
-        data=to_plot,
-        palette="husl",
-        showfliers = False,
-        zorder=1,
-    )
-    # style plot
-    if apply_bins:  # todo: styling
-        axes.set_xticklabels(bin_ticks)
+    metric_label = "values"
+    meta_key = metadata_values.columns[0]
+    # sort data according to the metadata type
+    type = globals.metadata[meta_key][2]
+    if type == "classes":
+        pass
+    else:
+        if type == "continuous":
+            to_plot = bin_continuous(
+                df=df,
+                metadata_values=metadata_values,
+                meta_key=meta_key,
+                ci=ci
+            )
+        elif type == "discrete":
+            n_boxes = metadata_values[meta_key].drop_duplicates().count()
+            pass
+
+        else:
+            raise ValueError(
+                "The type {} defined in globals.py is not handled".format(type)
+            )
+        # create plot with as many subplots as the dictionary keys
+        n_subplots = int(np.ceil(len(to_plot.keys())))
+        fig, axes = plt.subplots(2, int(n_subplots/2), sharey=True)
+        for n, (bin_label, data) in enumerate(to_plot.items()):
+            if n % 2 == 0:
+                ax=axes[int(n/2),0]
+            else:
+                ax=axes[int(n/2),1]
+            boxplot(
+                df=data,
+                axis=ax,
+            )
+
     make_watermark(fig, offset=offset)
-    plt.setp(axes.artists, edgecolor='gray')
-    plt.setp(axes.lines, color='gray')
 
     return fig, axes
 

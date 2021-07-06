@@ -186,10 +186,13 @@ class QA4SMPlotter():
         type: str
             type of plot
         """
-        titles = {'boxplot_basic': 'Intercomparison of \n{} \nwith {}-{} ({}) \nas the reference',
-                  'boxplot_tc': 'Intercomparison of \n{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
-                  'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
-                  'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references'}
+        titles = {
+            'boxplot_basic': 'Intercomparison of \n{} \nwith {}-{} ({}) \nas the reference',
+            'boxplot_tc': 'Intercomparison of \n{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
+            'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
+            'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
+            'metadata': None,
+        }
 
         try:
             return titles[type]
@@ -270,7 +273,12 @@ class QA4SMPlotter():
 
         return name
 
-    def _yield_values(self, metric:str, tc:bool=False, stats:bool=True) -> tuple:
+    def _yield_values(
+            self,
+            metric:str,
+            tc:bool=False,
+            stats:bool=True
+    ) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
@@ -291,8 +299,10 @@ class QA4SMPlotter():
             dataframe with variable values and caption name
         Var: QA4SMMetricVariable
             variable corresponding to the dataframe
+        ci: pd.DataFrame
+            dataframe with "upper" and "lower" CI
         """
-        Vars = self.img._iter_vars(only_metrics=True, **{'metric':metric})
+        Vars = self.img._iter_vars(type="metric", filter_parms={"metric":metric})
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
@@ -311,11 +321,26 @@ class QA4SMPlotter():
                 box_cap = box_cap_ds
             df = values.to_frame(box_cap)
 
-            yield df, Var
+            ci = self.img.get_cis(Var)
+            if ci:  # could be that variable doesn't have CIs
+                ci = pd.concat(ci, axis=1)
+                # get the mean CI range
+                diff = ci["upper"] - ci["lower"]
+                ci_range = float(diff.mean())
+                df.columns = [
+                    df.columns[0] + "\nMean CI range:"
+                                    " {:.3g}".format(ci_range)
+                ]
+            # values are all Nan or NaNf - not plotted
+            if np.isnan(df.to_numpy()).all():
+                continue
+
+            yield df, Var, ci
 
 
     def _boxplot_definition(
-            self, metric:str,
+            self,
+            metric:str,
             df:pd.DataFrame,
             type:str,
             ci=None,
@@ -332,9 +357,8 @@ class QA4SMPlotter():
             dataframe to plot
         type: str
             one of _titles_lut
-        ci: dict
-            Dict of dataframes with the lower and upper confidence intervals
-            shape: {"upper"/"lower": [CIs]}
+        ci : list
+            list of Dataframes containing "upper" and "lower" CIs
         xticks: list
             caption to each boxplot (or triplet thereof)
         offset: float
@@ -362,8 +386,9 @@ class QA4SMPlotter():
             for Var in self.img._iter_vars(only_metrics=True, **{'metric':metric}):
                 Var = Var
                 break
-        title = self.create_title(Var, type=type)
-        ax.set_title(title, pad=globals.title_pad)
+        if not type=="metadata":  # todo: handle title for metadata
+            title = self.create_title(Var, type=type)
+            ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if self.img.has_CIs:
             offset = 0.06  # offset smaller as CI variables have a larger caption
@@ -434,31 +459,12 @@ class QA4SMPlotter():
         fnames, values = [], []
         ci = []
         # we take the last iterated value for Var and use it for the file name
-        for df, Var in self._yield_values(metric=metric):
-            if not Var.is_CI:
-                # concat upper and lower CI bounds of Variable, if present
-                bounds = []
-                for ci_df, ci_Var in self._yield_values(metric=metric):
-                    # make sure they refer to the right variable
-                    if ci_Var.is_CI and (ci_Var.metric_ds == Var.metric_ds):
-                        ci_df.columns = [ci_Var.bound]
-                        bounds.append(ci_df)
-                if bounds:  # could be that variable doesn't have CIs
-                    bounds = pd.concat(bounds, axis=1)
-                    # get the mean CI range
-                    diff = bounds["upper"] - bounds["lower"]
-                    ci_range = float(diff.mean())
-                    df.columns = [
-                        df.columns[0] + "\nMean CI range:"
-                                        " {:.3g}".format(ci_range)
-                    ]
-                    ci.append(bounds)
-                values.append(df)
+        for df, Var, ci in self._yield_values(metric=metric):
+            values.append(df)
+            if ci:
+                ci.append(bounds)
         # put all Variables in the same dataframe
         values = pd.concat(values)
-        # values are all Nan or NaNf - not plotted
-        if np.isnan(values.to_numpy()).all():
-            return None
         # create plot
         fig, ax = self._boxplot_definition(
             metric=metric,
@@ -511,34 +517,17 @@ class QA4SMPlotter():
         fnames = []
         # group Vars and CIs relative to the same dataset
         metric_tc, ci = {}, {}
-        for df, Var in self._yield_values(metric=metric, tc=True):
-            if not Var.is_CI:
-                id, names = Var.metric_ds
-                bounds = []
-                for ci_df, ci_Var in self._yield_values(metric=metric):
-                    # make sure they refer to the right variable
-                    if ci_Var.is_CI and \
-                            (ci_Var.metric_ds == Var.metric_ds) and \
-                            (ci_Var.other_dss == Var.other_dss):
-                        ci_df.columns = [ci_Var.bound]
-                        bounds.append(ci_df)
-                if bounds:  # could be that variable doesn't have CIs
-                    bounds = pd.concat(bounds, axis=1)
-                    # get the mean CI range
-                    diff = bounds["upper"] - bounds["lower"]
-                    ci_range = diff.mean()
-                    df.columns = [
-                        df.columns[0] + "\nMean CI range:"
-                                        " {:.3g}".format(ci_range)
-                    ]
-                    if id in ci.keys():
-                        ci[id].append(bounds)
-                    else:
-                        ci[id] = [bounds]
-                if id in metric_tc.keys():
-                    metric_tc[id][0].append(df)
+        for df, Var, ci in self._yield_values(metric=metric, tc=True):
+            id, names = Var.metric_ds
+            if ci:
+                if id in ci.keys():
+                    ci[id].append(bounds)
                 else:
-                    metric_tc[id] = [df], Var
+                    ci[id] = [bounds]
+            if id in metric_tc.keys():
+                metric_tc[id][0].append(df)
+            else:
+                metric_tc[id] = [df], Var
 
         for id, values in metric_tc.items():
             dfs, Var = values
@@ -720,11 +709,10 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    def plot_metadata(
+    def boxplot_meta(
             self,
             metric:str,
             metadata:str,
-            apply_bins:bool=False,
             **plotting_kwargs
     ) -> tuple:
         """
@@ -743,32 +731,28 @@ class QA4SMPlotter():
             the boxplot
         ax : matplotlib.axes.Axes
         """
-        values = []
-        for df, Var in self._yield_values(metric=metric, stats=False):
-            if not Var.is_CI:
-                values.append(df)
-        # put all Variables in the same dataframe
+        values, cis = [], []
+        for df, Var, ci in self._yield_values(metric=metric, stats=False):
+            values.append(df)
+            # put all Variables in the same dataframe
+            if ci:
+                cis.append(ci)
         values = pd.concat(values, axis=1)
-        # values are all Nan or NaNf - not plotted
-        if np.isnan(values.to_numpy()).all():
-            return None
         Meta = self.img.metadata[metadata]
         meta_values = Meta.values
-        meta_values.columns = [Meta.pretty_name]
         # create plot
         fig, ax = boxplot_metadata(
             df=values,
             metadata_values=meta_values,
-            metric_lable=Var.Metric.pretty_name,
-            apply_bins=apply_bins,
+            ci=cis,
             **plotting_kwargs
         )
         fig.suptitle(
-            "Intercomparison of {} by {}".format(Var.Metric.pretty_name, Meta.pretty_name)#
+            "Intercomparison of {} by {}".format(Var.Metric.pretty_name, Meta.pretty_name)
         )
 
         return fig, ax
 
 
-# im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-SMAP.soil_moisture_with_2-ESA_CCI_SM_passive.sm.nc")
-# pl = QA4SMPlotter(im)
+im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-SMAP.soil_moisture_with_2-ESA_CCI_SM_passive.sm.nc")
+pl = QA4SMPlotter(im)
