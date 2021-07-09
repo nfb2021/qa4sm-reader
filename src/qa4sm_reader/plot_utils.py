@@ -70,7 +70,7 @@ def _format_floats(x):
         return x
 
 def oversample(lon, lat, data, extent, dx, dy):
-
+    """Sample to regular grid"""
     other = BasicGrid(lon, lat)
     reg_grid = genreg_grid(dx, dy, minlat=extent[2], maxlat=extent[3],
                            minlon=extent[0], maxlon=extent[1])
@@ -269,6 +269,7 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
     return extent
 
 def init_plot(figsize, dpi, add_cbar=None, projection=None) -> tuple:
+    """Initialize mapplot"""
     if not projection:
         projection=globals.crs
     fig = plt.figure(figsize=figsize, dpi=dpi)
@@ -316,6 +317,7 @@ def style_map(
         add_land=True, add_borders=True, add_us_states=False,
         grid_intervals=globals.grid_intervals,
 ):
+    """Parameters to style the mapplot"""
     ax.set_extent(plot_extent, crs=globals.data_crs)
     ax.spines["geo"].set_linewidth(0.4)
     if add_grid:
@@ -331,7 +333,7 @@ def style_map(
             gl = ax.gridlines(crs=globals.data_crs, draw_labels=False,
                               linewidth=0.5, color='grey', linestyle='--',
                               zorder=3)  # draw only gridlines.
-            # todo this can slow the plotting down!!
+            # todo: this can slow the plotting down!!
             xticks = np.arange(-180, 180.001, grid_interval)
             yticks = np.arange(-90, 90.001, grid_interval)
             gl.xlocator = mticker.FixedLocator(xticks)
@@ -516,6 +518,39 @@ def patch_styling(
         whis.set(color="grey", linewidth=1.6)
         caps.set(color="grey", linewidth=1.6)
 
+def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> str:
+    """
+    Create the metric part with stats of the box (axis) caption
+
+    Parameters
+    ----------
+    ds: pd.Series
+        data on which stats are found
+    med: bool
+    iqr: bool
+    count: bool
+        statistics
+
+    Returns
+    -------
+    stats: str
+        caption with summary stats
+    """
+    # interquartile range
+    iqr = ds.quantile(q=[0.75,0.25]).diff()
+    iqr = abs(float(iqr.loc[0.25]))
+
+    met_str = []
+    if med:
+        met_str.append('Median: {:.3g}'.format(ds.median()))
+    if iqr:
+        met_str.append('IQR: {:.3g}'.format(iqr))
+    if count:
+        met_str.append('N: {:d}'.format(ds.count()))
+    stats = '\n'.join(met_str)
+
+    return stats
+
 def boxplot(
         df,
         ci=None,
@@ -651,6 +686,8 @@ def bin_continuous(
         metadata values
     meta_key : str
         name of the metadata
+    ci : list
+        List of Dataframes with CIs
     nbins : int. Default is 4.
         Bins to divide the metadata range into
     min_size : int. Default is 5
@@ -658,13 +695,13 @@ def bin_continuous(
 
     Returns
     -------
-    subset: dict
+    binned: dict
         dictionary with metadata subsets as keys
     """
     meta_range = metadata_values[meta_key].to_numpy()
     sorted = np.sort(meta_range)
     if len(meta_range) < min_size:
-        pass  # implement
+        return None # todo: implement
     bin_values, unique_values, bin_size = resize_bins(sorted, nbins)
     # adjust bins to have the specified number of bins if possible, otherwise enough valoues per bin
     while bin_size < min_size:
@@ -675,26 +712,144 @@ def bin_continuous(
     df = pd.concat([df, metadata_values], axis=1).sort_values(meta_key)
     df.drop(columns=meta_key, inplace=True)
     # put binned data in dataframe
-    to_plot = {}
+    binned, ci_binned = {}, {}
     for bin in unique_values:
         bin_index = np.where(bin_values==bin)
         bin_sorted = sorted[bin_index]
         bin_df = df.iloc[bin_index]
         bin_label = "{:.2f}-{:.2f}".format(min(bin_sorted), max(bin_sorted))
+        if not all(col >= min_size for col in bin_df.count()):
+            continue
+        binned[bin_label] = bin_df
+        ci_binned[bin_label] = []
+        for ci_df in ci: # todo: implement cis here after netcdf problem is solved
+            bin_df_ci = ci_df[bin_index]
+            ci_binned[bin_label].append(bin_df_ci)
 
-        to_plot[bin_label] = bin_df
+    return binned
 
-    return to_plot
+def bin_classes(
+        df:pd.DataFrame,
+        metadata_values:pd.DataFrame,
+        meta_key:str,
+        ci=None,
+        min_size=5,
+):
+    """
+    Subset the continuous metadata types
 
-def boxplot_metadata( # todo: include cis, boxplots for other metadata types
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe of the values to plot
+    metadata_values : pd.DataFrame
+        metadata values
+    meta_key : str
+        name of the metadata
+    ci : list
+        List of Dataframes with CIs
+    min_size : int. Default is 5
+        Minimum number of values to have in a bin
+
+    Returns
+    -------
+    binned: dict
+        dictionary with metadata subsets as keys
+    """
+    classes_lut = globals.metadata[meta_key][1]
+    grouped = metadata_values.applymap(
+        lambda x : classes_lut[x]
+    )
+    binned, ci_binned = {}, {}
+    for meta_class, meta_df in grouped.groupby(meta_key).__iter__():
+        bin_df = df.loc[meta_df.index]
+        if not all(col >= min_size for col in bin_df.count()):
+            continue
+        binned[meta_class] = bin_df
+
+    return binned
+
+def bin_discrete(
+        df:pd.DataFrame,
+        metadata_values:pd.DataFrame,
+        meta_key:str,
+        ci=None,
+        min_size=5,
+):
+    """
+    Provide a formatted dataframe for discrete type metadata (e.g. station or network)
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe of the values to plot
+    metadata_values : pd.DataFrame
+        metadata values
+    meta_key : str
+        name of the metadata
+    ci : list
+        List of Dataframes with CIs
+    min_size : int. Default is 5
+        Minimum number of values to have in a bin
+
+    Returns
+    -------
+    formatted: pd.DataFrame
+        Dataframe formatted for seaborn plotting
+    """
+    groups = []
+    for col in df.columns:
+        group = pd.concat(
+            [df[col], metadata_values],
+            axis=1
+        )
+        group.columns = ["values", meta_key]
+        group["Dataset"] = col
+        groups.append(group)
+    grouped = pd.concat(groups)
+    formatted = []
+    for meta, meta_df in grouped.groupby(meta_key).__iter__():
+        if meta_df["values"].count() <= min_size:
+           continue
+        formatted.append(meta_df)
+    formatted = pd.concat(formatted)
+
+    return formatted
+
+def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
+    """Return list of stats by group, where groups are created with a specific key"""
+    stats_list = []
+    for _key, group in df.groupby(meta_key).__iter__():
+        stats = _box_stats(group[stats_key])
+        median = group[stats_key].median()
+        stats_list.append((stats, median))
+
+    return stats_list
+
+def function_lut(type):
+    """Lookup table between the metadata type and the binning function"""
+    lut = {
+        "continuous": bin_continuous,
+        "discrete": bin_discrete,
+        "classes": bin_classes,
+    }
+    if type not in lut.keys():
+        raise KeyError(
+            "The type '{}' does not correspond to any binning function".format(type)
+        )
+
+    return lut[type]
+
+def boxplot_metadata( # todo: include cis; handle situation with not enough points
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         ci:list,
         offset=0.02,
+        ax_label=None,
         **bplot_kwargs,
 ) -> tuple:
     """
-    Boxplots by metadata. The result type depends on the metadata type:
+    Boxplots by metadata. The output plot depends on the metadata type:
 
     - "continuous"
     - "discrete"
@@ -706,51 +861,102 @@ def boxplot_metadata( # todo: include cis, boxplots for other metadata types
         Dataframe with values for all variables (in metric)
     metadata_values : pd.DataFrame
         Dataframe containing the metadata values to use for the plot
+    ci : list
+        List of Dataframes with CIs
+    offset: float
+        offset of watermark
+    ax_label : str
+        Name of the y axis - cannot be set globally
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         the boxplot
     ax : matplotlib.axes.Axes
+    labels : list
+        list of class/ bins names
     """
     metric_label = "values"
     meta_key = metadata_values.columns[0]
     # sort data according to the metadata type
     type = globals.metadata[meta_key][2]
-    if type == "classes":
-        pass
-    else:
-        if type == "continuous":
-            to_plot = bin_continuous(
-                df=df,
-                metadata_values=metadata_values,
-                meta_key=meta_key,
-                ci=ci
-            )
-        elif type == "discrete":
-            n_boxes = metadata_values[meta_key].drop_duplicates().count()
-            pass
-
-        else:
-            raise ValueError(
-                "The type {} defined in globals.py is not handled".format(type)
-            )
+    bin_funct = function_lut(type)
+    to_plot = bin_funct(
+        df=df,
+        metadata_values=metadata_values,
+        meta_key=meta_key,
+        ci=ci
+    )
+    if isinstance(to_plot, dict):
         # create plot with as many subplots as the dictionary keys
-        n_subplots = int(np.ceil(len(to_plot.keys())))
-        fig, axes = plt.subplots(2, int(n_subplots/2), sharey=True)
-        for n, (bin_label, data) in enumerate(to_plot.items()):
-            if n % 2 == 0:
-                ax=axes[int(n/2),0]
-            else:
-                ax=axes[int(n/2),1]
-            boxplot(
-                df=data,
-                axis=ax,
-            )
+        n_subplots = len(to_plot.keys())
+        labels = list(to_plot.keys())
+        if n_subplots == 1:
+            for n, (bin_label, data) in enumerate(to_plot.items()):
+                data.columns = [
+                    col_name + "\n{}".format(_box_stats(data[col_name])) for col_name in data.columns
+                ]
+                fig, axes = boxplot(
+                    df=data,
+                )
+                plt.ylabel(ax_label)
+        elif n_subplots > 1:
+            rows = int(np.ceil(n_subplots/2))
+            fig, axes = plt.subplots(rows, 2, sharey=True)
+            # import pdb; pdb.set_trace()
+            for n, (bin_label, data) in enumerate(to_plot.items()):
+                data.columns = [
+                    col_name + "\n{}".format(_box_stats(data[col_name])) for col_name in data.columns
+                ]
+                if n % 2 == 0:
+                    ax=axes[int(n/2), 0]
+                else:
+                    ax=axes[int(n/2), 1]
+                boxplot(
+                    df=data,
+                    axis=ax,
+                )
+                ax.set_title(bin_label)
+                ax.set_ylabel(ax_label)
+            # eliminate extra subplot if odd number
+            if rows*2 > n_subplots:
+                fig.delaxes(axes[rows-1, 1])
+            unit_width = len(df.columns)*2
+            unit_height = (np.ceil(n_subplots/2) + 0.2)
 
+    elif isinstance(to_plot, pd.DataFrame):
+        labels = None
+        fig, axes = plt.subplots(1)
+        box = sns.boxplot(
+            x=meta_key,
+            y="values",
+            hue="Dataset",
+            data=to_plot,
+            palette="Set2",
+            ax=axes,
+            showfliers = False,
+        )
+        # todo: can labels be added?
+        # stats_list = _stats_discrete(to_plot, meta_key=[meta_key, "Dataset"], stats_key="values")
+        # for n, xtick in enumerate(box.get_xticks()):
+        #
+        #     stats, median
+        #     # import pdb; pdb.set_trace()
+        #     box.text(
+        #         xtick, median, stats, horizontalalignment='center', size='x-small', color='w', weight='semibold'
+        #     )
+        unit_height = 1
+        unit_width = len(to_plot[meta_key].unique())
+    # style boxplot
+    fig.set_figheight(globals.boxplot_height*unit_height)
+    fig.set_figwidth(globals.boxplot_width*unit_width)
+    plt.subplots_adjust(
+        wspace=0.3,
+        hspace=0.5,
+    )
     make_watermark(fig, offset=offset)
 
-    return fig, axes
+    return fig, axes, labels
 
 def mapplot(
         df, metric,
@@ -875,7 +1081,6 @@ def plot_spatial_extent(
     reg_grid : bool, default is False,
         plotting oprion for regular grids (satellites)
     """
-    # todo: adjust figsize to shown polygons
     fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi)
     legend_elements = []
     # plot polygons

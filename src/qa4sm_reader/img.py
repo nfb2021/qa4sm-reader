@@ -129,10 +129,8 @@ class QA4SMImg(object):
         """If the image has metadata (ISMN reference), return a dict of shape {varname: Metadata}. Else, False."""
         metadata = {}
         # check if there is any CI Var
-        for Var in self._iter_vars():
-            if isinstance(Var, hdl.Metadata):
-                if Var.key_meta:
-                    metadata[Var.varname] = Var
+        for Var in self._iter_vars(type="metadata"):
+            metadata[Var.varname] = Var
 
         return metadata
 
@@ -240,10 +238,10 @@ class QA4SMImg(object):
                     else:
                         check = False  # does not match requirements
                         break
-                if check == True:
-                    yield Var
-            else:
-                yield Var
+                if check != True:
+                    continue
+
+            yield Var
 
     def _iter_metrics(self, **filter_parms) -> iter:
         """

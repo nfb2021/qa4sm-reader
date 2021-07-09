@@ -77,40 +77,6 @@ class QA4SMPlotter():
         return out_path
 
     @staticmethod
-    def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> str:
-        """
-        Create the metric part with stats of the box (axis) caption
-
-        Parameters
-        ----------
-        ds: pd.Series
-            data on which stats are found
-        med: bool
-        iqr: bool
-        count: bool
-            statistics
-
-        Returns
-        -------
-        stats: str
-            caption with summary stats
-        """
-        # interquartile range
-        iqr = ds.quantile(q=[0.75,0.25]).diff()
-        iqr = abs(float(iqr.loc[0.25]))
-
-        met_str = []
-        if med:
-            met_str.append('Median: {:.3g}'.format(ds.median()))
-        if iqr:
-            met_str.append('IQR: {:.3g}'.format(iqr))
-        if count:
-            met_str.append('N: {:d}'.format(ds.count()))
-        stats = '\n'.join(met_str)
-
-        return stats
-
-    @staticmethod
     def _box_caption(Var, tc:bool=False) -> str:
         """
         Create the dataset part of the box (axis) caption
@@ -313,9 +279,9 @@ class QA4SMPlotter():
                 box_cap_ds = self._box_caption(Var, tc=tc)
             # setting in global for caption stats
             if globals.boxplot_printnumbers:
-                box_stats = self._box_stats(values)
                 box_cap = '{}'.format(box_cap_ds)
                 if stats:
+                    box_stats = _box_stats(values)
                     box_cap = box_cap + "\n{}".format(box_stats)
             else:
                 box_cap = box_cap_ds
@@ -709,7 +675,7 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    def boxplot_meta(
+    def boxplot_meta( #todo: ad unit
             self,
             metric:str,
             metadata:str,
@@ -738,21 +704,27 @@ class QA4SMPlotter():
             if ci:
                 cis.append(ci)
         values = pd.concat(values, axis=1)
+        # get meta and select only metric values with metadata available
         Meta = self.img.metadata[metadata]
-        meta_values = Meta.values
+        meta_values = Meta.values.dropna()
+        values = values.loc[meta_values.index]
         # create plot
-        fig, ax = boxplot_metadata(
+        fig, ax, labels = boxplot_metadata(
             df=values,
             metadata_values=meta_values,
             ci=cis,
+            ax_label=Var.Metric.pretty_name,
             **plotting_kwargs
         )
-        fig.suptitle(
-            "Intercomparison of {} by {}".format(Var.Metric.pretty_name, Meta.pretty_name)
+        title = "Intercomparison of {} by {}\nwith reference {}".format(
+                Var.Metric.pretty_name, Meta.pretty_name, self.img.datasets.ref['pretty_title']
         )
+        if labels is not None and len(labels) == 1:
+            title = title + ".\nSingle {} class: '{}'".format(Meta.pretty_name, labels[0])
+        fig.suptitle(title)
 
         return fig, ax
 
 
-im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-SMAP.soil_moisture_with_2-ESA_CCI_SM_passive.sm.nc")
-pl = QA4SMPlotter(im)
+# im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-ASCAT.sm.nc")
+# pl = QA4SMPlotter(im)

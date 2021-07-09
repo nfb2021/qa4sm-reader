@@ -37,10 +37,10 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
         assert len(Metr_Vars) == len(Vars) - 3
 
     def test_iter_vars(self):
-        for Var in self.img._iter_vars(only_metrics=True):
+        for Var in self.img._iter_vars(type="metric"):
             assert Var.g in [0,2,3]
-        for Var in self.img._iter_vars(**{'metric':'R'}):
-            Var.varname in ['R_between_3-ERA5_LAND_and_2-SMOS', 'R_between_3-ERA5_LAND_and_1-C3S']
+        for Var in self.img._iter_vars(type="metric", filter_parms={'metric':'R'}):
+            assert Var.varname in ['R_between_3-ERA5_LAND_and_2-SMOS', 'R_between_3-ERA5_LAND_and_1-C3S']
 
     def test_iter_metrics(self):
         for Metr in self.img._iter_metrics(**{'g':2}):
@@ -83,7 +83,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
     def test_vars_in_file(self):
         """Test that all variables are initialized correctly"""
         vars = []
-        for Var in self.img._iter_vars(only_metrics=True):
+        for Var in self.img._iter_vars(type="metric"):
             vars.append(Var.varname)
         vars_should = ['n_obs']
         # since the valination is non-TC
@@ -112,7 +112,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def test_variable_datasets(self):
         """Test the metadata associated with the ref dataset of the double group variables"""
-        for Var in self.img._iter_vars(**{'g':2}):
+        for Var in self.img._iter_vars(type="metric", filter_parms={'g':2}):
             ref_ds, metric_ds, other_ds = Var.get_varmeta()
             assert ref_ds[1]['short_name'] == 'ERA5_LAND'
             assert ref_ds[1]['pretty_name'] == 'ERA5-Land'
@@ -129,7 +129,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
 
     def test_var_meta(self):
         """Test datasets associated with a specific variable"""
-        for Var in self.img._iter_vars(**{'varname':'R_between_3-ERA5_LAND_and_1-C3S'}):
+        for Var in self.img._iter_vars(type="metric", filter_parms={'varname':'R_between_3-ERA5_LAND_and_1-C3S'}):
             ref_id, ref_meta = Var.ref_ds
             assert ref_id == 3
             assert ref_meta['short_name'] == 'ERA5_LAND'
@@ -191,7 +191,7 @@ class TestQA4SMImgWithCI(unittest.TestCase): # todo: update with correct CI .nc 
 
     def test_CI_in_Vars(self):
         """Test that CI Variables are correctly assigned to a metric"""
-        for CI_varname in self.img._iter_vars(**{
+        for CI_varname in self.img._iter_vars(type="metric", filter_parms={
             "metric":"RMSD",
             "metric_ds":"2-ESA_CCI_SM_combined"}):
             assert CI_varname in [
