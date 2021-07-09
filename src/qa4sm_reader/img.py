@@ -400,11 +400,11 @@ class QA4SMImg(object):
         """
         metric_stats = []
         if id:
-            filters = {'metric':metric, 'id':id}
+            filters = {'metric':metric, 'is_CI':False, 'id':id}
         else:
-            filters = {'metric':metric}
+            filters = {'metric':metric, 'is_CI':False,}
         # get stats by metric
-        for Var in self._iter_vars(**filters):
+        for Var in self._iter_vars(only_metrics=True, **filters):
             # get interquartile range 
             values = Var.values[Var.varname]
             # take out variables with all NaN or NaNf
@@ -456,5 +456,7 @@ class QA4SMImg(object):
         stats_df.sort_values(by='Group', inplace=True)
         # format the numbers for display
         stats_df = stats_df.applymap(_format_floats)
+        stats_df.sort_index(inplace=True)
 
         return stats_df
+
