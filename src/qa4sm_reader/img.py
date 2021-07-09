@@ -416,7 +416,7 @@ class QA4SMImg(object):
         stats_df.sort_values(by='Group', inplace=True)
         # format the numbers for display
         stats_df = stats_df.applymap(_format_floats)
+        stats_df.sort_index(inplace=True)
 
         return stats_df
 
-im = QA4SMImg("~/shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-ERA5_LAND.swvl1_with_2-ASCAT.sm.nc")
