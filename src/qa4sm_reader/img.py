@@ -360,11 +360,11 @@ class QA4SMImg(object):
         """
         metric_stats = []
         if id:
-            filters = {'metric':metric, 'id':id}
+            filters = {'metric':metric, 'is_CI':False, 'id':id}
         else:
-            filters = {'metric':metric}
+            filters = {'metric':metric, 'is_CI':False,}
         # get stats by metric
-        for Var in self._iter_vars(**filters):
+        for Var in self._iter_vars(only_metrics=True, **filters):
             # get interquartile range 
             values = Var.values[Var.varname]
             # take out variables with all NaN or NaNf
@@ -418,3 +418,5 @@ class QA4SMImg(object):
         stats_df = stats_df.applymap(_format_floats)
 
         return stats_df
+
+im = QA4SMImg("~/shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-ERA5_LAND.swvl1_with_2-ASCAT.sm.nc")

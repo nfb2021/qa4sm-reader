@@ -167,6 +167,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
                     empty_metrics += 2
 
         tot_stats = len(self.img.common.keys()) + 2*len(self.img.double.keys()) - empty_metrics
+        assert tot_stats == 25
         assert tot_stats == len(df)
 
 
