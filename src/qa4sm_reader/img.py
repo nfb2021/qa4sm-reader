@@ -400,7 +400,7 @@ class QA4SMImg(object):
         """
         metric_stats = []
         if id:
-            filters = {'metric':metric, 'is_CI':False, 'id':id}
+            filters = {'metric':metric, 'is_CI':False, 'id':id} # todo: update iter_vars function
         else:
             filters = {'metric':metric, 'is_CI':False,}
         # get stats by metric

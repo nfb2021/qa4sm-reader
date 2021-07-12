@@ -243,7 +243,8 @@ class QA4SMPlotter():
             self,
             metric:str,
             tc:bool=False,
-            stats:bool=True
+            stats:bool=True,
+            mean_ci:bool=True,
     ) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
@@ -258,6 +259,8 @@ class QA4SMPlotter():
             True if TC. Then, caption starts with "Other Data:"
         stats: bool
             If true, append the statistics to the caption
+        mean_ci: bool
+            If True, 'Mean CI: {value}' is added to the caption
 
         Yield
         -----
@@ -290,13 +293,17 @@ class QA4SMPlotter():
             ci = self.img.get_cis(Var)
             if ci:  # could be that variable doesn't have CIs
                 ci = pd.concat(ci, axis=1)
-                # get the mean CI range
-                diff = ci["upper"] - ci["lower"]
-                ci_range = float(diff.mean())
+                label = ""
+                if mean_ci:
+                    # get the mean CI range
+                    diff = ci["upper"] - ci["lower"]
+                    ci_range = float(diff.mean())
+                    label = "\nMean CI range: {:.3g}".format(ci_range)
                 df.columns = [
-                    df.columns[0] + "\nMean CI range:"
-                                    " {:.3g}".format(ci_range)
+                    df.columns[0] + label
                 ]
+            else:
+                ci = None
             # values are all Nan or NaNf - not plotted
             if np.isnan(df.to_numpy()).all():
                 continue
@@ -675,7 +682,7 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    def boxplot_meta( #todo: ad unit
+    def boxplot_meta( #todo: add unit
             self,
             metric:str,
             metadata:str,
@@ -698,10 +705,10 @@ class QA4SMPlotter():
         ax : matplotlib.axes.Axes
         """
         values, cis = [], []
-        for df, Var, ci in self._yield_values(metric=metric, stats=False):
+        for df, Var, ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
             values.append(df)
             # put all Variables in the same dataframe
-            if ci:
+            if ci is not None:
                 cis.append(ci)
         values = pd.concat(values, axis=1)
         # get meta and select only metric values with metadata available
@@ -725,6 +732,3 @@ class QA4SMPlotter():
 
         return fig, ax
 
-
-# im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-ASCAT.sm.nc")
-# pl = QA4SMPlotter(im)

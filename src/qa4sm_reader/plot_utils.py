@@ -520,7 +520,7 @@ def patch_styling(
         whis.set(color="grey", linewidth=1.6)
         caps.set(color="grey", linewidth=1.6)
 
-def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> str:
+def _box_stats(ds:pd.Series, med:bool=True, iqrange:bool=True, count:bool=True) -> str:
     """
     Create the metric part with stats of the box (axis) caption
 
@@ -529,7 +529,7 @@ def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> s
     ds: pd.Series
         data on which stats are found
     med: bool
-    iqr: bool
+    iqrange: bool
     count: bool
         statistics
 
@@ -545,7 +545,7 @@ def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> s
     met_str = []
     if med:
         met_str.append('Median: {:.3g}'.format(ds.median()))
-    if iqr:
+    if iqrange:
         met_str.append('IQR: {:.3g}'.format(iqr))
     if count:
         met_str.append('N: {:d}'.format(ds.count()))
@@ -593,8 +593,12 @@ def boxplot(
     """
     values = df.copy()
     center_pos = np.arange(len(values.columns))*2
-    # styling
+    # make plot
+    ax = axis
+    if axis is None:
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
     ticklabels = values.columns
+    # styling of the boxes
     if kwargs is None:
         kwargs = {}
     kwargs.update(patch_artist=True, return_type="dict")
@@ -616,30 +620,26 @@ def boxplot(
             positions=center_pos - spacing,
             showfliers=False,
             widths=0.15,
+            ax=ax,
             **kwargs
         )
         up = upper.boxplot(
             positions=center_pos + spacing,
             showfliers=False,
             widths=0.15,
+            ax=ax,
             **kwargs
         )
         patch_styling(low, 'skyblue')
         patch_styling(up, 'tomato')
-    # make plot
-    if axis is None:
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
     cen = values.boxplot(
         positions=center_pos,
         showfliers=False,
         widths=0.3,
-        ax=axis,
+        ax=ax,
         **kwargs
     )
     patch_styling(cen, 'white')
-    plt.xticks(center_pos, ticklabels)
     if ci:
         low_ci = Patch(color='skyblue', alpha=0.7, label='Lower CI')
         up_ci = Patch(color='tomato',  alpha=0.7, label='Upper CI')
@@ -652,7 +652,11 @@ def boxplot(
     # provide y label
     if label is not None:
         plt.ylabel(label, weight='normal')
-    plt.grid(axis='x')
+    ax.set_xticks(center_pos)
+    ax.set_xticklabels(ticklabels)
+    ax.grid(axis='x')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
 
     if axis is None:
         return fig, ax
@@ -703,7 +707,10 @@ def bin_continuous(
     meta_range = metadata_values[meta_key].to_numpy()
     sorted = np.sort(meta_range)
     if len(meta_range) < min_size:
-        return None # todo: implement
+        raise ValueError(
+            "There are too few points per metadata to generate the boxplots. You can set 'min_size'"
+            "to a lower value to allow for smaller samples."
+        )
     bin_values, unique_values, bin_size = resize_bins(sorted, nbins)
     # adjust bins to have the specified number of bins if possible, otherwise enough valoues per bin
     while bin_size < min_size:
@@ -724,11 +731,15 @@ def bin_continuous(
             continue
         binned[bin_label] = bin_df
         ci_binned[bin_label] = []
-        for ci_df in ci: # todo: implement cis here after netcdf problem is solved
-            bin_df_ci = ci_df[bin_index]
-            ci_binned[bin_label].append(bin_df_ci)
+        if ci:
+            for ci_df in ci:
+                bin_df_ci = ci_df.loc[bin_df.index]
+                ci_binned[bin_label].append(bin_df_ci)
+    # If too few points are available to make the plots
+    if not binned:
+        return None, None
 
-    return binned
+    return binned, ci_binned
 
 def bin_classes(
         df:pd.DataFrame,
@@ -768,8 +779,16 @@ def bin_classes(
         if not all(col >= min_size for col in bin_df.count()):
             continue
         binned[meta_class] = bin_df
+        ci_binned[meta_class] = []
+        if ci:
+            for ci_df in ci:
+                bin_df_ci = ci_df.loc[bin_df.index]
+                ci_binned[meta_class].append(bin_df_ci)
+    # If too few points are available to make the plots
+    if not binned:
+        return None, None
 
-    return binned
+    return binned, ci_binned
 
 def bin_discrete(
         df:pd.DataFrame,
@@ -777,7 +796,7 @@ def bin_discrete(
         meta_key:str,
         ci=None,
         min_size=5,
-):
+) -> tuple:
     """
     Provide a formatted dataframe for discrete type metadata (e.g. station or network)
 
@@ -805,7 +824,7 @@ def bin_discrete(
             [df[col], metadata_values],
             axis=1
         )
-        group.columns = ["values", meta_key]
+        group.columns = ["values", meta_key]  # todo: remove hardcoding
         group["Dataset"] = col
         groups.append(group)
     grouped = pd.concat(groups)
@@ -814,9 +833,13 @@ def bin_discrete(
         if meta_df["values"].count() <= min_size:
            continue
         formatted.append(meta_df)
-    formatted = pd.concat(formatted)
-
-    return formatted
+    # If too few points are available to make the plots
+    if not formatted:
+        return None, None
+    else:
+        formatted = pd.concat(formatted)
+        # return None as no CI data is needed for this plot
+        return formatted, None
 
 def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
     """Return list of stats by group, where groups are created with a specific key"""
@@ -842,7 +865,104 @@ def function_lut(type):
 
     return lut[type]
 
-def boxplot_metadata( # todo: include cis; handle situation with not enough points
+def bplot_multiple(to_plot, y_axis, n_bars, ci, **kwargs) -> tuple:
+    """
+    Create subplots for each metadata category/range
+
+    Parameters
+    ----------
+    to_plot: dict
+        dictionary of {'bin name': Dataframe}
+    y_axis: str
+        Name of the x-axis
+    n_bars: int or float
+        Number of datasets/boxplot bars
+    ci: dict
+        CI sub-divided with the same keys as to_plot
+    """
+    # create plot with as many subplots as the dictionary keys
+    n_subplots = len(to_plot.keys())
+    labels = list(to_plot.keys())
+    if n_subplots == 1:
+        for n, (bin_label, data) in enumerate(to_plot.items()):
+            data.columns = [
+                col_name + "\n{}".format(_box_stats(data[col_name])) for col_name in data.columns
+            ]
+            ci_data = ci[bin_label]
+            fig, axes = boxplot(
+                df=data,
+                ci=ci_data,
+            )
+            plt.ylabel(ax_label)
+    elif n_subplots > 1:
+        rows = int(np.ceil(n_subplots/2))
+        fig, axes = plt.subplots(rows, 2, sharey=True)
+        for n, (bin_label, data) in enumerate(to_plot.items()):
+            data.columns = [
+                col_name + "\n{}".format(_box_stats(data[col_name], count=False)) for col_name in data.columns
+            ]
+            if n % 2 == 0:
+                ax=axes[int(n/2), 0]
+            else:
+                ax=axes[int(n/2), 1]
+            ci_data = ci[bin_label]
+            boxplot(
+                df=data,
+                axis=ax,
+                ci=ci_data,
+            )
+            ax.set_title(
+                bin_label + " ({})".format(_box_stats(data[data.columns[0]], med=False, iqrange=False))
+            )
+            ax.set_ylabel(y_axis)
+        # eliminate extra subplot if odd number
+        if rows*2 > n_subplots:
+            fig.delaxes(axes[rows-1, 1])
+        unit_width = n_bars*2
+        unit_height = (np.ceil(n_subplots/2) + 0.2)
+
+    return fig, axes, unit_height, unit_width, labels
+
+def bplot_catplot(to_plot, y_axis, metadata_name, **kwargs) -> tuple:
+    """
+    Create individual plot with grouped boxplots by metadata value
+
+    Parameters
+    ----------
+    to_plot: pd.Dataframe
+        Seaborn-formatted dataframe
+    y_axis: str
+        Name of the x-axis
+    metadata_name: str
+        Name of the metadata type
+    """
+    labels = None
+    fig, axes = plt.subplots(1)
+    box = sns.boxplot(
+        x=metadata_name,
+        y="values",
+        hue="Dataset",
+        data=to_plot,
+        palette="Set2",
+        ax=axes,
+        showfliers = False,
+    )
+    # todo: add labels with N/medians
+    # stats_list = _stats_discrete(to_plot, meta_key=[meta_key, "Dataset"], stats_key="values")
+
+    unit_height = 1
+    unit_width = len(to_plot[metadata_name].unique())
+    # needed for overlapping station names
+    axes.set(xlabel=None)
+    axes.set(ylabel=y_axis)
+    plt.xticks(rotation = 45)
+    axes.yaxis.grid(True) # Hide the horizontal gridlines
+    axes.xaxis.grid(False) # Show the vertical gridlines
+    axes.set_axisbelow(True)
+
+    return fig, axes, unit_height, unit_width, labels
+
+def boxplot_metadata(
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         ci:list,
@@ -883,78 +1003,37 @@ def boxplot_metadata( # todo: include cis; handle situation with not enough poin
     # sort data according to the metadata type
     type = globals.metadata[meta_key][2]
     bin_funct = function_lut(type)
-    to_plot = bin_funct(
+    to_plot, ci = bin_funct(
         df=df,
         metadata_values=metadata_values,
         meta_key=meta_key,
         ci=ci
     )
+    if to_plot is None:
+        raise ValueError(
+            "There are too few points per metadata to generate the boxplots. You can set 'min_size'"
+            "to a lower value to allow for smaller samples."
+        )
+
     if isinstance(to_plot, dict):
-        # create plot with as many subplots as the dictionary keys
-        n_subplots = len(to_plot.keys())
-        labels = list(to_plot.keys())
-        if n_subplots == 1:
-            for n, (bin_label, data) in enumerate(to_plot.items()):
-                data.columns = [
-                    col_name + "\n{}".format(_box_stats(data[col_name])) for col_name in data.columns
-                ]
-                fig, axes = boxplot(
-                    df=data,
-                )
-                plt.ylabel(ax_label)
-        elif n_subplots > 1:
-            rows = int(np.ceil(n_subplots/2))
-            fig, axes = plt.subplots(rows, 2, sharey=True)
-            # import pdb; pdb.set_trace()
-            for n, (bin_label, data) in enumerate(to_plot.items()):
-                data.columns = [
-                    col_name + "\n{}".format(_box_stats(data[col_name])) for col_name in data.columns
-                ]
-                if n % 2 == 0:
-                    ax=axes[int(n/2), 0]
-                else:
-                    ax=axes[int(n/2), 1]
-                boxplot(
-                    df=data,
-                    axis=ax,
-                )
-                ax.set_title(bin_label)
-                ax.set_ylabel(ax_label)
-            # eliminate extra subplot if odd number
-            if rows*2 > n_subplots:
-                fig.delaxes(axes[rows-1, 1])
-            unit_width = len(df.columns)*2
-            unit_height = (np.ceil(n_subplots/2) + 0.2)
+        generate_plot = bplot_multiple
 
     elif isinstance(to_plot, pd.DataFrame):
-        labels = None
-        fig, axes = plt.subplots(1)
-        box = sns.boxplot(
-            x=meta_key,
-            y="values",
-            hue="Dataset",
-            data=to_plot,
-            palette="Set2",
-            ax=axes,
-            showfliers = False,
-        )
-        # todo: can labels be added?
-        # stats_list = _stats_discrete(to_plot, meta_key=[meta_key, "Dataset"], stats_key="values")
-        # for n, xtick in enumerate(box.get_xticks()):
-        #
-        #     stats, median
-        #     # import pdb; pdb.set_trace()
-        #     box.text(
-        #         xtick, median, stats, horizontalalignment='center', size='x-small', color='w', weight='semibold'
-        #     )
-        unit_height = 1
-        unit_width = len(to_plot[meta_key].unique())
+        generate_plot = bplot_catplot
+
+    fig, axes, unit_height, unit_width, labels = generate_plot(
+        to_plot=to_plot,
+        y_axis=ax_label,
+        metadata_name=meta_key,
+        n_bars=len(df.columns),
+        ci=ci,
+    )
     # style boxplot
     fig.set_figheight(globals.boxplot_height*unit_height)
     fig.set_figwidth(globals.boxplot_width*unit_width)
     plt.subplots_adjust(
         wspace=0.3,
-        hspace=0.5,
+        hspace=0.55,
     )
     make_watermark(fig, offset=offset)
 
