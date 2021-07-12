@@ -893,7 +893,7 @@ def bplot_multiple(to_plot, y_axis, n_bars, ci, **kwargs) -> tuple:
                 df=data,
                 ci=ci_data,
             )
-            plt.ylabel(ax_label)
+            plt.ylabel(y_axis)
     elif n_subplots > 1:
         rows = int(np.ceil(n_subplots/2))
         fig, axes = plt.subplots(rows, 2, sharey=True)
@@ -918,8 +918,8 @@ def bplot_multiple(to_plot, y_axis, n_bars, ci, **kwargs) -> tuple:
         # eliminate extra subplot if odd number
         if rows*2 > n_subplots:
             fig.delaxes(axes[rows-1, 1])
-        unit_width = n_bars*2
-        unit_height = (np.ceil(n_subplots/2) + 0.2)
+    unit_width = n_bars*2
+    unit_height = (np.ceil(n_subplots/2) + 0.2)
 
     return fig, axes, unit_height, unit_width, labels
 

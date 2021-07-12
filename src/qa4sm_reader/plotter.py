@@ -359,7 +359,7 @@ class QA4SMPlotter():
             for Var in self.img._iter_vars(only_metrics=True, **{'metric':metric}):
                 Var = Var
                 break
-        if not type=="metadata":  # todo: handle title for metadata
+        if not type=="metadata":
             title = self.create_title(Var, type=type)
             ax.set_title(title, pad=globals.title_pad)
         # add watermark
@@ -731,4 +731,3 @@ class QA4SMPlotter():
         fig.suptitle(title)
 
         return fig, ax
-
