@@ -2,8 +2,11 @@ import threading
 import os
 import time
 
+import numpy as np
+import numpy.testing
 import pytest
 from qa4sm_reader.comparing import QA4SMComparison, SpatialExtentError
+from qa4sm_reader.img import QA4SMImg
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -163,6 +166,70 @@ def double_paths_nonoverlap():
     return testfile_paths
 
 
+def test_common_metrics(double_img_paths, double_img_overlap):
+    """Check the common_metrics function in the comparison"""
+    metrics_list = []
+    for path in double_img_paths:
+        im = QA4SMImg(path)
+        format_dict = {short: metric_obj.pretty_name for short, metric_obj in im.metrics.items()}
+        metrics_list.append(format_dict)
+    metrics_should = {key: val for key, val in metrics_list[0].items() if key in metrics_list[1].keys()}
+    metrics_should_hardcoded = {
+        'R': "Pearson's r",
+        'rho': "Spearman's rho",
+        'RMSD': 'Root-mean-square deviation',
+        'p_tau': 'Kendall tau p-value',
+        'RSS': 'Residual sum of squares',
+        'p_R': "Pearson's r p-value",
+        'mse_corr': 'Mean square error correlation',
+        'mse': 'Mean square error',
+        'tau': 'Kendall rank correlation',
+        'mse_bias': 'Mean square error bias',
+        'p_rho': "Spearman's rho p-value",
+        'BIAS': 'Bias (difference of means)',
+        'urmsd': 'Unbiased root-mean-square deviation',
+        'mse_var': 'Mean square error variance'
+    }
+    assert double_img_overlap.common_metrics == metrics_should_hardcoded
+    # check if n_obs is excluded:
+    del metrics_should["n_obs"]
+    assert metrics_should == metrics_should_hardcoded
+
+
+def test_get_reference_points(double_img_overlap):
+    """Check get_reference_points function for first 10 points"""
+    points_should = np.array([
+        [0.3361, 43.9744],
+        [0.3361, 43.9744],
+        [-0.0469, 43.9936],
+        [-0.0469, 43.9936],
+        [-0.0469, 43.9936],
+        [-0.0469, 43.9936],
+        [0.8878, 43.5472],
+        [0.8878, 43.5472],
+        [2.7283, 43.1733],
+        [2.7283, 43.1733]
+    ])
+    assert double_img_overlap.get_reference_points().shape == (61, 2)
+    np.testing.assert_array_equal(double_img_overlap.get_reference_points()[:10], points_should)
+
+
+def test_get_data(double_img_overlap):
+    """Check get_data function"""
+    data, ci = double_img_overlap._get_data("R").values()
+    assert len(data) == 2
+    data = data[0]
+    name_should = "Validation 0:\n1-C3S\n(v202012)\n"
+    assert data.name == name_should
+    data_should = [
+        0.679918, 0.707091, 0.713081, 0.808353,
+        0.700307, 0.852756, 0.714132, 0.621769,
+        0.741732, 0.691499
+    ]
+    # slightly different due to array transformation from Dataframe
+    numpy.testing.assert_array_almost_equal(np.array(data_should), data.iloc[:10].to_numpy(), 6)
+
+
 def test_init_error(double_paths_nonoverlap):
     works = False
     try:
@@ -175,13 +242,14 @@ def test_init_error(double_paths_nonoverlap):
     assert works
 
 
+# --- reload all imahs to reproduce test_simultaneous_netcdf_loading test ----
+
 def load_extent_image(paths):
     comp = QA4SMComparison(paths)
     comp.visualize_extent(
         intersection=True,
         plot_points=True
     )
-    print("{}".format(time.time()))
 
 
 def load_table(paths):
@@ -189,7 +257,6 @@ def load_table(paths):
     metrics = comp.common_metrics
     comp = QA4SMComparison(paths)
     comp.diff_table(metrics=list(metrics.keys()))
-    print("{}".format(time.time()))
 
 
 def load_plots(paths):
@@ -206,7 +273,6 @@ def load_plots(paths):
         method="mapplot",
         metric=first_called
     )
-    print("{}".format(time.time()))
 
 
 def test_simultaneous_netcdf_loading(double_img_paths):

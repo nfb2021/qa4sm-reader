@@ -427,7 +427,8 @@ class QA4SMComparison():
     def _handle_multiindex(self, dfs:list) -> pd.DataFrame:
         """
         Handle ValueError 'cannot handle a non-unique multi-index!' when non-unique multi-index is different in
-        the two dfs (e.g. multiple station depths)
+        the two dfs (e.g. multiple station depths). Update: should have been solved by simply adding gpi to the
+        Dataframe index
 
         Parameters
         ----------
