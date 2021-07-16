@@ -605,7 +605,7 @@ class QA4SMPlotter():
         fig, ax = mapplot(df=Var.values[Var.varname],
                           metric=metric,
                           ref_short=ref_meta[1]['short_name'],
-                          ref_grid_stepsize=ref_grid_stepsize[0],
+                          ref_grid_stepsize=ref_grid_stepsize,
                           plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
                           **plotting_kwargs)
 

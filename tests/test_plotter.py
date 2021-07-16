@@ -158,9 +158,6 @@ class TestQA4SMMetaImgIrregularGridPlotter(unittest.TestCase):
         self.plotter = QA4SMPlotter(self.img, self.plotdir)
         self.ref_dataset_grid_stepsize = self.img.ref_dataset_grid_stepsize
 
-    # def test_netCDF_file:
-    #     opened_file =
-
     def test_mapplot(self):
         n_obs_files = self.plotter.mapplot_metric('n_obs', out_types='png', save_files=True)  # should be 1
         assert len(list(n_obs_files)) == 1

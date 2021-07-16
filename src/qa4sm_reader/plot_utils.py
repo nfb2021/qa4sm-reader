@@ -693,6 +693,8 @@ def mapplot(
         else:  # mapplot
             if not plot_extent:
                 plot_extent = get_plot_extent(df, grid_stepsize=ref_grid_stepsize, grid=True)
+            if isinstance(ref_grid_stepsize, np.ndarray):
+                ref_grid_stepsize = ref_grid_stepsize[0]
             zz, zz_extent, origin = geotraj_to_geo2d(df, grid_stepsize=ref_grid_stepsize)  # prep values
             im = ax.imshow(zz, cmap=cmap, vmin=v_min,
                            vmax=v_max, interpolation='nearest',
