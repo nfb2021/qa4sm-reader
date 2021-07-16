@@ -601,12 +601,11 @@ class QA4SMPlotter():
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
-
         # create mapplot
         fig, ax = mapplot(df=Var.values[Var.varname],
                           metric=metric,
                           ref_short=ref_meta[1]['short_name'],
-                          ref_grid_stepsize=ref_grid_stepsize,
+                          ref_grid_stepsize=ref_grid_stepsize[0],
                           plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
                           **plotting_kwargs)
 

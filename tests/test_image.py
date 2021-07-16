@@ -166,9 +166,8 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
                 elif Metric.g == 2:  # stats table has an entry for metric, for sat dataset (in common and triple metrics)
                     empty_metrics += 2
 
-        tot_stats = len(self.img.common.keys()) + 2 * len(self.img.double.keys()) - empty_metrics
-        assert tot_stats == len(df)
-
+        tot_stats = len(self.img.common.keys()) + 2*len(self.img.double.keys()) - empty_metrics
+        assert tot_stats == 25
 
 class TestQA4SMImgWithCI(unittest.TestCase):  # todo: update with correct CI .nc file
     """Test image where some of the variables are confidence intervals"""
