@@ -251,7 +251,7 @@ class QA4SMDatasets():
 class QA4SMVariable():
     """Super class for all variable types in the validations (MetricVariable, CI and Metadata)"""
 
-    def __init__(self, varname, global_attrs, values=None):  # todo: use MetricVariable as superclass for metric, CI and metadata types
+    def __init__(self, varname, global_attrs, values=None):
         """
         Validation results for a validation metric and a combination of datasets.
 

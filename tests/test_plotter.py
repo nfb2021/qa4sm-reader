@@ -2,7 +2,7 @@
 
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg
-from qa4sm_reader.plot_utils import geotraj_to_geo2d
+from qa4sm_reader.plotting_methods import geotraj_to_geo2d
 import os
 import unittest
 import tempfile

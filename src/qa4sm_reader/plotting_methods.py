@@ -680,6 +680,7 @@ def bin_continuous(
         ci=None,
         nbins=4,
         min_size=5,
+        **kwargs,
 ):
     """
     Subset the continuous metadata types
@@ -698,6 +699,8 @@ def bin_continuous(
         Bins to divide the metadata range into
     min_size : int. Default is 5
         Minimum number of values to have in a bin
+    kwargs: dict
+        Keyword arguments for specific metadata types
 
     Returns
     -------
@@ -747,6 +750,7 @@ def bin_classes(
         meta_key:str,
         ci=None,
         min_size=5,
+        **kwargs,
 ):
     """
     Subset the continuous metadata types
@@ -763,6 +767,8 @@ def bin_classes(
         List of Dataframes with CIs
     min_size : int. Default is 5
         Minimum number of values to have in a bin
+    kwargs: dict
+        Keyword arguments for specific metadata types
 
     Returns
     -------
@@ -796,6 +802,7 @@ def bin_discrete(
         meta_key:str,
         ci=None,
         min_size=5,
+        **kwargs,
 ) -> tuple:
     """
     Provide a formatted dataframe for discrete type metadata (e.g. station or network)
@@ -812,6 +819,8 @@ def bin_discrete(
         List of Dataframes with CIs
     min_size : int. Default is 5
         Minimum number of values to have in a bin
+    kwargs: dict
+        Keyword arguments for specific metadata types
 
     Returns
     -------
@@ -850,6 +859,53 @@ def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
         stats_list.append((stats, median))
 
     return stats_list
+
+def combine_soils(
+        soil_fractions:dict,
+        clay_fine:int=35,
+        clay_coarse:int=20,
+        sand_coarse:int=65,
+) -> pd.DataFrame:
+    """
+    Create a metadata granulometry classification based on 'coarse', 'medium' or 'fine' soil types. Uses
+    the soil texture triangle diagram to transform the values.
+
+    Parameters
+    ----------
+    soil_fractions: dict
+        Dictionary with {'soil type (clay, sand or silt)': qa4sm_handlers.Metadata}
+    clay_fine: int
+        clay threshold above which the soil is fine
+    clay_coarse: int
+        clay threshold below which the soil can be coarse
+    sand_coarse: int
+        sand threshold above which the soil can be coarse
+
+    Returns
+    -------
+    soil_combined: pd.DataFrame
+        Dataframe with the new metadata type
+    """
+    # get thresholds on cartesian plane
+    cf_y = clay_fine*np.sin(2/3*np.pi)
+    cc_y = clay_coarse*np.sin(2/3*np.pi)
+    sc_x = 100-sand_coarse
+    # transform values to cartesian
+    x = soil_fractions["sand_fraction"].values.apply(lambda x: 100-x)
+    y = soil_fractions["clay_fraction"].values.apply(lambda x: x*np.sin(2/3*np.pi))
+    soil_combined = pd.concat([x,y], axis=1)
+    soil_combined.columns = ["x", "y"]
+    # function to calssify
+    def sort_soil_type(row):
+        if row["x"] < sc_x and row["y"] < cc_y:
+            return "Coarse granulometry"
+        elif cc_y < row["y"] < cf_y:
+            return "Medium granulometry"
+        else:
+            return "Fine granulometry"
+    soil_combined = soil_combined.apply(lambda row: sort_soil_type(row), axis=1).to_frame("soil_type")
+
+    return soil_combined
 
 def function_lut(type):
     """Lookup table between the metadata type and the binning function"""
@@ -960,6 +1016,8 @@ def bplot_catplot(to_plot, y_axis, metadata_name, **kwargs) -> tuple:
     axes.xaxis.grid(False) # Show the vertical gridlines
     axes.set_axisbelow(True)
 
+    plt.legend(loc="lower left")
+
     return fig, axes, unit_height, unit_width, labels
 
 def boxplot_metadata(
@@ -968,6 +1026,7 @@ def boxplot_metadata(
         ci:list,
         offset=0.02,
         ax_label=None,
+        nbins=4,
         **bplot_kwargs,
 ) -> tuple:
     """
@@ -989,6 +1048,8 @@ def boxplot_metadata(
         offset of watermark
     ax_label : str
         Name of the y axis - cannot be set globally
+    nbins: int
+        number pf bins to divide the plots in (only for continuous type of metadata, e.g. elevation)
 
     Returns
     -------
@@ -1007,7 +1068,8 @@ def boxplot_metadata(
         df=df,
         metadata_values=metadata_values,
         meta_key=meta_key,
-        ci=ci
+        ci=ci,
+        nbins=nbins,
     )
     if to_plot is None:
         raise ValueError(

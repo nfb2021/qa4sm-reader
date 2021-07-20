@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
-from qa4sm_reader.plot_utils import _format_floats
+from qa4sm_reader.plotting_methods import _format_floats, combine_soils
 
 from parse import *
 from pathlib import Path
@@ -131,6 +131,14 @@ class QA4SMImg(object):
         # check if there is any CI Var
         for Var in self._iter_vars(type="metadata"):
             metadata[Var.varname] = Var
+
+
+        if all(type in metadata.keys() for type in globals.soil_types):
+            soil_dict = {type: metadata[type] for type in globals.soil_types}
+            soil_combined = combine_soils(soil_dict)
+            metadata["soil_type"] = hdl.QA4SMVariable("soil_type", self.ds.attrs, values=soil_combined).initialize()
+        else:
+            metadata["soil_type"] = None
 
         return metadata
 

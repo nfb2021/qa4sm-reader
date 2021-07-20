@@ -413,6 +413,8 @@ metadata = {
     "saturation":("saturation [%]", None, "continuous"),
     "silt_fraction":("silt fraction [%]", None, "continuous"),
     "station":("station", None, "discrete"),
+    "soil_type": ("soil texture", None, "discrete"),
 }
 
+soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
 

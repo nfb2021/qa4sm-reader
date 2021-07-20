@@ -5,7 +5,7 @@ import pandas as pd
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
-from qa4sm_reader.plot_utils import *
+from qa4sm_reader.plotting_methods import *
 
 from warnings import warn
 
@@ -682,10 +682,12 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    def boxplot_meta( #todo: add unit
+    # todo: cross-metadata plots with depth
+    def boxplot_meta(
             self,
             metric:str,
             metadata:str,
+            include_ci:bool=False,
             **plotting_kwargs
     ) -> tuple:
         """
@@ -697,6 +699,8 @@ class QA4SMPlotter():
             specified metric
         metadata: str
             specified metadata
+        include_ci: bool
+            wether to include confidence intervals in the plots (where provided)
 
         Returns
         -------
@@ -715,12 +719,16 @@ class QA4SMPlotter():
         Meta = self.img.metadata[metadata]
         meta_values = Meta.values.dropna()
         values = values.loc[meta_values.index]
+        # get measure units
+        mu = globals._metric_description[metric].format(globals._metric_units[self.ref['short_name']])
         # create plot
+        if not include_ci:
+            ci = None
         fig, ax, labels = boxplot_metadata(
             df=values,
             metadata_values=meta_values,
             ci=cis,
-            ax_label=Var.Metric.pretty_name,
+            ax_label=Var.Metric.pretty_name + mu,
             **plotting_kwargs
         )
         title = "Intercomparison of {} by {}\nwith reference {}".format(
@@ -731,3 +739,7 @@ class QA4SMPlotter():
         fig.suptitle(title)
 
         return fig, ax
+
+
+im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-C3S.sm_with_2-SMAP.soil_moisture_with_3-SMOS.Soil_Moisture_with_4-ERA5.swvl1_with_5-ERA5_LAND.swvl1.nc")
+pl = QA4SMPlotter(im)

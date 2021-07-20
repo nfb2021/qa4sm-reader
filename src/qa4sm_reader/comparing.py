@@ -1,5 +1,5 @@
 from qa4sm_reader.img import QA4SMImg, SpatialExtentError
-from qa4sm_reader.plot_utils import mapplot, boxplot, plot_spatial_extent, _format_floats, make_watermark
+from qa4sm_reader.plotting_methods import mapplot, boxplot, plot_spatial_extent, _format_floats, make_watermark
 from qa4sm_reader.handlers import QA4SMMetric
 import qa4sm_reader.globals as glob
 from qa4sm_reader.plotter import QA4SMPlotter
