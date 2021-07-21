@@ -56,9 +56,9 @@ def _value2index(a, a_min, da):
 def _format_floats(x):
     """Format floats in the statistsics table"""
     if isinstance(x, float):
-        if x < 0.000001:
+        if abs(x) < 0.000001:
             return "~ 0"
-        elif x > 0.09 or 0.000001< x < -0.09:
+        elif 0.1 < abs(x) < 1e3:
             return np.format_float_positional(x, precision=2)
         else:
             return np.format_float_scientific(x, precision=2)
