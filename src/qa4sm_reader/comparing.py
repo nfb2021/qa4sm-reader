@@ -606,7 +606,7 @@ class QA4SMComparison():
         make_watermark(fig, glob.watermark_pos, offset= 0.04)
         plt.tight_layout()
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
+    def diff_mapplot(self, metric:str, diff_range:str='fixed', **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
