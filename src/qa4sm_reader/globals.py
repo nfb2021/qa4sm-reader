@@ -398,7 +398,7 @@ climate_classes = {
 }
 
 metadata = {
-    "clay_fraction":("clay fraction [%]", None, "continuous"),
+    "clay_fraction":("clay fraction [% weight]", None, "continuous"),
     "climate_KG":("Koeppen-Geiger climate class", climate_classes, "classes"),
     "climate_insitu":("climate in-situ", climate_classes, "classes"),
     "elevation":("elevation [m]", None, "continuous"),
@@ -408,10 +408,10 @@ metadata = {
     "lc_2010":("land cover class (2010)", lc_classes, "classes"),
     "lc_insitu":("land cover class in-situ", lc_classes, "classes"),
     "network":("network", None, "discrete"),
-    "organic_carbon":("concentration of organic carbon [?]", None, "continuous"),
-    "sand_fraction":("sand fraction [%]", None, "continuous"),
-    "saturation":("saturation [%]", None, "continuous"),
-    "silt_fraction":("silt fraction [%]", None, "continuous"),
+    "organic_carbon":("concentration of organic carbon [% weight]", None, "continuous"),
+    "sand_fraction":("sand fraction [% weight]", None, "continuous"),
+    "saturation":("saturation [m³/m³]", None, "continuous"),
+    "silt_fraction":("silt fraction [% weight]", None, "continuous"),
     "station":("station", None, "discrete"),
     "soil_type": ("soil texture", None, "discrete"),
 }

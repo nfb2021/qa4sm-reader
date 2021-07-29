@@ -741,5 +741,3 @@ class QA4SMPlotter():
         return fig, ax
 
 
-im = QA4SMImg("../../../../shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-C3S.sm_with_2-SMAP.soil_moisture_with_3-SMOS.Soil_Moisture_with_4-ERA5.swvl1_with_5-ERA5_LAND.swvl1.nc")
-pl = QA4SMPlotter(im)
