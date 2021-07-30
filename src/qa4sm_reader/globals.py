@@ -414,6 +414,8 @@ metadata = {
     "silt_fraction":("silt fraction [% weight]", None, "continuous"),
     "station":("station", None, "discrete"),
     "soil_type": ("soil texture", None, "discrete"),
+    "instrument_depthfrom": ("upper depth", None, "continuous"),
+    "instrument_depthto": ("lower depth", None, "continuous")
 }
 
 soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
