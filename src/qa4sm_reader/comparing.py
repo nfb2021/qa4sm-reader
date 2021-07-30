@@ -138,8 +138,8 @@ class QA4SMComparison():
         for n, img in enumerate(self.compared):
             img_metrics = {}
             for metric in img.metrics:
-                # hardcoded because n_obs cannot be compared
-                if metric == "n_obs":
+                # hardcoded because n_obs cannot be compared. todo: exclude empty metrics (problem: the values are not loaded here)
+                if metric in glob.metric_groups[0] or metric in ["tau", "p_tau"]:
                     continue
                 img_metrics[metric] = glob._metric_name[metric]
             if n==0:
@@ -606,7 +606,7 @@ class QA4SMComparison():
         make_watermark(fig, glob.watermark_pos, offset= 0.04)
         plt.tight_layout()
 
-    def diff_mapplot(self, metric:str, diff_range:str='fixed', **kwargs):
+    def diff_mapplot(self, metric:str, **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -614,9 +614,6 @@ class QA4SMComparison():
         ----------
         metric: str
             metric from the .nc result file attributes that the plot is based on
-        diff_range: str, default is 'adjusted'
-            if 'adjusted', colorbar goues from minimum to maximum of difference; if 'fixed', the colorbar goes from the
-            maximum to the minimum difference range, by metric
         **kwargs : kwargs
             plotting keyword arguments
         """
@@ -627,10 +624,10 @@ class QA4SMComparison():
         # make mapplot
         cbar_label = "Difference between {} and {}".format(*df.columns)
         fig, axes = mapplot(
-            df.iloc[:,2],
-            metric,
-            self.ref['short_name'],
-            diff_range=diff_range,
+            df=df.iloc[:,2],
+            metric=metric,
+            ref_short=self.ref['short_name'],
+            diff_map=True,
             label=cbar_label
         )
         fonts = {"fontsize":12}

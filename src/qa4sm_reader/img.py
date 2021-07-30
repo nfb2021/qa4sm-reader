@@ -176,7 +176,7 @@ class QA4SMImg(object):
                 Var = None
                 continue
 
-            if not Var is None:
+            if Var is not None:
                 if only_metrics and Var.ismetric:
                     vars.append(Var)
                 elif not only_metrics:
