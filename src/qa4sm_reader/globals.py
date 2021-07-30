@@ -52,6 +52,7 @@ import colorcet
 import matplotlib.pyplot as plt
 _cclasses = {
     'div_better': plt.cm.get_cmap('RdYlBu'),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
+    'div_worse': plt.cm.get_cmap('RdYlBu_r'), # diverging: 1 bad, 0 special, -1 good (difference of bias)
     'div_neutr': plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
     'seq_worse': colorcet.cm['CET_L4_r'], #'cet_CET_L4_r',  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS):
     'seq_better': colorcet.cm['CET_L4'], #'cet_CET_L4'  # sequential: increasing value good (n_obs)
@@ -145,26 +146,25 @@ _metric_value_ranges = {  # from /qa4sm/validator/validation/graphics.py
     'beta': [None, None],
 }
 
-# Value ranges for differences between metrics
-_diff_value_ranges = {  # from /qa4sm/validator/validation/graphics.py
-    'R': [-2, 2],
-    'p_R': [-1, 1],  # probability that observed corellation is statistical fluctuation
-    'rho': [-2, 2],
-    'p_rho': [-1, 1],
-    'tau': [-2, 2],
-    'p_tau': [-1, 1],
-    'RMSD': [None, None],
-    'BIAS': [None, None],
-    'n_obs': [None, None],
-    'urmsd': [None, None],
-    'RSS': [None, None],
-    'mse': [None, None],  # mse only positive (https://en.wikipedia.org/wiki/Mean_squared_error)
-    'mse_corr': [None, None],  # mse_corr only positive
-    'mse_bias': [None, None],  # mse_bias only positive
-    'mse_var': [None, None],  # mse_var only positive
-    'snr': [None, None],  # mse_var only positive
-    'err_std': [None, None],  # mse_var only positive
-    'beta': [None, None],  # mse_var only positive
+# Colorbars for difference plots
+_diff_colormaps = {  # from /qa4sm/validator/validation/graphics.py
+    'R': _cclasses['div_better'],
+    'p_R': _cclasses['div_worse'],
+    'rho': _cclasses['div_better'],
+    'p_rho': _cclasses['div_worse'],
+    'tau': _cclasses['div_better'],
+    'p_tau': _cclasses['div_worse'],
+    'RMSD': _cclasses['div_worse'],
+    'BIAS': _cclasses['div_worse'],
+    'urmsd': _cclasses['div_worse'],
+    'RSS': _cclasses['div_worse'],
+    'mse': _cclasses['div_worse'],
+    'mse_corr': _cclasses['div_worse'],
+    'mse_bias': _cclasses['div_worse'],
+    'mse_var': _cclasses['div_worse'],
+    'snr': _cclasses['div_better'],
+    'err_std': _cclasses['div_worse'],
+    'beta': _cclasses['div_worse'],
 }
 
 # check if every metric has a colormap
