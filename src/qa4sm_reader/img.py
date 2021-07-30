@@ -23,6 +23,11 @@ def extract_periods(filepath) -> np.array:
         return np.array([None])
 
 
+class SpatialExtentError(Exception):
+    """Class to handle errors derived from the spatial extent of validations"""
+    pass
+
+
 class QA4SMImg(object):
     """A tool to analyze the results of a validation, which are stored in a netCDF file."""
     def __init__(self, filepath,
@@ -31,7 +36,8 @@ class QA4SMImg(object):
                  ignore_empty=True,
                  metrics=None,
                  index_names=globals.index_names,
-                 load_data=True):
+                 load_data=True,
+                 empty=False):
         """
         Initialise a common QA4SM results image.
 
@@ -61,12 +67,11 @@ class QA4SMImg(object):
         self.ds = self._open_ds(extent=extent, period=period)
         self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
         self.datasets = QA4SMDatasets(self.ds.attrs)
-        self.name = self.create_image_name()
 
         if load_data:
             self.varnames = list(self.ds.variables.keys())
             self.df = self._ds2df()
-            self.vars = self._load_vars()
+            self.vars = self._load_vars(empty=empty)
             self.metrics = self._load_metrics()
             self.common, self.double, self.triple = self.group_metrics(metrics)
             # this try here is to obey tests, withouth a necessity of changing and commiting test files again
@@ -77,7 +82,11 @@ class QA4SMImg(object):
 
     def _open_ds(self, extent=None, period=None):
         """Open .nc as xarray datset, with selected extent"""
-        dataset = xr.open_dataset(self.filepath)
+        dataset = xr.load_dataset(
+            self.filepath,
+            drop_variables="time",
+            engine="h5netcdf",
+        )
         if period is not None:
             ds = dataset.sel(dict(period=period))
         else:
@@ -87,11 +96,14 @@ class QA4SMImg(object):
             ds = ds.drop_vars(globals.time_name)
         # geographical subset of the results
         if extent:
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
                    (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
 
-            assert True in mask, "The selected subset is not overlapping the validation domain"
+            if True not in mask:
+                raise SpatialExtentError(
+                    "The selected subset is not overlapping the validation domain"
+                )
 
             return ds.where(mask, drop=True)
 
@@ -108,20 +120,20 @@ class QA4SMImg(object):
                 cis = True
         return cis
 
-    def create_image_name(self) -> str:
+    @property
+    def name(self) -> str:
         """Create a unique name for the QA4SMImage from the netCDF file"""
         ref = self.datasets.ref['pretty_title']
         others = [other['pretty_title'] for other in self.datasets.others]
 
-        name = "ref: {} v datasets: ".format(ref) + \
-               ", ".join(others)
+        name = ",\n".join(others) + "\nv {} (ref)".format(ref)
 
         return name
 
     def _get_extent(self, extent) -> tuple:
         """Get extent of the results from the netCDF file"""
         if not extent:
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             lat_coord, lon_coord = self.ds[lat].values, self.ds[lon].values
             lons = min(lon_coord), max(lon_coord)
             lats = min(lat_coord), max(lat_coord)
@@ -158,8 +170,8 @@ class QA4SMImg(object):
 
             try:
                 Var = QA4SMMetricVariable(varname, self.ds.attrs, values=values)
-                if self.ignore_empty and Var.isempty:  # check whether there are values
-                    continue
+                # if self.ignore_empty and Var.isempty: todo: possible issues from non-metric variables?
+                #     continue
             except IOError:
                 Var = None
                 continue
@@ -305,10 +317,11 @@ class QA4SMImg(object):
             raise Exception("The variable name '{}' does not match any name in the input values.".format(e.args[0]))
 
         if isinstance(df.index, pd.MultiIndex):
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
-
+            df[gpi] = df.index.get_level_values(gpi)
+        # import pdb; pdb.set_trace()
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
 

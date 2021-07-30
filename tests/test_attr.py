@@ -8,9 +8,10 @@ import xarray as xr
 
 def test_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
-        '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc')
+                            '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc')
     ds = xr.open_dataset(testfile)
     return ds.attrs
+
 
 def test_tc_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'tc',
@@ -18,17 +19,20 @@ def test_tc_attributes():
     ds = xr.open_dataset(testfile)
     return ds.attrs
 
+
 def test_CI_attributes():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'tc',
                             "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc")
     ds = xr.open_dataset(testfile)
     return ds.attrs
 
+
 def test_grid_stepsize():
     testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
                             '0-SMAP.soil_moisture_with_1-C3S.sm.nc')
     ds = xr.open_dataset(testfile)
     return ds.attrs
+
 
 class TestQA4SMAttributes(unittest.TestCase):
 

@@ -214,7 +214,7 @@ class QA4SMMetricVariable():
         self.metric, self.g, self.parts = self._parse_varname()
         self.Datasets = QA4SMDatasets(self.attrs)
         # do not initialize idx, gpi, time, _row_size (non-validation variables)
-        if self.g:
+        if not self.g is None:
             self.Metric = QA4SMMetric(self.metric)
             self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
             # if this is a CI variable, get whether it's the upper or lower bound

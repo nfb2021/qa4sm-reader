@@ -203,8 +203,8 @@ class TestMetricVariableCI(unittest.TestCase): # todo: update with correct CI .n
         assert  self.CI_Var.ismetric
         assert self.CI_Var.is_CI
         print(self.CI_Var.pretty_name)
-        assert self.CI_Var.pretty_name == "Confidence Interval of Root-mean-square deviation of ESA CCI " \
-                                          "SM combined (v05.2) \n with ERA5 (v20190613) as reference"
+        assert self.CI_Var.pretty_name == "Confidence Interval of Root-mean-square deviation\nof ESA CCI " \
+                                          "SM combined (v05.2)\nwith ERA5 (v20190613) as reference"
         assert self.CI_Var.bound == "upper"
 
 if __name__ == '__main__':
