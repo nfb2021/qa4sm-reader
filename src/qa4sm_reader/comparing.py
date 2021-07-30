@@ -138,8 +138,8 @@ class QA4SMComparison():
         for n, img in enumerate(self.compared):
             img_metrics = {}
             for metric in img.metrics:
-                # hardcoded because n_obs cannot be compared
-                if metric == "n_obs":
+                # hardcoded because n_obs cannot be compared. todo: exclude empty metrics (problem: the values are not loaded here)
+                if metric in glob.metric_groups[0] or metric in ["tau", "p_tau"]:
                     continue
                 img_metrics[metric] = glob._metric_name[metric]
             if n==0:
@@ -627,9 +627,9 @@ class QA4SMComparison():
         # make mapplot
         cbar_label = "Difference between {} and {}".format(*df.columns)
         fig, axes = mapplot(
-            df.iloc[:,2],
-            metric,
-            self.ref['short_name'],
+            df=df.iloc[:,2],
+            metric=metric,
+            ref_short=self.ref['short_name'],
             diff_range=diff_range,
             label=cbar_label
         )
