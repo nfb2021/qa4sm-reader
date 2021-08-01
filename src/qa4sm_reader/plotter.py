@@ -567,7 +567,6 @@ class QA4SMPlotter():
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
-
         # create mapplot
         fig, ax = mapplot(df=Var.values[Var.varname],
                           metric=metric,
@@ -739,5 +738,4 @@ class QA4SMPlotter():
         fig.suptitle(title)
 
         return fig, ax
-
 

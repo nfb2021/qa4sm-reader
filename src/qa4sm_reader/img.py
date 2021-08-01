@@ -83,7 +83,11 @@ class QA4SMImg(object):
 
     def _open_ds(self, extent=None, period=None):
         """Open .nc as xarray datset, with selected extent"""
-        dataset = xr.open_dataset(self.filepath)
+        dataset = xr.load_dataset(
+            self.filepath,
+            drop_variables="time",
+            engine="h5netcdf",
+        )
         if period is not None:
             ds = dataset.sel(dict(period=period))
         else:
@@ -93,7 +97,7 @@ class QA4SMImg(object):
             ds = ds.drop_vars(globals.time_name)
         # geographical subset of the results
         if extent:
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             mask = (ds[lon] >= extent[0]) & (ds[lon] <= extent[1]) &\
                    (ds[lat] >= extent[2]) & (ds[lat] <= extent[3])
 
@@ -338,6 +342,7 @@ class QA4SMImg(object):
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
             df[gpi] = df.index.get_level_values(gpi)
+
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
 

@@ -234,7 +234,7 @@ class QA4SMComparison():
         ref_points: np.array
             2D array of lons, lats
         """
-        lat, lon = glob.index_names
+        lat, lon, gpi = glob.index_names
 
         lon_list, lat_list = [], []
         for img in self.compared:
@@ -345,7 +345,7 @@ class QA4SMComparison():
             grid_stepsize=ref_grid_stepsize
         )
 
-    def _get_data(self, metric:str) -> dict:
+    def _get_data(self, metric:str) -> dict:  # todo: use new handlers to get metadata for Variable
         """
         Get the list of image Variable names from a metric
 
@@ -362,7 +362,7 @@ class QA4SMComparison():
         varnames = {"varlist":[], "ci_list":[]}
         n = 0
         for i, img in enumerate(self.compared):
-            for Var in img._iter_vars(**{"metric":metric}):
+            for Var in img._iter_vars(**{"metric":metric, "is_CI":False}):
                 var_cis = []
                 id = i
                 varname = Var.varname
@@ -381,7 +381,7 @@ class QA4SMComparison():
                             **{"metric":metric, "is_CI":True,"metric_ds":Var.metric_ds}
                     ):
                         # a bit of necessary code repetition
-                        varname = Var.varname
+                        varname = CI_Var.varname
                         data = img._ds2df(varnames=[varname])[varname]
                         col_name = CI_Var.bound
                         data = data.rename(col_name)
@@ -405,7 +405,7 @@ class QA4SMComparison():
         if self.extent is None:
             return dfs
 
-        lat, lon = glob.index_names
+        lat, lon, gpi = glob.index_names
         subset = []
         for df in dfs:
             mask = (df.index.get_level_values(lon) >= self.extent[0]) & (df.index.get_level_values(lon) <= self.extent[1]) &\
@@ -427,7 +427,8 @@ class QA4SMComparison():
     def _handle_multiindex(self, dfs:list) -> pd.DataFrame:
         """
         Handle ValueError 'cannot handle a non-unique multi-index!' when non-unique multi-index is different in
-        the two dfs (e.g. multiple station depths)
+        the two dfs (e.g. multiple station depths). Update: should have been solved by simply adding gpi to the
+        Dataframe index
 
         Parameters
         ----------
@@ -444,7 +445,7 @@ class QA4SMComparison():
                     df = df.groupby(df.index).mean()
                     pair_df.append(df)
                 pair_df = pd.concat(pair_df, axis=1)
-                lat, lon = glob.index_names
+                lat, lon, gpi = glob.index_names
                 pair_df.index.set_names([lat, lon], inplace=True)
             else:
                 # take all values; they cannot be compared directly anyway. Index can be dropped as lon, lat info
@@ -456,7 +457,12 @@ class QA4SMComparison():
 
         return pair_df
 
-    def _get_pairwise(self, metric:str, add_stats:bool=True, return_cis=False) -> pd.DataFrame:
+    def _get_pairwise(
+            self,
+            metric:str,
+            add_stats:bool=True,
+            return_cis=False
+    ) -> pd.DataFrame:
         """
         Get the data and names for pairwise comparisons, meaning: two validations with one satellite dataset each. Includes
         a method to subset the metric values to the selected spatial extent.
@@ -594,13 +600,13 @@ class QA4SMComparison():
         )
         # titles for the plot
         fonts = {"fontsize":12}
-        title_plot = "Comparison of {} {}".format(Metric.pretty_name, um)
+        title_plot = "Comparison of {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
         make_watermark(fig, glob.watermark_pos, offset= 0.04)
         plt.tight_layout()
 
-    def diff_mapplot(self, metric:str, diff_range:str='adjusted', **kwargs):
+    def diff_mapplot(self, metric:str, diff_range:str='fixed', **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -628,7 +634,7 @@ class QA4SMComparison():
             label=cbar_label
         )
         fonts = {"fontsize":12}
-        title_plot = "Overview of the difference in {} {}".format(Metric.pretty_name, um)
+        title_plot = "Overview of the difference in {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
         make_watermark(fig, glob.watermark_pos, offset= 0.08)

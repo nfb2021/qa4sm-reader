@@ -9,6 +9,7 @@ dependencies:
 - numpy
 - matplotlib
 - cartopy
+- h5netcdf
 - pip
 - pip:
     - parse

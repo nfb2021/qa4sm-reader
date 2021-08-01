@@ -62,9 +62,9 @@ def _value2index(a, a_min, da):
 def _format_floats(x):
     """Format floats in the statistsics table"""
     if isinstance(x, float):
-        if x < 0.000001:
+        if abs(x) < 0.000001:
             return "~ 0"
-        elif x > 0.09 or 0.000001< x < -0.09:
+        elif 0.1 < abs(x) < 1e3:
             return np.format_float_positional(x, precision=2)
         else:
             return np.format_float_scientific(x, precision=2)
@@ -239,7 +239,7 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
         (x_min, x_max, y_min, y_max) in Data coordinates.
     
     """
-    lat, lon = globals.index_names
+    lat, lon, gpi = globals.index_names
     if grid and grid_stepsize in ['nan', None]:
         x_min, x_max, dx, len_x = _get_grid(df.index.get_level_values(lon))
         y_min, y_max, dy, len_y = _get_grid(df.index.get_level_values(lat))
@@ -1176,7 +1176,7 @@ def mapplot(
                 plot_extent = get_plot_extent(df)
 
             markersize = globals.markersize ** 2
-            lat, lon = globals.index_names
+            lat, lon, gpi = globals.index_names
             im = ax.scatter(df.index.get_level_values(lon),
                             df.index.get_level_values(lat),
                             c=df, cmap=cmap, s=markersize,
@@ -1186,6 +1186,8 @@ def mapplot(
         else:  # mapplot
             if not plot_extent:
                 plot_extent = get_plot_extent(df, grid_stepsize=ref_grid_stepsize, grid=True)
+            if isinstance(ref_grid_stepsize, np.ndarray):
+                ref_grid_stepsize = ref_grid_stepsize[0]
             zz, zz_extent, origin = geotraj_to_geo2d(df, grid_stepsize=ref_grid_stepsize)  # prep values
             im = ax.imshow(zz, cmap=cmap, vmin=v_min,
                            vmax=v_max, interpolation='nearest',
