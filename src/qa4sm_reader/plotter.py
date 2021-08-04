@@ -2,6 +2,7 @@
 from pathlib import Path
 import seaborn as sns
 import pandas as pd
+from typing import Union
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
@@ -157,7 +158,7 @@ class QA4SMPlotter():
             'boxplot_tc': 'Intercomparison of \n{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
             'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
             'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
-            'metadata': None,
+            'metadata': 'Intercomparison of {} by {}\nwith reference: {}',
         }
 
         try:
@@ -681,14 +682,14 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    # todo: cross-metadata plots with depth
-    def boxplot_meta(
+    def meta_single( # todo: catplot with option to have multiplot
             self,
             metric:str,
             metadata:str,
-            include_ci:bool=False,
+            df:pd.DataFrame=None,
+            axis=None,
             **plotting_kwargs
-    ) -> tuple:
+    ) -> Union[tuple, None]:
         """
         Boxplot of a metric grouped by the given metadata.
 
@@ -696,10 +697,13 @@ class QA4SMPlotter():
         ----------
         metric : str
             specified metric
-        metadata: str
+        metadata : str
             specified metadata
-        include_ci: bool
-            wether to include confidence intervals in the plots (where provided)
+        df : pd.DataFrame, optional
+            metric values can be specified, in which case they will be used from here and
+            not parsed from the metric name
+        axis : matplotlib.axes.Axis, optional
+            if provided, the function will create the plot on the specified axis
 
         Returns
         -------
@@ -707,35 +711,141 @@ class QA4SMPlotter():
             the boxplot
         ax : matplotlib.axes.Axes
         """
-        values, cis = [], []
-        for df, Var, ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
-            values.append(df)
-            # put all Variables in the same dataframe
-            if ci is not None:
-                cis.append(ci)
+        values = []
+        for data, Var, var_ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
+            values.append(data)
+
         values = pd.concat(values, axis=1)
+        # override values from metric
+        if df is not None:
+            values = df
+        # import pdb; pdb.set_trace()
         # get meta and select only metric values with metadata available
-        Meta = self.img.metadata[metadata]
-        meta_values = Meta.values.dropna()
-        values = values.loc[meta_values.index]
-        # get measure units
+        meta_values = self.img.metadata[metadata].values.dropna()
+        values = values.reindex(index=meta_values.index)
         mu = globals._metric_description[metric].format(globals._metric_units[self.ref['short_name']])
-        # create plot
-        if not include_ci:
-            ci = None
-        fig, ax, labels = boxplot_metadata(
+
+        out = boxplot_metadata(
             df=values,
             metadata_values=meta_values,
-            ci=cis,
             ax_label=Var.Metric.pretty_name + mu,
+            axis=axis,
             **plotting_kwargs
         )
-        title = "Intercomparison of {} by {}\nwith reference {}".format(
-                Var.Metric.pretty_name, Meta.pretty_name, self.img.datasets.ref['pretty_title']
+
+        if axis is None:
+            fig, ax = out
+
+            return fig, ax
+
+    def meta_combo(
+            self,
+            metric:str,
+            metadata:str,
+            metadata_discrete:str,
+    ):
+        """
+        Cross-boxplot between two given metadata types
+
+        Parameters
+        ----------
+        metric : str
+            specified metric
+        metadata: str
+            'continuous' or 'classes' metadata which provides the number of subplots (bins)
+        metadata_discrete : str
+            'discrete' metadata which is shown in the subplots
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
+        """
+        values = []
+        for df, Var, ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
+            values.append(df)
+        values = pd.concat(values, axis=1)
+
+        Meta_cont = self.img.metadata[metadata]
+        meta_values = Meta_cont.values.dropna()
+
+        bin_funct = bin_function_lut(globals.metadata[metadata][2])
+        binned_values = bin_funct(
+            df=values,
+            metadata_values=meta_values,
+            meta_key=metadata,
         )
-        if labels is not None and len(labels) == 1:
-            title = title + ".\nSingle {} class: '{}'".format(Meta.pretty_name, labels[0])
+        # dictionary with subset values
+        values_subset = {
+            a_bin: values.reindex(index=binned_values[a_bin].index) for a_bin in binned_values.keys()
+        }
+        kwargs = {
+            "metric": metric,
+            "metadata": metadata_discrete,
+        }
+        n_datasets = len(self.img.datasets.others)
+        fig, axes = aggregate_subplots(
+            to_plot=values_subset,
+            funct=self.meta_single,
+            n_bars=n_datasets,
+            **kwargs
+        )
+
+        return fig, axes
+
+    def plot_metadata(self, metric, metadata, metadata_discrete=None, **plotting_kwargs):
+        """
+        Wrapper built around the 'meta_single' or 'meta_combo' functions to produce a metadata-based boxplot of a
+        metric.
+
+        Parameters
+        __________
+        metric : str
+            name of metric to plot
+        metadata : str
+            name of metadata to subdivide the metric results
+        metadata_discrete : str
+            name of the metadata of the type 'discrete'
+
+        Retrun
+        ------
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
+        """
+        if metadata_discrete is None:
+            fig, ax = self.meta_single(
+                metric=metric, metadata=metadata, **plotting_kwargs
+            )
+            metadata_tuple = [metadata]
+
+        else:
+            metadata_tuple = [metadata, metadata_discrete]
+            if not any(globals.metadata[i][2] == "discrete" for i in metadata_tuple):
+                raise ValueError(
+                    "One of the provided metadata names should correspond to the 'discrete' type, see globals.py"
+                )
+            if all(globals.metadata[i][2] == "discrete" for i in metadata_tuple):
+                raise ValueError(
+                    "At least one of the provided metadata should not be of the 'continuous' type"
+                )
+            fig, ax = self.meta_combo(
+                metric=metric, metadata=metadata,
+                metadata_discrete=metadata_discrete, **plotting_kwargs
+            )
+        meta_names = [globals.metadata[i][0] for i in metadata_tuple]
+        title = self._titles_lut("metadata").format(
+            globals._metric_name[metric],
+            ", ".join(meta_names),
+            self.img.datasets.ref["pretty_title"]
+        )
         fig.suptitle(title)
+
+        make_watermark(fig=fig)
 
         return fig, ax
 
+
+im = QA4SMImg("~/shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-C3S.sm_with_2-ERA5.swvl1.nc")
+pl = QA4SMPlotter(im)

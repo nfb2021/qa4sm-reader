@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
-from qa4sm_reader.plotting_methods import _format_floats, combine_soils
+from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths
 
 from parse import *
 from pathlib import Path
@@ -136,13 +136,19 @@ class QA4SMImg(object):
         for Var in self._iter_vars(type="metadata"):
             metadata[Var.varname] = Var
 
-
+        # metadata that are generated upon initialization (soil type and instrument depth):
         if all(type in metadata.keys() for type in globals.soil_types):
             soil_dict = {type: metadata[type] for type in globals.soil_types}
             soil_combined = combine_soils(soil_dict)
             metadata["soil_type"] = hdl.QA4SMVariable("soil_type", self.ds.attrs, values=soil_combined).initialize()
         else:
             metadata["soil_type"] = None
+        if all(type in metadata.keys() for type in globals.instrument_depths):
+            depth_dict = {type: metadata[type] for type in globals.instrument_depths}
+            depth_combined = combine_depths(depth_dict)
+            metadata["instrument_depth"] = hdl.QA4SMVariable("instrument_depth", self.ds.attrs, values=depth_combined).initialize()
+        else:
+            metadata["instrument_depth"] = None
 
         return metadata
 

@@ -28,7 +28,7 @@ max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if 
 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
-boxplot_height = 6
+boxplot_height = 5
 boxplot_width = 2 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 
@@ -395,28 +395,32 @@ climate_classes = {
     "ET": "Polar",
     "EF": "Polar",
     "W": "Water",
+    "Mediterranean":"Mediterranean",
 }
 
 metadata = {
-    "clay_fraction":("clay fraction [% weight]", None, "continuous"),
-    "climate_KG":("Koeppen-Geiger climate class", climate_classes, "classes"),
-    "climate_insitu":("climate in-situ", climate_classes, "classes"),
-    "elevation":("elevation [m]", None, "continuous"),
-    "instrument":("instrument type", None, "discrete"),
-    "lc_2000":("land cover class (2000)", lc_classes, "classes"),
-    "lc_2005":("land cover class (2005)", lc_classes, "classes"),
-    "lc_2010":("land cover class (2010)", lc_classes, "classes"),
-    "lc_insitu":("land cover class in-situ", lc_classes, "classes"),
-    "network":("network", None, "discrete"),
-    "organic_carbon":("concentration of organic carbon [% weight]", None, "continuous"),
-    "sand_fraction":("sand fraction [% weight]", None, "continuous"),
-    "saturation":("saturation [m³/m³]", None, "continuous"),
-    "silt_fraction":("silt fraction [% weight]", None, "continuous"),
-    "station":("station", None, "discrete"),
-    "soil_type": ("soil texture", None, "discrete"),
-    "instrument_depthfrom": ("upper depth", None, "continuous"),
-    "instrument_depthto": ("lower depth", None, "continuous")
+    "clay_fraction":("clay fraction", None, "continuous", "[% weight]"),
+    "climate_KG":("Koeppen-Geiger climate class", climate_classes, "classes", None),
+    "climate_insitu":("climate in-situ", climate_classes, "classes", None),
+    "elevation":("elevation", None, "continuous", "[m]"),
+    "instrument":("instrument type", None, "discrete", None),  # todo: improve labels (too packed)
+    "lc_2000":("land cover class (2000)", lc_classes, "classes", None),
+    "lc_2005":("land cover class (2005)", lc_classes, "classes", None),
+    "lc_2010":("land cover class (2010)", lc_classes, "classes", None),
+    "lc_insitu":("land cover class in-situ", lc_classes, "classes", None), # todo: handle custom names
+    "network":("network", None, "discrete", None),
+    "organic_carbon":("concentration of organic carbon", None, "continuous", "[% weight]"),
+    "sand_fraction":("sand fraction", None, "continuous", "[% weight]"),
+    "saturation":("saturation", None, "continuous", "[m³/m³]"),
+    "silt_fraction":("silt fraction", None, "continuous", "[% weight]"),
+    "station":("station", None, "discrete", None),
+    "instrument_depthfrom": ("upper depth", None, "continuous", "[m]"),
+    "instrument_depthto": ("lower depth", None, "continuous", "[m]"),
+    # --- generated during the image initialization:
+    "soil_type": ("soil texture", None, "discrete", None),
+    "instrument_depth": ("instrument depth", None, "continuous", "[m]"),
 }
 
 soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
+instrument_depths = ["instrument_depthfrom", "instrument_depthto"]
 
