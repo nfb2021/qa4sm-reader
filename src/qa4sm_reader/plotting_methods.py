@@ -787,7 +787,7 @@ def bin_discrete(
         meta_key:str,
         min_size=5,
         **kwargs,
-) -> tuple:
+) -> pd.DataFrame:
     """
     Provide a formatted dataframe for discrete type metadata (e.g. station or network)
 
@@ -1004,6 +1004,22 @@ def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
 
     return fig, axes
 
+def _dict2df(to_plot_dict:dict, meta_key:str):
+    """Transform a dictionary into a DataFrame for catplotting"""
+    to_plot_df = []
+    for range, values in to_plot_dict.items():
+        range_grouped = []
+        for ds in values:
+            values_ds = values[ds].to_frame(name="values")
+            values_ds["Dataset"] = ds
+            values_ds[meta_key] = "\n[".join(range.split(" ["))
+            range_grouped.append(values_ds)
+        range_grouped = pd.concat(range_grouped)
+        to_plot_df.append(range_grouped)
+    to_plot_df = pd.concat(to_plot_df)
+
+    return to_plot_df
+
 def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:     # todo: add labels with N/medians
     """
     Create individual plot with grouped boxplots by metadata value
@@ -1057,6 +1073,7 @@ def boxplot_metadata(
         ax_label=None,
         nbins=4,
         axis=None,
+        plot_type:str="catplot",
         **bplot_kwargs,
 ) -> tuple:
     """
@@ -1078,6 +1095,11 @@ def boxplot_metadata(
         Name of the y axis - cannot be set globally
     nbins: int
         number pf bins to divide the plots in (only for continuous type of metadata, e.g. elevation)
+    axis : matplotlib.axes.Axis, optional
+        if provided, the function will create the plot on the specified axis
+    plot_type : str, default is 'catplot'
+        one of 'catplot' or 'multiplot', defines the type of plots for the 'classes' and 'continuous'
+        metadata types
 
     Returns
     -------
@@ -1105,7 +1127,11 @@ def boxplot_metadata(
         )
 
     if isinstance(to_plot, dict):
-        generate_plot = bplot_multiple
+        if plot_type == "catplot":
+            to_plot = _dict2df(to_plot, meta_key)
+            generate_plot = bplot_catplot
+        elif plot_type == "multiplot":
+            generate_plot = bplot_multiple
 
     elif isinstance(to_plot, pd.DataFrame):
         generate_plot = bplot_catplot

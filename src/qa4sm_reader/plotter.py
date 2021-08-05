@@ -179,11 +179,14 @@ class QA4SMPlotter():
             type of plot
         """
         # we stick to old naming convention
-        names = {'boxplot_basic': 'boxplot_{}',
-                 'mapplot_common': 'overview_{}',
-                 'boxplot_tc': 'boxplot_{}_for_{}-{}',
-                 'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
-                 'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'}
+        names = {
+            'boxplot_basic': 'boxplot_{}',
+            'mapplot_common': 'overview_{}',
+            'boxplot_tc': 'boxplot_{}_for_{}-{}',
+            'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
+            'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}',
+            'metadata': 'boxplot_{}_metadata_{}',
+        }
 
         try:
             return names[type]
@@ -682,12 +685,13 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    def meta_single( # todo: catplot with option to have multiplot
+    def meta_single(
             self,
             metric:str,
             metadata:str,
             df:pd.DataFrame=None,
             axis=None,
+            plot_type:str="catplot",
             **plotting_kwargs
     ) -> Union[tuple, None]:
         """
@@ -704,6 +708,9 @@ class QA4SMPlotter():
             not parsed from the metric name
         axis : matplotlib.axes.Axis, optional
             if provided, the function will create the plot on the specified axis
+        plot_type : str, default is 'catplot'
+            one of 'catplot' or 'multiplot', defines the type of plots for the 'classes' and 'continuous'
+            metadata types
 
         Returns
         -------
@@ -730,6 +737,7 @@ class QA4SMPlotter():
             metadata_values=meta_values,
             ax_label=Var.Metric.pretty_name + mu,
             axis=axis,
+            plot_type=plot_type,
             **plotting_kwargs
         )
 
@@ -794,7 +802,14 @@ class QA4SMPlotter():
 
         return fig, axes
 
-    def plot_metadata(self, metric, metadata, metadata_discrete=None, **plotting_kwargs):
+    def plot_metadata(
+            self, metric:str,
+            metadata:str,
+            metadata_discrete:str=None,
+            save_file:bool=False,
+            out_types:str='png',
+            **plotting_kwargs
+    ):
         """
         Wrapper built around the 'meta_single' or 'meta_combo' functions to produce a metadata-based boxplot of a
         metric.
@@ -844,8 +859,42 @@ class QA4SMPlotter():
 
         make_watermark(fig=fig)
 
-        return fig, ax
+        if save_file:
+            out_name = self._filenames_lut("metadata").format(
+                metric,
+                "_and_".join(metadata_tuple)
+            )
+            self._save_plot(out_name, out_types=out_types)
+
+            return out_name
+
+        else:
+            return fig, ax
+
+    def plot_save_metadata(self, metric):
+        """
+        Plots and saves three metadata boxplots per metric (defined in globals.py):
+
+        1. Boxplot by land cover class (2010 map)
+        2. Boxplot by Koeppen-Geiger climate classification
+        3. Boxplot by instrument depth and soil type (granularity)
+
+        Parameters
+        ----------
+        metric : str
+            name of metric
+
+        Return
+        ------
+        filenames: list
+            list of file names
+        """
+        filenames = []
+        for type, meta_keys in globals.out_metadata_plots.items():
+            # import pdb; pdb.set_trace()
+            outfile = self.plot_metadata(metric, *meta_keys, save_file=True)
+            filenames.append(outfile)
+
+        return filenames
 
 
-im = QA4SMImg("~/shares/home/Data4projects/qa4sm-reader/Metadata/0-ISMN.soil_moisture_with_1-C3S.sm_with_2-ERA5.swvl1.nc")
-pl = QA4SMPlotter(im)

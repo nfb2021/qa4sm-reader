@@ -13,6 +13,7 @@ def plot_all(
         out_dir:str=None,
         out_type:str='png',
         save_all:bool=True,
+        save_metadata:bool=False,
         **plotting_kwargs
 ) -> (list, list):
     """
@@ -70,6 +71,7 @@ def plot_all(
             # there can be boxplots with no mapplots
             if metric_bplots:
                 fnames_bplot.extend(metric_bplots)
+                # if img.metadata:
             if metric_mapplots:
                 fnames_mapplot.extend(metric_mapplots)
         

@@ -42,6 +42,13 @@ watermark_pad = 5  # padding above/below watermark in points (matplotlib uses 72
 ds_fn_templ = "{i}-{ds}.{var}"
 ds_fn_sep = "_with_"
 
+# === metadata files to save ===
+out_metadata_plots = {
+    "lc": ["lc_2010"],
+    "climate": ["climate_KG"],
+    "soil": ["instrument_depth", "soil_type"],
+}
+
 # === colormaps used for plotting metrics ===
 # Colormaps can be set for classes of similar metrics or individually for metrics.
 # Any colormap name can be used, that works with matplotlib.pyplot.cm.get_cmap('colormap')
@@ -66,7 +73,6 @@ metric_groups = {
         ],
     3: ['snr', 'err_std', 'beta']
 }
-
 
 # === variable template ===
 # how the metric is separated from the rest
