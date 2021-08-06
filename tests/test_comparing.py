@@ -176,7 +176,7 @@ def test_common_metrics(double_img_paths, double_img_overlap):
     metrics_should = {key: val for key, val in metrics_list[0].items() if key in metrics_list[1].keys()}
     metrics_should_hardcoded = {
         'R': "Pearson's r",
-        'rho': "Spearman's rho",
+        'rho': "Spearman's ρ",
         'RMSD': 'Root-mean-square deviation',
         # 'p_tau': 'Kendall tau p-value',
         'RSS': 'Residual sum of squares',
@@ -185,7 +185,7 @@ def test_common_metrics(double_img_paths, double_img_overlap):
         'mse': 'Mean square error',
         # 'tau': 'Kendall rank correlation',
         'mse_bias': 'Mean square error bias',
-        'p_rho': "Spearman's rho p-value",
+        'p_rho': "Spearman's ρ p-value",
         'BIAS': 'Bias (difference of means)',
         'urmsd': 'Unbiased root-mean-square deviation',
         'mse_var': 'Mean square error variance'
