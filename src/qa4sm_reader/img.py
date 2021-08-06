@@ -275,7 +275,7 @@ class QA4SMImg(object):
                 if val is None or getattr(Metric, key) == val:
                     yield Metric
 
-    def group_vars(self, **filter_parms):
+    def group_vars(self, filter_parms:dict):
         """
         Return a list of QA4SMVariable that match filters
 
@@ -285,7 +285,7 @@ class QA4SMImg(object):
             dictionary with QA4SMVariable attributes as keys and filter value as values (e.g. {g: 0})
         """
         vars = []
-        for Var in self._iter_vars(**filter_parms):
+        for Var in self._iter_vars(filter_parms=filter_parms):
             vars.append(Var)
 
         return vars
@@ -372,9 +372,9 @@ class QA4SMImg(object):
         if isinstance(metrics, list):
             Vars = []
             for metric in metrics:
-                Vars.extend(self.group_vars(**{'metric':metric}))
+                Vars.extend(self.group_vars(filter_parms={'metric':metric}))
         else:
-            Vars = self.group_vars(**{'metric':metrics})
+            Vars = self.group_vars(filter_parms={'metric':metrics})
 
         varnames = [Var.varname for Var in Vars]
         metrics_df = self._ds2df(varnames=varnames)
@@ -382,16 +382,16 @@ class QA4SMImg(object):
         return metrics_df
 
     def get_cis(self, Var:hdl.MetricVariable) -> Union[list, None]:
-        """Return the CIs of a variable as a list of dfs, if they exist in the netcdf"""
+        """Return the CIs of a variable as a list of dfs ('upper' and 'lower'), if they exist in the netcdf"""
         cis = []
         if not self.has_CIs:
             return cis
-
         for ci in self._iter_vars(
                 type="ci",
                 filter_parms={
                     "metric":Var.metric,
                     "metric_ds":Var.metric_ds,
+                    "other_ds":Var.other_ds,
                 }
         ):
             values = ci.values
@@ -418,12 +418,11 @@ class QA4SMImg(object):
             List of (variable) lists with summary statistics
         """
         metric_stats = []
+        filters = {'metric':metric}
         if id:
-            filters = {'metric':metric, 'is_CI':False, 'id':id} # todo: update iter_vars function
-        else:
-            filters = {'metric':metric, 'is_CI':False,}
+            filters.update(id=id)
         # get stats by metric
-        for Var in self._iter_vars(only_metrics=True, **filters):
+        for Var in self._iter_vars(type="metric", filter_parms=filters):
             # get interquartile range 
             values = Var.values[Var.varname]
             # take out variables with all NaN or NaNf

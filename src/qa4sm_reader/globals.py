@@ -29,7 +29,7 @@ max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
 boxplot_height = 5
-boxplot_width = 2 # times (n+1), where n is the number of boxes.
+boxplot_width = 1.8 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 
 # === watermark defaults ===

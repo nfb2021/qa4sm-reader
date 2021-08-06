@@ -34,6 +34,8 @@ def plot_all(
         extensions which the files should be saved in
     save_all: bool, optional. Default is True.
         all plotted images are saved to the output directory
+    save_metadata: bool, optional. Default is False.
+        for each metric, 3 metadata plots are provided (see plotter.QA4SMPlotter.plot_save_metadata)
     plotting_kwargs: arguments for plotting functions.
 
     Returns
@@ -71,9 +73,10 @@ def plot_all(
             # there can be boxplots with no mapplots
             if metric_bplots:
                 fnames_bplot.extend(metric_bplots)
-                # if img.metadata:
             if metric_mapplots:
                 fnames_mapplot.extend(metric_mapplots)
+            if img.metadata and save_metadata:
+                fnames_bplot.extend(plotter.plot_save_metadata(metric))
         
     return fnames_bplot, fnames_mapplot
 

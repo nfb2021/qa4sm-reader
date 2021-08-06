@@ -3,10 +3,12 @@ from pathlib import Path
 import seaborn as sns
 import pandas as pd
 from typing import Union
+import numpy as np
+import matplotlib.pyplot as plt
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
-from qa4sm_reader.plotting_methods import *
+from qa4sm_reader import plotting_methods as plm
 
 from warnings import warn
 
@@ -288,14 +290,14 @@ class QA4SMPlotter():
             if globals.boxplot_printnumbers:
                 box_cap = '{}'.format(box_cap_ds)
                 if stats:
-                    box_stats = _box_stats(values)
+                    box_stats = plm._box_stats(values)
                     box_cap = box_cap + "\n{}".format(box_stats)
             else:
                 box_cap = box_cap_ds
             df = values.to_frame(box_cap)
 
             ci = self.img.get_cis(Var)
-            if ci:  # could be that variable doesn't have CIs
+            if ci:  # could be that variable doesn't have CIs - empty list
                 ci = pd.concat(ci, axis=1)
                 label = ""
                 if mean_ci:
@@ -351,7 +353,7 @@ class QA4SMPlotter():
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
         figsize = [figwidth, globals.boxplot_height]
-        fig, ax = boxplot(
+        fig, ax = plm.boxplot(
             df=df,
             ci=ci,
             label=label,
@@ -360,7 +362,7 @@ class QA4SMPlotter():
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
-            for Var in self.img._iter_vars(only_metrics=True, **{'metric':metric}):
+            for Var in self.img._iter_vars(type="metric", filter_parms={"metric":metric}):
                 Var = Var
                 break
         if not type=="metadata":
@@ -372,7 +374,7 @@ class QA4SMPlotter():
         if Var.g == 0:
             offset = 0.02  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, offset=offset)
+            plm.make_watermark(fig, offset=offset)
 
         return fig, ax
 
@@ -436,10 +438,10 @@ class QA4SMPlotter():
         fnames, values = [], []
         ci = []
         # we take the last iterated value for Var and use it for the file name
-        for df, Var, ci in self._yield_values(metric=metric):
+        for df, Var, var_ci in self._yield_values(metric=metric):
             values.append(df)
-            if ci:
-                ci.append(bounds)
+            if var_ci is not None:
+                ci.append(var_ci)
         # put all Variables in the same dataframe
         values = pd.concat(values)
         # create plot
@@ -494,13 +496,13 @@ class QA4SMPlotter():
         fnames = []
         # group Vars and CIs relative to the same dataset
         metric_tc, ci = {}, {}
-        for df, Var, ci in self._yield_values(metric=metric, tc=True):
+        for df, Var, var_ci in self._yield_values(metric=metric, tc=True):
             id, names = Var.metric_ds
-            if ci:
+            if var_ci is not None:
                 if id in ci.keys():
-                    ci[id].append(bounds)
+                    ci[id].append(var_ci)
                 else:
-                    ci[id] = [bounds]
+                    ci[id] = [var_ci]
             if id in metric_tc.keys():
                 metric_tc[id][0].append(df)
             else:
@@ -514,14 +516,14 @@ class QA4SMPlotter():
                 continue
             # necessary if statement to prevent key error when no CIs are in the netCDF
             if ci:
-                bounds = ci[id]
+                ci_id = ci[id]
             else:
-                bounds = ci
+                ci_id = None
             # create plot
             fig, ax = self._boxplot_definition(
                 metric=metric,
                 df=df,
-                ci=bounds,
+                ci=ci_id,
                 type='boxplot_tc',
                 Var=Var,
                 **plotting_kwargs
@@ -572,7 +574,7 @@ class QA4SMPlotter():
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
         # create mapplot
-        fig, ax = mapplot(df=Var.values[Var.varname],
+        fig, ax = plm.mapplot(df=Var.values[Var.varname],
                           metric=metric,
                           ref_short=ref_meta[1]['short_name'],
                           ref_grid_stepsize=ref_grid_stepsize,
@@ -593,7 +595,7 @@ class QA4SMPlotter():
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
+            plm.make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
 
         # save file or just return the image
         if save_files:
@@ -631,7 +633,7 @@ class QA4SMPlotter():
             List of files that were created
         """
         fnames = []
-        for Var in self.img._iter_vars(only_metrics=True, **{'metric':metric}):
+        for Var in self.img._iter_vars(type="metric", filter_parms={"metric":metric}):
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
@@ -726,7 +728,6 @@ class QA4SMPlotter():
         # override values from metric
         if df is not None:
             values = df
-        # import pdb; pdb.set_trace()
         # get meta and select only metric values with metadata available
         meta_values = self.img.metadata[metadata].values.dropna()
         values = values.reindex(index=meta_values.index)
@@ -857,7 +858,7 @@ class QA4SMPlotter():
         )
         fig.suptitle(title)
 
-        make_watermark(fig=fig)
+        make_watermark(fig=fig, offset=0)
 
         if save_file:
             out_name = self._filenames_lut("metadata").format(
@@ -896,5 +897,6 @@ class QA4SMPlotter():
             filenames.append(outfile)
 
         return filenames
-
-
+import os
+im = QA4SMImg(os.path.join(os.path.dirname(__file__), '..','..', 'tests', 'test_data', 'basic', '0-ISMN.soil moisture_with_1-C3S.sm.nc'))
+pl = QA4SMPlotter(im)

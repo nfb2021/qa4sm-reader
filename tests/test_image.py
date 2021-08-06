@@ -47,7 +47,7 @@ class TestQA4SMImgBasicIntercomp(unittest.TestCase):
             assert Metr.name in globals.metric_groups[2]
 
     def test_group_vars(self):
-        Vars = self.img.group_vars(**{'metric': 'R'})
+        Vars = self.img.group_vars(filter_parms={'metric': 'R'})
         names = [Var.varname for Var in Vars]
         assert names == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
 

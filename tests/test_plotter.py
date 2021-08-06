@@ -190,7 +190,7 @@ class TestQA4SMMetaImgIrregularGridPlotter(unittest.TestCase):
 
     def test_grid_creation(self):
         metric = 'n_obs'
-        for Var in self.img._iter_vars(**{'metric': metric}):
+        for Var in self.img._iter_vars(filter_parms={'metric': metric}):
             varname = Var.varname
             df = self.img._ds2df([varname])[varname]
             zz, grid, origin = geotraj_to_geo2d(df, grid_stepsize=self.ref_dataset_grid_stepsize)

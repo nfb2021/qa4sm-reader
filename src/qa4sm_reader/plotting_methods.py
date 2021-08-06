@@ -601,7 +601,8 @@ def boxplot(
     # styling of the boxes
     kwargs = {"patch_artist": True, "return_type": "dict"}
     # changes necessary to have confidence intervals in the plot
-    if ci is not None:
+    # could be an empty list or could be 'None', if de-selected from the kwargs
+    if ci:
         upper, lower = [], []
         for n, intervals in enumerate(ci):
             lower.append(intervals["lower"])
@@ -972,12 +973,16 @@ def aggregate_subplots(to_plot:dict, funct, n_bars, **kwargs):
                 )
             funct(df=data, axis=ax, **kwargs)
             ax.set_title(bin_label)
+            ax.legend([],[], frameon=False)
         # eliminate extra subplot if odd number
         if rows*2 > sub_n:
             fig.delaxes(axes[rows-1, 1])
-    plt.subplots_adjust(wspace=0.25, hspace=0.25)
-    fig.set_figheight(globals.boxplot_height*(np.ceil(sub_n/2) + 0.2))
-    fig.set_figwidth(globals.boxplot_width*n_bars*2)
+
+        plt.subplots_adjust(wspace=0.1, hspace=0.25)
+        fig.set_figheight(globals.boxplot_height*(np.ceil(sub_n/2) + 0.2))
+        fig.set_figwidth(globals.boxplot_width*n_bars*2)
+        ax.legend(bbox_to_anchor=(1.01, 1))
+        fig.tight_layout(pad=4.5)
 
     return fig, axes
 
@@ -1037,33 +1042,56 @@ def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
     """
     labels = None
     return_figax = False
+    orient = "v"
     if axis is None:
         return_figax = True
         fig, axis = plt.subplots(1)
+        orient = "h"
+
+    if orient == "v":
+        x = metadata_name
+        y = "values"
+    elif orient == "h":
+        x = "values"
+        y = metadata_name
 
     box = sns.boxplot(
-        x=metadata_name,
-        y="values",
+        x=x,
+        y=y,
         hue="Dataset",
         data=to_plot,
         palette="Set2",
         ax=axis,
         showfliers = False,
+        orient=orient,
     )
-
+    import pdb; pdb.set_trace()
     unit_height = 1
     unit_width = len(to_plot[metadata_name].unique())
     # needed for overlapping station names
-    box.tick_params(labelsize=8)
-    axis.set(xlabel=None)
-    axis.set(ylabel=y_axis)
-    axis.yaxis.grid(True) # Hide the horizontal gridlines
-    axis.xaxis.grid(False) # Show the vertical gridlines
+    box.tick_params(labelsize=8.5)
+    if orient == "v":
+        axis.set(xlabel=None)
+        axis.set(ylabel=y_axis)
+        axis.yaxis.grid(True) # Hide the horizontal gridlines
+        axis.xaxis.grid(False) # Show the vertical gridlines
+    if orient == "h":
+        axis.set(ylabel=None)
+        axis.set(xlabel=y_axis)
+        axis.yaxis.grid(False) # Hide the horizontal gridlines
+        axis.xaxis.grid(True) # Show the vertical gridlines
     axis.set_axisbelow(True)
+    axis.spines['right'].set_visible(False)
+    axis.spines['top'].set_visible(False)
 
-    axis.legend(loc="lower left")
+    for xtick in box.get_yticks(): box.text(xtick, 0.5, "a")
 
     if return_figax:
+        axis.legend(bbox_to_anchor=(1.05, 1))
+        x, y = fig.get_size_inches()
+        fig.set_size_inches(x+0.4*x, y+0.2*y)
+        fig.tight_layout(pad=4)
+
         return fig, axis
 
 def boxplot_metadata(

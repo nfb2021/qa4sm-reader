@@ -1,8 +1,8 @@
 from qa4sm_reader.img import QA4SMImg, SpatialExtentError
-from qa4sm_reader.plotting_methods import mapplot, boxplot, plot_spatial_extent, _format_floats, make_watermark
 from qa4sm_reader.handlers import QA4SMMetric
 import qa4sm_reader.globals as glob
 from qa4sm_reader.plotter import QA4SMPlotter
+import qa4sm_reader.plotting_methods as plm
 
 from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
@@ -138,8 +138,8 @@ class QA4SMComparison():
         for n, img in enumerate(self.compared):
             img_metrics = {}
             for metric in img.metrics:
-                # hardcoded because n_obs cannot be compared
-                if metric == "n_obs":
+                # hardcoded because n_obs cannot be compared. todo: exclude empty metrics (problem: the values are not loaded here)
+                if metric in glob.metric_groups[0] or metric in ["tau", "p_tau"]:
                     continue
                 img_metrics[metric] = glob._metric_name[metric]
             if n==0:
@@ -336,7 +336,7 @@ class QA4SMComparison():
         ref_grid_stepsize = self.compared[0].ref_dataset_grid_stepsize
 
         ref = self._check_ref()["short_name"]
-        plot_spatial_extent(
+        plm.plot_spatial_extent(
             polys=polys,
             ref_points=ref_points,
             overlapping=self.overlapping,
@@ -362,7 +362,10 @@ class QA4SMComparison():
         varnames = {"varlist":[], "ci_list":[]}
         n = 0
         for i, img in enumerate(self.compared):
-            for Var in img._iter_vars(**{"metric":metric, "is_CI":False}):
+            for Var in img._iter_vars(
+                    type="metric",
+                    filter_parms={"metric":metric}
+            ):
                 var_cis = []
                 id = i
                 varname = Var.varname
@@ -378,7 +381,8 @@ class QA4SMComparison():
                     n += 1
                     # get CIs too, if present
                     for CI_Var in img._iter_vars(
-                            **{"metric":metric, "is_CI":True,"metric_ds":Var.metric_ds}
+                            type="ci",
+                            filter_parms={"metric":metric, "metric_ds":Var.metric_ds}
                     ):
                         # a bit of necessary code repetition
                         varname = CI_Var.varname
@@ -418,7 +422,7 @@ class QA4SMComparison():
     def rename_with_stats(self, df):
         """Rename columns of df by adding the content of QA4SMPlotter._box_stats()"""
         renamed = [
-            name + QA4SMPlotter._box_stats(df[name]) for name in df.columns
+            name + plm._box_stats(df[name]) for name in df.columns
         ]
         df.columns = renamed
 
@@ -570,7 +574,7 @@ class QA4SMComparison():
             columns=columns,
         )
 
-        table = table.applymap(_format_floats)
+        table = table.applymap(plm._format_floats)
 
         return table
 
@@ -592,7 +596,7 @@ class QA4SMComparison():
         um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
         figwidth = glob.boxplot_width * (len(df.columns) + 1)
         figsize = [figwidth, glob.boxplot_height]
-        fig, axes = boxplot(
+        fig, axes = plm.boxplot(
             df,
             ci=ci,
             label= "{} {}".format(Metric.pretty_name, um),
@@ -603,7 +607,7 @@ class QA4SMComparison():
         title_plot = "Comparison of {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        make_watermark(fig, glob.watermark_pos, offset= 0.04)
+        plm.make_watermark(fig, glob.watermark_pos, offset= 0.04)
         plt.tight_layout()
 
     def diff_mapplot(self, metric:str, diff_range:str='fixed', **kwargs):
@@ -626,7 +630,7 @@ class QA4SMComparison():
         um = glob._metric_description[metric].format(glob._metric_units[self.ref['short_name']])
         # make mapplot
         cbar_label = "Difference between {} and {}".format(*df.columns)
-        fig, axes = mapplot(
+        fig, axes = plm.mapplot(
             df.iloc[:,2],
             metric,
             self.ref['short_name'],
@@ -637,7 +641,7 @@ class QA4SMComparison():
         title_plot = "Overview of the difference in {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        make_watermark(fig, glob.watermark_pos, offset= 0.08)
+        plm.make_watermark(fig, glob.watermark_pos, offset= 0.08)
 
     def wrapper(self, method:str, metric=None, **kwargs):
         """

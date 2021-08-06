@@ -178,12 +178,12 @@ def test_common_metrics(double_img_paths, double_img_overlap):
         'R': "Pearson's r",
         'rho': "Spearman's rho",
         'RMSD': 'Root-mean-square deviation',
-        'p_tau': 'Kendall tau p-value',
+        # 'p_tau': 'Kendall tau p-value',
         'RSS': 'Residual sum of squares',
         'p_R': "Pearson's r p-value",
         'mse_corr': 'Mean square error correlation',
         'mse': 'Mean square error',
-        'tau': 'Kendall rank correlation',
+        # 'tau': 'Kendall rank correlation',
         'mse_bias': 'Mean square error bias',
         'p_rho': "Spearman's rho p-value",
         'BIAS': 'Bias (difference of means)',
@@ -193,6 +193,9 @@ def test_common_metrics(double_img_paths, double_img_overlap):
     assert double_img_overlap.common_metrics == metrics_should_hardcoded
     # check if n_obs is excluded:
     del metrics_should["n_obs"]
+    del metrics_should["tau"]
+    del metrics_should["p_tau"]
+
     assert metrics_should == metrics_should_hardcoded
 
 
