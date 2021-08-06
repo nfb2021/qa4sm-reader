@@ -132,7 +132,7 @@ def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None):
 
     return zz, data_extent, origin
 
-def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.975], type=None):
+def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.975], diff_map=False):
     """
     Get the value range (v_min, v_max) from globals._metric_value_ranges
     If the range is (None, None), a symmetric range around 0 is created,
@@ -151,6 +151,8 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
     quantiles : list, optional
         quantile of data to include in the range.
         The default is [0.025,0.975]
+    diff_map : bool, default is False
+        Whether the colorbar is for a difference plot
 
     Returns
     -------
@@ -162,11 +164,7 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
     if metric == None:
         force_quantile = True
 
-    if not type == None and type == 'diff':
-        ranges = globals._diff_value_ranges
-    else:
-        ranges = globals._metric_value_ranges
-
+    ranges = globals._metric_value_ranges
     if not force_quantile:  # try to get range from globals
         try:
             v_min = ranges[metric][0]
@@ -191,6 +189,10 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
 
     if force_quantile:  # get quantile range
         v_min, v_max = get_quantiles(ds, quantiles)
+        # adjust range based on the difference values in the map
+        if diff_map:
+            extreme = max([abs(v) for v in get_quantiles(ds, quantiles)])
+            v_min, v_max = -extreme, extreme
 
     return v_min, v_max
 
@@ -241,6 +243,7 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
     """
     lat, lon, gpi = globals.index_names
     if grid and grid_stepsize in ['nan', None]:
+        # todo: problem if only single lon/lat point is present?
         x_min, x_max, dx, len_x = _get_grid(df.index.get_level_values(lon))
         y_min, y_max, dy, len_y = _get_grid(df.index.get_level_values(lat))
         extent = [x_min-dx/2., x_max+dx/2., y_min-dx/2., y_max+dx/2.]
@@ -424,7 +427,7 @@ def make_watermark(
     else:
         raise NotImplementedError
 
-def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None):
+def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None, diff_map=False):
     """
     Make colorbar to use in plots
 
@@ -442,6 +445,8 @@ def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None):
         name of metric
     label: str
         label to describe the colorbar
+    diff_map : bool, default is False
+        Whether the colorbar is for a difference plot
     """
     if label is None:
         try:
@@ -452,6 +457,8 @@ def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None):
             raise Exception('The metric \'{}\' or reference \'{}\' is not known.\n'.format(metric, ref_short) + str(e))
 
     extend = get_extend_cbar(metric)
+    if diff_map:
+        extend = "both"
     cbar = fig.colorbar(im, cax=cax, orientation='horizontal', extend=extend)
     cbar.set_label(label, weight='normal')
     cbar.outline.set_linewidth(0.4)
@@ -1197,7 +1204,7 @@ def mapplot(
         label=None,
         figsize=globals.map_figsize,
         dpi=globals.dpi,
-        diff_range=None,
+        diff_map=False,
         **style_kwargs
 ) -> tuple:
         """
@@ -1231,9 +1238,8 @@ def mapplot(
             Figure size in inches. The default is globals.map_figsize.
         dpi : int, optional
             Resolution for raster graphic output. The default is globals.dpi.
-        diff_range : None, 'adjusted' or 'fixed'
-            if none, globals._metric_value_ranges is used to define the bar extent; if 'fixed', globals._diff_value_ranges
-            is used instead; if 'adjusted', max and minimum values are used
+        diff_map : bool, default is False
+            if True, a difference colormap is created
         **style_kwargs :
             Keyword arguments for plotter.style_map().
 
@@ -1243,18 +1249,19 @@ def mapplot(
             the boxplot
         ax : matplotlib.axes.Axes
         """
-        v_min, v_max = get_value_range(df, metric)  # range of values
-        if diff_range and diff_range == 'adjusted':
-            v_min, v_max = get_value_range(df, metric=None)
-        elif diff_range and diff_range == 'fixed':
-            v_min, v_max = get_value_range(df, metric, type='diff')
-
-        # initialize plot
-        fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
         if not colormap:
             cmap = globals._colormaps[metric]
         else:
             cmap = colormap
+        v_min, v_max = get_value_range(df, metric)
+        # everything changes if the plot is a difference map
+        if diff_map:
+            v_min, v_max = get_value_range(df, metric=None, diff_map=True)
+            cmap = globals._diff_colormaps[metric]
+
+        # initialize plot
+        fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
+
         # scatter point or mapplot
         if ref_short in globals.scattered_datasets:  # scatter
             if not plot_extent:
@@ -1280,7 +1287,7 @@ def mapplot(
                            transform=globals.data_crs, zorder=2)
 
         if add_cbar:  # colorbar
-            _make_cbar(fig, im, cax, ref_short, metric, label=label)
+            _make_cbar(fig, im, cax, ref_short, metric, label=label, diff_map=diff_map)
         style_map(ax, plot_extent, **style_kwargs)
         fig.canvas.draw()  # very slow. necessary bcs of a bug in cartopy: https://github.com/SciTools/cartopy/issues/1207
 
