@@ -28,9 +28,10 @@ max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if 
 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
-boxplot_height = 5
-boxplot_width = 1.8 # times (n+1), where n is the number of boxes.
+boxplot_height = 6
+boxplot_width = 2 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
+tick_size = 8.5
 
 # === watermark defaults ===
 watermark = u'made with QA4SM (qa4sm.eu)'  # Watermark string
@@ -218,8 +219,8 @@ _metric_units = {  # from /qa4sm/validator/validation/graphics.py
 _metric_name = {  # from /qa4sm/validator/validation/globals.py
     'R': 'Pearson\'s r',
     'p_R': 'Pearson\'s r p-value',
-    'rho': 'Spearman\'s rho',
-    'p_rho': 'Spearman\'s rho p-value',
+    'rho': 'Spearman\'s ρ',
+    'p_rho': 'Spearman\'s ρ p-value',
     'RMSD': 'Root-mean-square deviation',
     'BIAS': 'Bias (difference of means)',
     'n_obs': '# observations',
@@ -430,3 +431,10 @@ metadata = {
 soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
 instrument_depths = ["instrument_depthfrom", "instrument_depthto"]
 
+# metrics to be excluded from the automatic plotting
+_metadata_exclude = [
+    'p_R',
+    'p_rho',
+    'tau',
+    'p_tau',
+]

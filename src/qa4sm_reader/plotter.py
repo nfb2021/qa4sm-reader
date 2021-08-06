@@ -400,8 +400,11 @@ class QA4SMPlotter():
         for ext in out_types:
             fname = self._standard_filename(out_name, out_type=ext)
             if fname.exists():
-                warnings.warn('Overwriting file {}'.format(fname.name))
-            plt.savefig(fname, dpi='figure', bbox_inches='tight')
+                warn('Overwriting file {}'.format(fname.name))
+            try:
+                plt.savefig(fname, dpi='figure', bbox_inches='tight')
+            except ValueError:
+                continue
             fnames.append(fname.absolute())
 
         return fnames
@@ -733,7 +736,7 @@ class QA4SMPlotter():
         values = values.reindex(index=meta_values.index)
         mu = globals._metric_description[metric].format(globals._metric_units[self.ref['short_name']])
 
-        out = boxplot_metadata(
+        out = plm.boxplot_metadata(
             df=values,
             metadata_values=meta_values,
             ax_label=Var.Metric.pretty_name + mu,
@@ -776,10 +779,15 @@ class QA4SMPlotter():
             values.append(df)
         values = pd.concat(values, axis=1)
 
+        metric_name = globals._metric_name[metric]
+        metric_units = globals._metric_description[metric].format(
+            globals._metric_units[self.img.datasets.ref["short_name"]]
+        )
+
         Meta_cont = self.img.metadata[metadata]
         meta_values = Meta_cont.values.dropna()
 
-        bin_funct = bin_function_lut(globals.metadata[metadata][2])
+        bin_funct = plm.bin_function_lut(globals.metadata[metadata][2])
         binned_values = bin_funct(
             df=values,
             metadata_values=meta_values,
@@ -792,9 +800,10 @@ class QA4SMPlotter():
         kwargs = {
             "metric": metric,
             "metadata": metadata_discrete,
+            "common_y": metric_name + metric_units
         }
         n_datasets = len(self.img.datasets.others)
-        fig, axes = aggregate_subplots(
+        fig, axes = plm.aggregate_subplots(
             to_plot=values_subset,
             funct=self.meta_single,
             n_bars=n_datasets,
@@ -858,7 +867,7 @@ class QA4SMPlotter():
         )
         fig.suptitle(title)
 
-        make_watermark(fig=fig, offset=0)
+        plm.make_watermark(fig=fig, offset=0)
 
         if save_file:
             out_name = self._filenames_lut("metadata").format(
@@ -891,12 +900,14 @@ class QA4SMPlotter():
             list of file names
         """
         filenames = []
+
+        # makes no sense to plot the metadata for some metrics
+        if metric in globals._metadata_exclude:
+            return filenames
+
         for type, meta_keys in globals.out_metadata_plots.items():
-            # import pdb; pdb.set_trace()
             outfile = self.plot_metadata(metric, *meta_keys, save_file=True)
             filenames.append(outfile)
 
         return filenames
-import os
-im = QA4SMImg(os.path.join(os.path.dirname(__file__), '..','..', 'tests', 'test_data', 'basic', '0-ISMN.soil moisture_with_1-C3S.sm.nc'))
-pl = QA4SMPlotter(im)
+

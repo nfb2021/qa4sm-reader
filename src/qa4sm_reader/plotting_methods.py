@@ -654,6 +654,7 @@ def boxplot(
         plt.ylabel(label, weight='normal')
     ax.set_xticks(center_pos)
     ax.set_xticklabels(ticklabels)
+    ax.tick_params(labelsize=globals.tick_size)
     ax.grid(axis='x')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -928,7 +929,7 @@ def combine_depths(depth_dict:dict) -> pd.DataFrame:
 
     return depths_combined
 
-def aggregate_subplots(to_plot:dict, funct, n_bars, **kwargs):
+def aggregate_subplots(to_plot:dict, funct, n_bars, common_y=None, **kwargs):
     """
     Aggregate multiple subplots into one image
 
@@ -972,8 +973,9 @@ def aggregate_subplots(to_plot:dict, funct, n_bars, **kwargs):
                     "'axis' should be in the parameters of the given function {}".format(funct)
                 )
             funct(df=data, axis=ax, **kwargs)
-            ax.set_title(bin_label)
-            ax.legend([],[], frameon=False)
+            ax.set_title(bin_label, fontdict={"fontsize":10})
+            if n != 0:
+                ax.legend([],[], frameon=False)
         # eliminate extra subplot if odd number
         if rows*2 > sub_n:
             fig.delaxes(axes[rows-1, 1])
@@ -981,8 +983,9 @@ def aggregate_subplots(to_plot:dict, funct, n_bars, **kwargs):
         plt.subplots_adjust(wspace=0.1, hspace=0.25)
         fig.set_figheight(globals.boxplot_height*(np.ceil(sub_n/2) + 0.2))
         fig.set_figwidth(globals.boxplot_width*n_bars*2)
-        ax.legend(bbox_to_anchor=(1.01, 1))
-        fig.tight_layout(pad=4.5)
+
+        if common_y:
+            fig.text(0.05, 0.5, common_y, va='center', rotation='vertical')
 
     return fig, axes
 
@@ -1065,34 +1068,39 @@ def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
         showfliers = False,
         orient=orient,
     )
-    import pdb; pdb.set_trace()
+    n_bars = to_plot["Dataset"].nunique()
+    n_meta = to_plot[metadata_name].nunique()
     unit_height = 1
     unit_width = len(to_plot[metadata_name].unique())
     # needed for overlapping station names
-    box.tick_params(labelsize=8.5)
+    box.tick_params(labelsize=globals.tick_size)
+    dims = [globals.boxplot_width*n_meta*2, globals.boxplot_height]
     if orient == "v":
-        axis.set(xlabel=None)
-        axis.set(ylabel=y_axis)
+        axis.set(xlabel=None, ylabel=y_axis)
         axis.yaxis.grid(True) # Hide the horizontal gridlines
         axis.xaxis.grid(False) # Show the vertical gridlines
+
     if orient == "h":
-        axis.set(ylabel=None)
-        axis.set(xlabel=y_axis)
+        axis.set(ylabel=None, xlabel=y_axis)
         axis.yaxis.grid(False) # Hide the horizontal gridlines
         axis.xaxis.grid(True) # Show the vertical gridlines
+
     axis.set_axisbelow(True)
     axis.spines['right'].set_visible(False)
     axis.spines['top'].set_visible(False)
 
-    for xtick in box.get_yticks(): box.text(xtick, 0.5, "a")
+
+    axis.legend(loc="best", fontsize="small")
 
     if return_figax:
-        axis.legend(bbox_to_anchor=(1.05, 1))
-        x, y = fig.get_size_inches()
-        fig.set_size_inches(x+0.4*x, y+0.2*y)
-        fig.tight_layout(pad=4)
+        fig.set_figwidth(dims[0])
+        fig.set_figheight(dims[1])
 
         return fig, axis
+
+    else:
+        axis.set(xlabel=None)
+        axis.set(ylabel=None)
 
 def boxplot_metadata(
         df:pd.DataFrame,
