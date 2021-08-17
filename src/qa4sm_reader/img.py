@@ -323,7 +323,8 @@ class QA4SMImg(object):
             lat, lon, gpi = globals.index_names
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
-            df[gpi] = df.index.get_level_values(gpi)
+            if gpi in df.index:
+                df[gpi] = df.index.get_level_values(gpi)
         # import pdb; pdb.set_trace()
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
