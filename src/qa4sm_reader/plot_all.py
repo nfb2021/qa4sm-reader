@@ -13,6 +13,7 @@ def plot_all(
         out_dir:str=None,
         out_type:str='png',
         save_all:bool=True,
+        engine:str='h5netcdf',
         **plotting_kwargs
 ) -> (list, list):
     """
@@ -33,6 +34,9 @@ def plot_all(
         extensions which the files should be saved in
     save_all: bool, optional. Default is True.
         all plotted images are saved to the output directory
+    engine: str, optional (default: h5netcdf)
+        Engine used by xarray to read data from file. For qa4sm this should
+        be h5netcdf.
     plotting_kwargs: arguments for plotting functions.
 
     Returns
@@ -49,7 +53,8 @@ def plot_all(
             filepath,
             period=period,
             extent=extent,
-            ignore_empty=True
+            ignore_empty=True,
+            engine=engine,
         )
         plotter = QA4SMPlotter(
             image=img,
