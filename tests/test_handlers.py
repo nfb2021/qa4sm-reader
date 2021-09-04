@@ -33,12 +33,12 @@ def ci_attributes():
     return ds.attrs
 
 
-@pytest.fixture
-def metadata_attributes():
-    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'metadata',
-                            "0-ISMN.soil_moisture_with_1-C3S.sm.nc")
-    ds = xr.open_dataset(testfile)
-    return ds.attrs
+#@pytest.fixture
+#def metadata_attributes():
+#    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'metadata',
+#                            "0-ISMN.soil_moisture_with_1-C3S.sm.nc")
+#    ds = xr.open_dataset(testfile)
+#    return ds.attrs
 
 
 @pytest.fixture
@@ -306,7 +306,7 @@ def test_ci_var(ci_attributes):
     assert ci_var.bound == "upper"
 
 
-def test_class_attributes(basic_attributes, ci_attributes, metadata_attributes):
+def test_class_attributes(basic_attributes, ci_attributes):
     basic_var = QA4SMVariable(
         "R_between_6-ISMN_and_4-SMAP",
         basic_attributes
@@ -317,13 +317,13 @@ def test_class_attributes(basic_attributes, ci_attributes, metadata_attributes):
         ci_attributes
     ).initialize()
 
-    metadata_var = QA4SMVariable(
-        "lc_2010",
-        metadata_attributes
-    ).initialize()
+    #metadata_var = QA4SMVariable(
+    #    "lc_2010",
+    #    metadata_attributes
+    #).initialize()
 
     for attr in ["ref_ds", "metric_ds", "other_ds"]:
         assert hasattr(ci_var, attr)
         assert hasattr(basic_var, attr)
 
-    assert hasattr(metadata_var, "key_meta")
+    #assert hasattr(metadata_var, "key_meta")
