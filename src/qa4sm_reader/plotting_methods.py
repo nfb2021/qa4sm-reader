@@ -681,7 +681,7 @@ def resize_bins(sorted, nbins):
 
     return bin_values, unique_values, bin_size
 
-def bin_continuous(
+def bin_continuous(  # TODO: make test
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         meta_key:str,
@@ -745,7 +745,7 @@ def bin_continuous(
 
     return binned
 
-def bin_classes(
+def bin_classes(  # TODO: make test
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         meta_key:str,
@@ -790,7 +790,7 @@ def bin_classes(
 
     return binned
 
-def bin_discrete(
+def bin_discrete(  # TODO: make test
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         meta_key:str,
@@ -865,7 +865,7 @@ def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
 
     return stats_list
 
-def combine_soils(
+def combine_soils(  # TODO: make test
         soil_fractions:dict,
         clay_fine:int=35,
         clay_coarse:int=20,
@@ -912,7 +912,7 @@ def combine_soils(
 
     return soil_combined
 
-def combine_depths(depth_dict:dict) -> pd.DataFrame:
+def combine_depths(depth_dict:dict) -> pd.DataFrame:  # TODO: make test
     """
     Create a metadata entry for the instrument depth by finding the middle point between the upper and lower
     specified instrument depths
@@ -946,8 +946,10 @@ def aggregate_subplots(to_plot:dict, funct, n_bars, common_y=None, **kwargs):
         dictionary with the data to plot, of the shape 'title of the subplot': pd.Dataframe
         (or data format required by funct)
     funct: method
-        function to cerate the individual subplots. Should have a parameter 'axis',
+        function to create the individual subplots. Should have a parameter 'axis',
         where the plt.Axis can be given. Returns a tuple of (unit_height, unit_width)
+    n_bars: int
+        number of boxplot bars (one is central + confidence intervals)
     **kwargs: dict
         arguments to pass on to the plotting function
 
@@ -1019,7 +1021,7 @@ def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
 
     return fig, axes
 
-def _dict2df(to_plot_dict:dict, meta_key:str):
+def _dict2df(to_plot_dict:dict, meta_key:str):  # TODO: make test
     """Transform a dictionary into a DataFrame for catplotting"""
     to_plot_df = []
     for range, values in to_plot_dict.items():

@@ -1,0 +1,1 @@
+# test for functions that plot all the images. Use pytest.long_run to avoid running it for development
