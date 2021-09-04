@@ -38,7 +38,8 @@ class QA4SMImg(object):
                  metrics=None,
                  index_names=globals.index_names,
                  load_data=True,
-                 empty=False):
+                 empty=False,
+                 engine='h5netcdf'):
         """
         Initialise a common QA4SM results image.
 
@@ -60,12 +61,14 @@ class QA4SMImg(object):
             Names of dimension variables in x and y direction (lat, lon).
         load_data: bool, default is True
             if true, initialize all the datasets, variables and metadata
+        engine: str, optional (default: h5netcdf)
+            Engine used by xarray to read data from file.
         """
         self.filepath = Path(filepath)
         self.index_names = index_names
 
         self.ignore_empty = ignore_empty
-        self.ds = self._open_ds(extent=extent, period=period)
+        self.ds = self._open_ds(extent=extent, period=period, engine=engine)
         self.extent = self._get_extent(extent=extent)  # get extent from .nc file if not specified
         self.datasets = hdl.QA4SMDatasets(self.ds.attrs)
 
@@ -81,12 +84,12 @@ class QA4SMImg(object):
             except:
                 self.ref_dataset_grid_stepsize = 'nan'
 
-    def _open_ds(self, extent=None, period=None):
+    def _open_ds(self, extent=None, period=None, engine='h5netcdf'):
         """Open .nc as xarray datset, with selected extent"""
         dataset = xr.load_dataset(
             self.filepath,
             drop_variables="time",
-            engine="h5netcdf",
+            engine=engine,
         )
         if period is not None:
             ds = dataset.sel(dict(period=period))
@@ -347,7 +350,9 @@ class QA4SMImg(object):
             lat, lon, gpi = globals.index_names
             df[lat] = df.index.get_level_values(lat)
             df[lon] = df.index.get_level_values(lon)
-            df[gpi] = df.index.get_level_values(gpi)
+
+            if gpi in df.index:
+                df[gpi] = df.index.get_level_values(gpi)
 
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
