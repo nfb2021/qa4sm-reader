@@ -14,6 +14,7 @@ def plot_all(
         out_type:str='png',
         save_all:bool=True,
         save_metadata:bool=False,
+        engine:str='h5netcdf',
         **plotting_kwargs
 ) -> (list, list):
     """
@@ -36,6 +37,9 @@ def plot_all(
         all plotted images are saved to the output directory
     save_metadata: bool, optional. Default is False.
         for each metric, 3 metadata plots are provided (see plotter.QA4SMPlotter.plot_save_metadata)
+    engine: str, optional (default: h5netcdf)
+        Engine used by xarray to read data from file. For qa4sm this should
+        be h5netcdf.
     plotting_kwargs: arguments for plotting functions.
 
     Returns
@@ -52,7 +56,8 @@ def plot_all(
             filepath,
             period=period,
             extent=extent,
-            ignore_empty=True
+            ignore_empty=True,
+            engine=engine,
         )
         plotter = QA4SMPlotter(
             image=img,
