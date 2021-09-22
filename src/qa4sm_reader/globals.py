@@ -55,7 +55,7 @@ _cclasses = {
     'div_worse': plt.cm.get_cmap('RdYlBu_r'), # diverging: 1 bad, 0 special, -1 good (difference of bias)
     'div_neutr': plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
     'seq_worse': plt.cm.get_cmap('YlGn_r'), #'YlGn_r',  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS):
-    'seq_better': plt.cm.get_cmap('YlGn'), #'YlGn'  # sequential: increasing value good (n_obs, snr, STDerr)
+    'seq_better': plt.cm.get_cmap('YlGn'), #'YlGn'  # sequential: increasing value good (n_obs, STDerr)
 }
 
 # 0=common metrics, 2=paired metrics (2 datasets), 3=triple metrics (TC, 3 datasets)
@@ -116,7 +116,7 @@ _colormaps = {  # from /qa4sm/validator/validation/graphics.py
     'RSS': _cclasses['seq_worse'],
     'tau':_cclasses['div_better'],
     'p_tau': _cclasses['seq_worse'],
-    'snr': _cclasses['seq_better'],
+    'snr': _cclasses['div_better'],
     'err_std': _cclasses['seq_worse'],
     'beta': _cclasses['div_neutr'],
 }
