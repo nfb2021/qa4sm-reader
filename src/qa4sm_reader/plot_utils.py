@@ -6,6 +6,7 @@ from qa4sm_reader import globals
 import numpy as np
 import pandas as pd
 import os.path
+import copy
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -680,6 +681,17 @@ def mapplot(
         if diff_map:
             v_min, v_max = get_value_range(df, metric=None, diff_map=True)
             cmap = globals._diff_colormaps[metric]
+
+        # mask values outside range (e.g. for negative STDerr from TCA)
+        if metric in globals._metric_mask_range.keys():
+            mask_under, mask_over = globals._metric_mask_range[metric]  # get values from scratch to disregard quantiles
+            cmap = copy.copy(cmap)
+            if mask_under is not None:
+                v_min = mask_under
+                cmap.set_under("red")
+            if mask_over is not None:
+                v_max = mask_over
+                cmap.set_over("red")
 
         # initialize plot
         fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
