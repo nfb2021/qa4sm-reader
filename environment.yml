@@ -8,7 +8,7 @@ dependencies:
 - pandas
 - numpy
 - matplotlib
-- cartopy
+- cartopy==0.20.0
 - h5netcdf
 - pip
 - pip:
