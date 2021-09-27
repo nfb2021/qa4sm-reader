@@ -58,6 +58,12 @@ class TestQA4SMDatasets(unittest.TestCase):
         also_meta_ref = self.Datasets._dc_names(5)
         assert meta_ref == also_meta_ref
 
+    def test_fetch_attributes(self):
+        del self.Datasets.meta['val_dc_variable_pretty_name0']
+        vers0 = self.Datasets._fetch_attribute('_val_dc_variable_pretty_name', 0)
+        # check that fallback method works
+        assert vers0 == "soil moisture"
+
 class TestMetricVariableTC(unittest.TestCase):
 
     def setUp(self) -> None:
