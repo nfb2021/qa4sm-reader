@@ -375,7 +375,7 @@ def style_map(
 
     return ax
 
-def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.02):
+def make_watermark(fig, placement=globals.watermark_pos, for_map=False, offset=0.03):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.

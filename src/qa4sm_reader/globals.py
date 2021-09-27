@@ -29,7 +29,7 @@ max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
 boxplot_height = 6
-boxplot_width = 2 # times (n+1), where n is the number of boxes.
+boxplot_width = 2.1 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 
 # === watermark defaults ===
@@ -93,6 +93,7 @@ _ds_short_name_attr = 'val_dc_dataset{:d}' # attribute convention for other data
 _ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}' # attribute convention for other datasets
 _version_short_name_attr = 'val_dc_version{:d}' # attribute convention for other datasets
 _version_pretty_name_attr = 'val_dc_version_pretty_name{:d}' # attribute convention for other datasets
+_val_dc_variable_pretty_name = 'val_dc_variable_pretty_name{:d}' # attribute convention for variable name
 
 # format should have (metric, ds, ref, other ds)
 _variable_pretty_name = {
@@ -252,37 +253,6 @@ _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'CGLS_SCATSAR_SWI1km': r'CGLS SCATSAR SWI',
 }
 
-# fallback for dataset __version pretty names in case they are not in the metadata
-_dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
-    "C3S_V201706": "v201706",
-    "C3S_V201812": "v201812",
-    "C3S_V201912": "v201912",
-    "SMAP_V5_PM": "v5 PM/ascending",
-    "SMAP_V5_AM": "v5 AM/descending",
-    "ASCAT_H113": "H113",
-    "ISMN_V20180712_TEST": "20180712 testset",
-    "ISMN_V20180712_MINI": "20180712 mini testset",
-    "ISMN_V20180830_GLOBAL": "20180830 global",
-    "ISMN_V20190222_GLOBAL": "20190222 global",
-    "ISMN_V20191211_GLOBAL": "20191211 global",
-    "GLDAS_NOAH025_3H_2_1": "NOAH025 3H.2.1",
-    "GLDAS_TEST": "TEST",
-    "ESA_CCI_SM_C_V04_4": "v04.4",
-    "ESA_CCI_SM_A_V04_4": "v04.4",
-    "ESA_CCI_SM_P_V04_4": "v04.4",
-    "ESA_CCI_SM_C_V04_5": "v04.5",
-    "ESA_CCI_SM_A_V04_5": "v04.5",
-    "ESA_CCI_SM_P_V04_5": "v04.5",
-    "SMOS_105_ASC": "V.105 Ascending",
-    "SMOS_105_DES": "V.105 Descending",
-    "ERA5_test": " ERA5 test",
-    "ERA5_20190613": "v20190613",
-    "ERA5_LAND_V20190904" : "v20190904",
-    "ERA5_LAND_TEST": "ERA5-Land test",
-    "CGLS_CSAR_SSM1km_V1_1": "v1_1",
-    "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
-}
-
 # label format for all metrics for HTML rendering
 _metric_description_HTML = {  # from /qa4sm/validator/validation/graphics.py
     'R': ' [-]',
@@ -320,4 +290,80 @@ _metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
     'SMOS': 'm³/m³',
     'CGLS_CSAR_SSM1km': '% sat',
     'CGLS_SCATSAR_SWI1km': '% sat',
+}
+
+# Backups
+# -------
+# to fallbsck to in case the dataset attributes in the .nc file are missing some entries. Sould have variable short
+# name as keys as these should be always available in the template.
+
+# available backups
+_backups = {
+    "_version_short_name_attr" : "_dataset_version_pretty_names",
+    "_val_dc_variable_pretty_name": "_dataset_variable_names"
+}
+
+# fallback for dataset __version pretty names in case they are not in the metadata
+_dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
+    "C3S_V201706": "v201706",
+    "C3S_V201812": "v201812",
+    "C3S_V201912": "v201912",
+    "SMAP_V5_PM": "v5 PM/ascending",
+    "SMAP_V5_AM": "v5 AM/descending",
+    "ASCAT_H113": "H113",
+    "ISMN_V20180712_TEST": "20180712 testset",
+    "ISMN_V20180712_MINI": "20180712 mini testset",
+    "ISMN_V20180830_GLOBAL": "20180830 global",
+    "ISMN_V20190222_GLOBAL": "20190222 global",
+    "ISMN_V20191211_GLOBAL": "20191211 global",
+    "ISMN_V20210131": "20210131 global",
+    "GLDAS_NOAH025_3H_2_1": "NOAH025 3H.2.1",
+    "GLDAS_TEST": "TEST",
+    "ESA_CCI_SM_C_V04_4": "v04.4",
+    "ESA_CCI_SM_A_V04_4": "v04.4",
+    "ESA_CCI_SM_P_V04_4": "v04.4",
+    "ESA_CCI_SM_C_V04_5": "v04.5",
+    "ESA_CCI_SM_A_V04_5": "v04.5",
+    "ESA_CCI_SM_P_V04_5": "v04.5",
+    "SMOS_105_ASC": "V.105 Ascending",
+    "SMOS_105_DES": "V.105 Descending",
+    "ERA5_test": " ERA5 test",
+    "ERA5_20190613": "v20190613",
+    "ERA5_LAND_V20190904" : "v20190904",
+    "ERA5_LAND_TEST": "ERA5-Land test",
+    "CGLS_CSAR_SSM1km_V1_1": "v1_1",
+    "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
+}
+
+# fallback for dataset val_dc_variable in case they are not in the metadata
+# subdivided by version in case anything changes between versions (e.g. measuring depths in GLDAS)
+_dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
+    "C3S_V201706": "soil moisture",
+    "C3S_V201812": "soil moisture",
+    "C3S_V201912": "soil moisture",
+    "SMAP_V5_PM": "soil moisture",
+    "SMAP_V5_AM": "soil moisture",
+    "ASCAT_H113": "soil moisture",
+    "ISMN_V20180712_TEST": "soil moisture",
+    "ISMN_V20180712_MINI": "soil moisture",
+    "ISMN_V20180830_GLOBAL": "soil moisture",
+    "ISMN_V20190222_GLOBAL": "soil moisture",
+    "ISMN_V20191211_GLOBAL": "soil moisture",
+    "ISMN_V20210131": "soil moisture",
+    "GLDAS_NOAH025_3H_2_1": "soil moisture depth unknown",
+    "GLDAS_TEST": "soil moisture depth unknown",
+    "ESA_CCI_SM_C_V04_4": "soil moisture",
+    "ESA_CCI_SM_A_V04_4": "soil moisture",
+    "ESA_CCI_SM_P_V04_4": "soil moisture",
+    "ESA_CCI_SM_C_V04_5": "soil moisture",
+    "ESA_CCI_SM_A_V04_5": "soil moisture",
+    "ESA_CCI_SM_P_V04_5": "soil moisture",
+    "SMOS_105_ASC": "soil moisture",
+    "SMOS_105_DES": "soil moisture",
+    "ERA5_test": "svwl1",
+    "ERA5_20190613": "svwl1",
+    "ERA5_LAND_V20190904" : "svwl1",
+    "ERA5_LAND_TEST": "svwl1",
+    "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
+    "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
 }
