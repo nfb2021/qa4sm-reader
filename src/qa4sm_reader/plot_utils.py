@@ -752,7 +752,6 @@ def plot_spatial_extent(
     reg_grid : bool, default is False,
         plotting oprion for regular grids (satellites)
     """
-    # todo: adjust figsize to shown polygons
     fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi)
     legend_elements = []
     # plot polygons
@@ -838,8 +837,6 @@ def plot_spatial_extent(
                     )
                 else:
                     continue
-    # create legend
-    plt.legend(bbox_to_anchor=(1, 1), fontsize='medium')
     # style plot
     make_watermark(fig, globals.watermark_pos, offset=0)
     title_style = {"fontsize": 12}
@@ -849,6 +846,12 @@ def plot_spatial_extent(
     d_lat = abs(union.bounds[1] - union.bounds[3])* 1/8
     plot_extent = (union.bounds[0] - d_lon, union.bounds[2] + d_lon,
                    union.bounds[1] - d_lat, union.bounds[3] + d_lat)
-    plt.tight_layout()
     grid_intervals = [1, 5, 10, 30]
     style_map(ax, plot_extent, grid_intervals=grid_intervals)
+    # create legend
+    plt.legend(
+        loc="lower left",
+        fontsize='small',
+        framealpha=0.4,
+        edgecolor='black'
+    )

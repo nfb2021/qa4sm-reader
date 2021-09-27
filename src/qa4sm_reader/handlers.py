@@ -93,12 +93,14 @@ class QA4SMDatasets():  #  todo: change netCDF ids/dcs
             dc dataset.
         """
         names = {}
+        short_name = self.meta[globals._ds_short_name_attr.format(dc)]
 
-        names['short_name'] = self.meta[globals._ds_short_name_attr.format(dc)]
+        names['short_name'] = short_name
         names['pretty_name'] = self.meta[globals._ds_pretty_name_attr.format(dc)]
         names['short_version'] = self.meta[globals._version_short_name_attr.format(dc)]
         names['pretty_version'] = self.meta[globals._version_pretty_name_attr.format(dc)]
         names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
+        names['mu'] = "{}".format(globals._metric_units_HTML[short_name])
 
         return names
 

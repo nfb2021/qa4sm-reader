@@ -670,3 +670,6 @@ class QA4SMComparison():
             metric=metric,
             **kwargs
         )
+
+comp = QA4SMComparison("/home/pstradio/scratch/Metadata/0-ISMN.soil_moisture_with_1-ESA_CCI_SM_passive.sm_with_2-SMAP.soil_moisture.nc")
+comp.visualize_extent()

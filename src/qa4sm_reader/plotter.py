@@ -132,8 +132,12 @@ class QA4SMPlotter():
         id, meta = mds_meta
         if tc:
             id, meta = other_meta
-        ds_parts.append('{}-{}\n({})'.format(
-            id, meta['pretty_name'], meta['pretty_version']))
+        ds_parts.append('{}-{}\n({}) [{}]'.format(
+            id,
+            meta['pretty_name'],
+            meta['pretty_version'],
+            meta['mu'])
+        )
         capt = '\n and \n'.join(ds_parts)
 
         if tc:
