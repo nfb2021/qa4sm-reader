@@ -101,8 +101,13 @@ class QA4SMPlotter():
         id, meta = mds_meta
         if tc:
             id, meta = other_meta
-        ds_parts.append('{}-{}\n({})'.format(
-            id, meta['pretty_name'], meta['pretty_version']))
+        ds_parts.append('{}-{}\n({})\nVariable: {} [{}]'.format(
+            id,
+            meta['pretty_name'],
+            meta['pretty_version'],
+            meta['pretty_variable'],
+            meta['mu'])
+        )
         capt = '\n and \n'.join(ds_parts)
 
         if tc:
@@ -156,8 +161,8 @@ class QA4SMPlotter():
             type of plot
         """
         titles = {
-            'boxplot_basic': 'Intercomparison of \n{} \nwith {}-{} ({}) \nas the reference',
-            'boxplot_tc': 'Intercomparison of \n{} \nfor {}-{} ({}) \nwith {}-{} ({}) \nas the reference',
+            'boxplot_basic': 'Intercomparison of {} \nwith {}-{} ({}) as the reference\n ',
+            'boxplot_tc': 'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as the reference\n ',
             'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
             'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
             'metadata': 'Intercomparison of {} by {}\nwith reference: {}',
@@ -352,6 +357,9 @@ class QA4SMPlotter():
         label = "{}{}".format(*parts)
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
+        # otherwise it's too narrow
+        if metric == "n_obs":
+            figwidth = figwidth + 0.2
         figsize = [figwidth, globals.boxplot_height]
         fig, ax = plm.boxplot(
             df=df,
@@ -370,9 +378,9 @@ class QA4SMPlotter():
             ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if self.img.has_CIs:
-            offset = 0.06  # offset smaller as CI variables have a larger caption
+            offset = 0.08  # offset smaller as CI variables have a larger caption
         if Var.g == 0:
-            offset = 0.02  # offset larger as common metrics have a shorter caption
+            offset = 0.03  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
             plm.make_watermark(fig, offset=offset)
 

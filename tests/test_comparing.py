@@ -55,7 +55,9 @@ def test_check_ref(single_img):
         'pretty_name': 'ERA5-Land',
         'short_version': 'ERA5_LAND_TEST',
         'pretty_version': 'ERA5-Land test',
-        'pretty_title': 'ERA5-Land (ERA5-Land test)'
+        'pretty_variable': 'swvl1',
+        'mu': 'm³/m³',
+        'pretty_title': 'ERA5-Land (ERA5-Land test)',
     }
 
 
@@ -221,7 +223,7 @@ def test_get_data(double_img_overlap):
     data, ci = double_img_overlap._get_data("R").values()
     assert len(data) == 2
     data = data[0]
-    name_should = "Validation 0:\n1-C3S\n(v202012)\n"
+    name_should = "Validation 0:\n1-C3S\n(v202012)\nVariable: sm [m³/m³]\n"
     assert data.name == name_should
     data_should = [
         0.679918, 0.707091, 0.713081, 0.808353,

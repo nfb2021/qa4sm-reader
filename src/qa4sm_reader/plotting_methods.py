@@ -7,7 +7,9 @@ from qa4sm_reader import globals
 import numpy as np
 import pandas as pd
 import os.path
+
 from typing import Union
+import copy
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -386,7 +388,7 @@ def make_watermark(
         fig,
         placement=globals.watermark_pos,
         for_map=False,
-        offset=0.02
+        offset=0.03
 ):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
@@ -1261,6 +1263,17 @@ def mapplot(
             v_min, v_max = get_value_range(df, metric=None, diff_map=True)
             cmap = globals._diff_colormaps[metric]
 
+        # mask values outside range (e.g. for negative STDerr from TCA)
+        if metric in globals._metric_mask_range.keys():
+            mask_under, mask_over = globals._metric_mask_range[metric]  # get values from scratch to disregard quantiles
+            cmap = copy.copy(cmap)
+            if mask_under is not None:
+                v_min = mask_under
+                cmap.set_under("red")
+            if mask_over is not None:
+                v_max = mask_over
+                cmap.set_over("red")
+
         # initialize plot
         fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
 
@@ -1405,8 +1418,6 @@ def plot_spatial_extent(
                     )
                 else:
                     continue
-    # create legend
-    plt.legend(bbox_to_anchor=(1, 1), fontsize='medium')
     # style plot
     make_watermark(fig, globals.watermark_pos, offset=0)
     title_style = {"fontsize": 12}
@@ -1416,6 +1427,12 @@ def plot_spatial_extent(
     d_lat = abs(union.bounds[1] - union.bounds[3])* 1/8
     plot_extent = (union.bounds[0] - d_lon, union.bounds[2] + d_lon,
                    union.bounds[1] - d_lat, union.bounds[3] + d_lat)
-    plt.tight_layout()
     grid_intervals = [1, 5, 10, 30]
     style_map(ax, plot_extent, grid_intervals=grid_intervals)
+    # create legend
+    plt.legend(
+        loc="lower left",
+        fontsize='small',
+        framealpha=0.4,
+        edgecolor='black'
+    )

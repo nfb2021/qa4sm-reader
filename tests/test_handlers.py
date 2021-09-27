@@ -147,6 +147,13 @@ def test_dcs(datasets):
     assert len(datasets._dcs().keys()) == 5
 
 
+def test_fetch_attributes(datasets):
+        del datasets.meta['val_dc_variable_pretty_name0']
+        vers0 = datasets._fetch_attribute('_val_dc_variable_pretty_name', 0)
+        # check that fallback method works
+        assert vers0 == "soil moisture"
+
+
 def test_dc_names(datasets_names):
     assert datasets_names["ismn"]['pretty_name'] == 'ISMN'
     assert datasets_names["ismn"]['pretty_version'] == '20180712 mini testset'

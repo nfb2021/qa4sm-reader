@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 
 from qa4sm_reader import globals
 from parse import *
@@ -147,6 +148,56 @@ class QA4SMDatasets():
 
         return dcs
 
+    def _fetch_attribute(self, template, dc):
+        """
+        Try to get the meta attribute from the netCDF file, and fall back to globals if missing
+
+        Parameters
+        ----------
+        template: str
+            globals variable assigned to an attribute (e.g. _version_short_name_attr for val_dc_version{:d})
+        dc: int
+            The dc of the dataset as in the global metadata of the results file
+
+        Returns
+        -------
+        meta: str
+            Required attribute value
+        """
+        # try to get from self.meta
+        try:
+            meta = self.meta[
+                globals.__dict__[template].format(dc)
+            ]
+        # try to get from globals
+        except KeyError:
+            # if there is an option to use
+            if template in globals._backups.keys():
+                try:
+                    backup_var = globals._backups[template]
+                    # use the version short name (should be always in netCDF)
+                    meta = globals.__dict__[backup_var][
+                        self.meta[globals._version_short_name_attr.format(dc)]
+                    ]
+                # globals fallback has failed. Raise an exception
+                except KeyError or AttributeError:
+                    raise Exception(
+                        "Either the attribute {} is missing from the netCDF template, or the dictionaries"
+                        "in globals are not updated for the datasets used".format(
+                            globals._version_short_name_attr.format(dc)
+                        )
+                    )
+            # give warning and return an empty value
+            else:
+                warnings.warn(
+                    "There is no attribute {} in the netCDF dataset. An empty string is returned".format(
+                        globals.__dict__[template].format(dc)
+                    )
+                )
+                meta = ""
+
+        return meta
+
     def _dc_names(self, dc:int) -> dict:
         """
         Get dataset meta values for the passed dc
@@ -164,10 +215,14 @@ class QA4SMDatasets():
         """
         names = {}
 
-        names['short_name'] = self.meta[globals._ds_short_name_attr.format(dc)]
-        names['pretty_name'] = self.meta[globals._ds_pretty_name_attr.format(dc)]
-        names['short_version'] = self.meta[globals._version_short_name_attr.format(dc)]
-        names['pretty_version'] = self.meta[globals._version_pretty_name_attr.format(dc)]
+        names['short_name'] = self._fetch_attribute("_ds_short_name_attr", dc)
+        names['pretty_name'] = self._fetch_attribute("_ds_pretty_name_attr", dc)
+        names['short_version'] = self._fetch_attribute("_version_short_name_attr", dc)
+        names['pretty_version'] = self._fetch_attribute("_version_pretty_name_attr", dc)
+        names['pretty_variable'] = self._fetch_attribute("_val_dc_variable_pretty_name", dc)
+        # not from dataset:
+        names['mu'] = "{}".format(globals._metric_units_HTML[names['short_name']])
+        # combined name for plots:
         names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
 
         return names
