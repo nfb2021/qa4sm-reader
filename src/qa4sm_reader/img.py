@@ -140,18 +140,26 @@ class QA4SMImg(object):
             metadata[Var.varname] = Var
 
         # metadata that are generated upon initialization (soil type and instrument depth):
+        # Do not provide else statement to avoid dealing with None further on
         if all(type in metadata.keys() for type in globals.soil_types):
             soil_dict = {type: metadata[type] for type in globals.soil_types}
             soil_combined = combine_soils(soil_dict)
             metadata["soil_type"] = hdl.QA4SMVariable("soil_type", self.ds.attrs, values=soil_combined).initialize()
+
         else:
-            metadata["soil_type"] = None
+            warnings.warn(
+                "Not all:" + ", ".join(globals.soil_types) + " are present in the netCDF variables"
+            )
+
         if all(type in metadata.keys() for type in globals.instrument_depths):
             depth_dict = {type: metadata[type] for type in globals.instrument_depths}
             depth_combined = combine_depths(depth_dict)
             metadata["instrument_depth"] = hdl.QA4SMVariable("instrument_depth", self.ds.attrs, values=depth_combined).initialize()
+
         else:
-            metadata["instrument_depth"] = None
+            warnings.warn(
+                "Not all:" + ", ".join(globals.instrument_depths) + " are present in the netCDF variables"
+            )
 
         return metadata
 

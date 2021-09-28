@@ -377,6 +377,7 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
 
 # Metadata statics
 # ----------------
+# information needed for plotting the metadata-boxplots
 
 lc_classes = {
     "unknown": "Not provided",

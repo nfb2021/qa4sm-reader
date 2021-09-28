@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 from pathlib import Path
 import seaborn as sns
 import pandas as pd
@@ -889,7 +890,7 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def plot_save_metadata(self, metric):
+    def plot_save_metadata(self, metric):  # TODO: method to handle missing metadata entries e.g. in previous qa4sm output (without instrument depth info)
         """
         Plots and saves three metadata boxplots per metric (defined in globals.py):
 
@@ -914,8 +915,14 @@ class QA4SMPlotter():
             return filenames
 
         for type, meta_keys in globals.out_metadata_plots.items():
-            outfile = self.plot_metadata(metric, *meta_keys, save_file=True)
-            filenames.append(outfile)
+            # the presence of instrument_depth in the out file depends on the ismn release version
+            if all(meta_key in self.img.metadata.keys() for meta_key in meta_keys):
+                outfile = self.plot_metadata(metric, *meta_keys, save_file=True)
+                filenames.append(outfile)
+            else:
+                warnings.warn(
+                    "Not all" + ", ".join(meta_keys) + " are present in the netCDF variables"
+                )
 
         return filenames
 
