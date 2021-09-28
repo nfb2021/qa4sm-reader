@@ -868,7 +868,7 @@ def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
 
     return stats_list
 
-def combine_soils(  # TODO: make test
+def combine_soils(
         soil_fractions:dict,
         clay_fine:int=35,
         clay_coarse:int=20,
@@ -915,7 +915,7 @@ def combine_soils(  # TODO: make test
 
     return soil_combined
 
-def combine_depths(depth_dict:dict) -> pd.DataFrame:  # TODO: make test
+def combine_depths(depth_dict:dict) -> pd.DataFrame:
     """
     Create a metadata entry for the instrument depth by finding the middle point between the upper and lower
     specified instrument depths

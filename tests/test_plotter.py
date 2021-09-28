@@ -9,8 +9,9 @@ import shutil
 
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg
-from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, bin_discrete
-
+from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, \
+    bin_discrete, combine_soils, combine_depths
+from qa4sm_reader.handlers import Metadata
 
 @pytest.fixture
 def plotdir():
@@ -313,10 +314,38 @@ def test_bin_discrete():
 
     pd.testing.assert_frame_equal(binned, exp)
 
-# def test_combine_soils():
-#
-#
-# def test_combine_depths():
+
+def test_combine_soils():
+    sidata = pd.Series(data=[30, 90, 5])
+    sadata = pd.Series(data=[75, 5, 90])
+    cdata = pd.Series(data=[5, 5, 5])
+    soil_fractions = {
+        "silt_fraction": Metadata(varname="silt_fraction", global_attrs={}, values=sidata),
+        "sand_fraction": Metadata(varname="sand_fraction", global_attrs={}, values=sadata),
+        "clay_fraction": Metadata(varname="clay_fraction", global_attrs={}, values=cdata),
+    }
+    combined = combine_soils(soil_fractions)
+    exp = pd.DataFrame(
+        data=["Coarse\ngranulometry", "Fine\ngranulometry", "Coarse\ngranulometry"],
+        columns=["soil_type"]
+    )
+
+    pd.testing.assert_frame_equal(combined, exp)
+
+
+def test_combine_depths():
+    datafrom = pd.Series(data=np.zeros(10))
+    datato = pd.Series(data=np.full(10, 1))
+    df = Metadata(varname="instrument_depthfrom", global_attrs={}, values=datafrom)
+    dt = Metadata(varname="instrument_depthto", global_attrs={}, values=datato)
+    depth_dict = {
+        "instrument_depthfrom": df,
+        "instrument_depthto": dt,
+    }
+    combined = combine_depths(depth_dict)
+    exp = pd.DataFrame(index=np.linspace(0, 9, 10, dtype=int), data=np.full(10, 0.5), columns=["instrument_depth"])
+
+    pd.testing.assert_frame_equal(combined, exp)
 
 
 def test_dict2df():

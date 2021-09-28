@@ -926,7 +926,7 @@ class QA4SMPlotter():
 
         return filenames
 
-im = QA4SMImg("/home/pstradio/scratch/Metadata/0-ISMN.soil_moisture_with_1-C3S.sm_with_2-ESA_CCI_SM_passive.sm.nc")
+im = QA4SMImg("/home/pstradio/Projects/qa4sm-reader/tests/test_data/metadata/0-ISMN.soil_moisture_with_1-C3S.sm.nc")
 pl = QA4SMPlotter(im)
 
-pl.plot_metadata("R", "instrument")
+pl.plot_metadata("R", "clay_fraction")
