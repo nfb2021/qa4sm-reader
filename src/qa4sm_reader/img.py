@@ -7,6 +7,7 @@ from parse import *
 from pathlib import Path
 from collections import OrderedDict
 import itertools
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -148,7 +149,7 @@ class QA4SMImg(object):
 
         else:
             warnings.warn(
-                "Not all:" + ", ".join(globals.soil_types) + " are present in the netCDF variables"
+                "Not all: " + ", ".join(globals.soil_types) + " are present in the netCDF variables"
             )
 
         if all(type in metadata.keys() for type in globals.instrument_depths):
@@ -158,7 +159,7 @@ class QA4SMImg(object):
 
         else:
             warnings.warn(
-                "Not all:" + ", ".join(globals.instrument_depths) + " are present in the netCDF variables"
+                "Not all: " + ", ".join(globals.instrument_depths) + " are present in the netCDF variables"
             )
 
         return metadata
@@ -233,7 +234,7 @@ class QA4SMImg(object):
 
         return Metrics
 
-    def _iter_vars(self, type:str=None, name:str=None, filter_parms:dict=None) -> iter: # todo: update code to function
+    def _iter_vars(self, type:str=None, name:str=None, filter_parms:dict=None) -> iter:
         """
         Iter through QA4SMVariable objects that are in the file
 

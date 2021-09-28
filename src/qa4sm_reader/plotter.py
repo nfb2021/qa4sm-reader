@@ -890,7 +890,7 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def plot_save_metadata(self, metric):  # TODO: method to handle missing metadata entries e.g. in previous qa4sm output (without instrument depth info)
+    def plot_save_metadata(self, metric):
         """
         Plots and saves three metadata boxplots per metric (defined in globals.py):
 
@@ -921,8 +921,12 @@ class QA4SMPlotter():
                 filenames.append(outfile)
             else:
                 warnings.warn(
-                    "Not all" + ", ".join(meta_keys) + " are present in the netCDF variables"
+                    "Not all: " + ", ".join(meta_keys) + " are present in the netCDF variables"
                 )
 
         return filenames
 
+im = QA4SMImg("/home/pstradio/scratch/Metadata/0-ISMN.soil_moisture_with_1-C3S.sm_with_2-ESA_CCI_SM_passive.sm.nc")
+pl = QA4SMPlotter(im)
+
+pl.plot_metadata("R", "instrument")

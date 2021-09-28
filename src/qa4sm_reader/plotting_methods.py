@@ -671,6 +671,7 @@ def boxplot(
     if axis is None:
         return fig, ax
 
+# TODO: test?
 def resize_bins(sorted, nbins):
     """Resize the bins for "continuous" metadata types"""
     bin_edges = np.linspace(0, 100, nbins + 1)
@@ -683,7 +684,7 @@ def resize_bins(sorted, nbins):
 
     return bin_values, unique_values, bin_size
 
-def bin_continuous(  # TODO: make test
+def bin_continuous(
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         meta_key:str,
@@ -742,12 +743,12 @@ def bin_continuous(  # TODO: make test
             continue
         binned[bin_label] = bin_df
     # If too few points are available to make the plots
-    if not binned: # todo: move error raise here?
+    if not binned:
         return None
 
     return binned
 
-def bin_classes(  # TODO: make test
+def bin_classes(
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         meta_key:str,
@@ -792,7 +793,7 @@ def bin_classes(  # TODO: make test
 
     return binned
 
-def bin_discrete(  # TODO: make test
+def bin_discrete(
         df:pd.DataFrame,
         metadata_values:pd.DataFrame,
         meta_key:str,
@@ -826,7 +827,7 @@ def bin_discrete(  # TODO: make test
             [df[col], metadata_values],
             axis=1
         )
-        group.columns = ["values", meta_key]  # todo: remove hardcoding
+        group.columns = ["values", meta_key]
         group["Dataset"] = col
         groups.append(group)
     grouped = pd.concat(groups)
@@ -1023,7 +1024,7 @@ def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
 
     return fig, axes
 
-def _dict2df(to_plot_dict:dict, meta_key:str):  # TODO: make test
+def _dict2df(to_plot_dict:dict, meta_key:str) -> pd.DataFrame:
     """Transform a dictionary into a DataFrame for catplotting"""
     to_plot_df = []
     for range, values in to_plot_dict.items():
@@ -1039,7 +1040,17 @@ def _dict2df(to_plot_dict:dict, meta_key:str):  # TODO: make test
 
     return to_plot_df
 
-def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:     # todo: add labels with N/medians
+def add_cat_info(to_plot:pd.DataFrame, metadata_name:str) -> pd.DataFrame:
+    """Add info (N, median value) to metadata category labels"""
+    groups = to_plot.groupby(metadata_name)["values"]
+    counts = groups.count()
+    to_plot[metadata_name] = to_plot[metadata_name].apply(
+        lambda x : x + "\nN: {}".format(counts[x])
+    )
+
+    return to_plot
+
+def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
     """
     Create individual plot with grouped boxplots by metadata value
 
@@ -1068,6 +1079,9 @@ def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
     elif orient == "h":
         x = "values"
         y = metadata_name
+
+    # add N points to the axis labels
+    to_plot = add_cat_info(to_plot, metadata_name=metadata_name)
 
     box = sns.boxplot(
         x=x,
