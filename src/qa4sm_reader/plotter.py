@@ -926,7 +926,3 @@ class QA4SMPlotter():
 
         return filenames
 
-im = QA4SMImg("/home/pstradio/Projects/qa4sm-reader/tests/test_data/metadata/0-ISMN.soil_moisture_with_1-C3S.sm.nc")
-pl = QA4SMPlotter(im)
-
-pl.plot_metadata("R", "clay_fraction")
