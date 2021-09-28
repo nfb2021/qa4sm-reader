@@ -13,6 +13,7 @@ def plot_all(
         out_dir:str=None,
         out_type:str='png',
         save_all:bool=True,
+        save_metadata:bool=False,
         engine:str='h5netcdf',
         **plotting_kwargs
 ) -> (list, list):
@@ -34,6 +35,8 @@ def plot_all(
         extensions which the files should be saved in
     save_all: bool, optional. Default is True.
         all plotted images are saved to the output directory
+    save_metadata: bool, optional. Default is False.
+        for each metric, 3 metadata plots are provided (see plotter.QA4SMPlotter.plot_save_metadata)
     engine: str, optional (default: h5netcdf)
         Engine used by xarray to read data from file. For qa4sm this should
         be h5netcdf.
@@ -77,6 +80,8 @@ def plot_all(
                 fnames_bplot.extend(metric_bplots)
             if metric_mapplots:
                 fnames_mapplot.extend(metric_mapplots)
+            if img.metadata and save_metadata:
+                fnames_bplot.extend(plotter.plot_save_metadata(metric))
         
     return fnames_bplot, fnames_mapplot
 

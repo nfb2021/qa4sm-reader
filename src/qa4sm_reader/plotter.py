@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+import warnings
 from pathlib import Path
 import seaborn as sns
 import pandas as pd
+from typing import Union
+import numpy as np
+import matplotlib.pyplot as plt
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
-from qa4sm_reader.plot_utils import *
+from qa4sm_reader import plotting_methods as plm
 
 from warnings import warn
 
@@ -75,40 +79,6 @@ class QA4SMPlotter():
             out_path = out_path.with_suffix(out_type)
 
         return out_path
-
-    @staticmethod
-    def _box_stats(ds:pd.Series, med:bool=True, iqr:bool=True, count:bool=True) -> str:
-        """
-        Create the metric part with stats of the box (axis) caption
-
-        Parameters
-        ----------
-        ds: pd.Series
-            data on which stats are found
-        med: bool
-        iqr: bool
-        count: bool
-            statistics
-
-        Returns
-        -------
-        stats: str
-            caption with summary stats
-        """
-        # interquartile range
-        iqr = ds.quantile(q=[0.75,0.25]).diff()
-        iqr = abs(float(iqr.loc[0.25]))
-
-        met_str = []
-        if med:
-            met_str.append('Median: {:.3g}'.format(ds.median()))
-        if iqr:
-            met_str.append('IQR: {:.3g}'.format(iqr))
-        if count:
-            met_str.append('N: {:d}'.format(ds.count()))
-        stats = '\n'.join(met_str)
-
-        return stats
 
     @staticmethod
     def _box_caption(Var, tc:bool=False) -> str:
@@ -191,10 +161,13 @@ class QA4SMPlotter():
         type: str
             type of plot
         """
-        titles = {'boxplot_basic': 'Intercomparison of {} \nwith {}-{} ({}) as the reference\n ',
-                  'boxplot_tc': 'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as the reference\n ',
-                  'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
-                  'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references'}
+        titles = {
+            'boxplot_basic': 'Intercomparison of {} \nwith {}-{} ({}) as the reference\n ',
+            'boxplot_tc': 'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as the reference\n ',
+            'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
+            'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
+            'metadata': 'Intercomparison of {} by {}\nwith reference: {}',
+        }
 
         try:
             return titles[type]
@@ -203,7 +176,7 @@ class QA4SMPlotter():
             message = "type '{}' is not in the lookup table".format(type)
             warn(message)
 
-    @staticmethod  # todo: cange file names and convention in qa4sm
+    @staticmethod
     def _filenames_lut(type:str) -> str:
         """
         Lookup table for file names
@@ -214,11 +187,14 @@ class QA4SMPlotter():
             type of plot
         """
         # we stick to old naming convention
-        names = {'boxplot_basic': 'boxplot_{}',
-                 'mapplot_common': 'overview_{}',
-                 'boxplot_tc': 'boxplot_{}_for_{}-{}',
-                 'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
-                 'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}'}
+        names = {
+            'boxplot_basic': 'boxplot_{}',
+            'mapplot_common': 'overview_{}',
+            'boxplot_tc': 'boxplot_{}_for_{}-{}',
+            'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
+            'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}',
+            'metadata': 'boxplot_{}_metadata_{}',
+        }
 
         try:
             return names[type]
@@ -275,7 +251,13 @@ class QA4SMPlotter():
 
         return name
 
-    def _yield_values(self, metric:str, tc:bool=False) -> tuple:
+    def _yield_values(
+            self,
+            metric:str,
+            tc:bool=False,
+            stats:bool=True,
+            mean_ci:bool=True,
+    ) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
@@ -287,6 +269,10 @@ class QA4SMPlotter():
             Add stats of median, iqr and N to the box bottom.
         tc: bool, default is False
             True if TC. Then, caption starts with "Other Data:"
+        stats: bool
+            If true, append the statistics to the caption
+        mean_ci: bool
+            If True, 'Mean CI: {value}' is added to the caption
 
         Yield
         -----
@@ -294,8 +280,10 @@ class QA4SMPlotter():
             dataframe with variable values and caption name
         Var: QA4SMMetricVariable
             variable corresponding to the dataframe
+        ci: pd.DataFrame
+            dataframe with "upper" and "lower" CI
         """
-        Vars = self.img._iter_vars(**{'metric':metric})
+        Vars = self.img._iter_vars(type="metric", filter_parms={"metric":metric})
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
@@ -306,17 +294,38 @@ class QA4SMPlotter():
                 box_cap_ds = self._box_caption(Var, tc=tc)
             # setting in global for caption stats
             if globals.boxplot_printnumbers:
-                box_stats = self._box_stats(values)
-                box_cap = '{}\n{}'.format(box_cap_ds, box_stats)
+                box_cap = '{}'.format(box_cap_ds)
+                if stats:
+                    box_stats = plm._box_stats(values)
+                    box_cap = box_cap + "\n{}".format(box_stats)
             else:
                 box_cap = box_cap_ds
             df = values.to_frame(box_cap)
 
-            yield df, Var
+            ci = self.img.get_cis(Var)
+            if ci:  # could be that variable doesn't have CIs - empty list
+                ci = pd.concat(ci, axis=1)
+                label = ""
+                if mean_ci:
+                    # get the mean CI range
+                    diff = ci["upper"] - ci["lower"]
+                    ci_range = float(diff.mean())
+                    label = "\nMean CI range: {:.3g}".format(ci_range)
+                df.columns = [
+                    df.columns[0] + label
+                ]
+            else:
+                ci = None
+            # values are all Nan or NaNf - not plotted
+            if np.isnan(df.to_numpy()).all():
+                continue
+
+            yield df, Var, ci
 
 
     def _boxplot_definition(
-            self, metric:str,
+            self,
+            metric:str,
             df:pd.DataFrame,
             type:str,
             ci=None,
@@ -333,9 +342,8 @@ class QA4SMPlotter():
             dataframe to plot
         type: str
             one of _titles_lut
-        ci: dict
-            Dict of dataframes with the lower and upper confidence intervals
-            shape: {"upper"/"lower": [CIs]}
+        ci : list
+            list of Dataframes containing "upper" and "lower" CIs
         xticks: list
             caption to each boxplot (or triplet thereof)
         offset: float
@@ -354,7 +362,7 @@ class QA4SMPlotter():
         if metric == "n_obs":
             figwidth = figwidth + 0.2
         figsize = [figwidth, globals.boxplot_height]
-        fig, ax = boxplot(
+        fig, ax = plm.boxplot(
             df=df,
             ci=ci,
             label=label,
@@ -363,18 +371,19 @@ class QA4SMPlotter():
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
-            for Var in self.img._iter_vars(**{'metric':metric}):
+            for Var in self.img._iter_vars(type="metric", filter_parms={"metric":metric}):
                 Var = Var
                 break
-        title = self.create_title(Var, type=type)
-        ax.set_title(title, pad=globals.title_pad)
+        if not type=="metadata":
+            title = self.create_title(Var, type=type)
+            ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if self.img.has_CIs:
             offset = 0.08  # offset smaller as CI variables have a larger caption
         if Var.g == 0:
             offset = 0.03  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, offset=offset)
+            plm.make_watermark(fig, offset=offset)
 
         return fig, ax
 
@@ -400,8 +409,11 @@ class QA4SMPlotter():
         for ext in out_types:
             fname = self._standard_filename(out_name, out_type=ext)
             if fname.exists():
-                warnings.warn('Overwriting file {}'.format(fname.name))
-            plt.savefig(fname, dpi='figure', bbox_inches='tight')
+                warn('Overwriting file {}'.format(fname.name))
+            try:
+                plt.savefig(fname, dpi='figure', bbox_inches='tight')
+            except ValueError:
+                continue
             fnames.append(fname.absolute())
 
         return fnames
@@ -438,31 +450,12 @@ class QA4SMPlotter():
         fnames, values = [], []
         ci = []
         # we take the last iterated value for Var and use it for the file name
-        for df, Var in self._yield_values(metric=metric):
-            if not Var.is_CI:
-                # concat upper and lower CI bounds of Variable, if present
-                bounds = []
-                for ci_df, ci_Var in self._yield_values(metric=metric):
-                    # make sure they refer to the right variable
-                    if ci_Var.is_CI and (ci_Var.metric_ds == Var.metric_ds):
-                        ci_df.columns = [ci_Var.bound]
-                        bounds.append(ci_df)
-                if bounds:  # could be that variable doesn't have CIs
-                    bounds = pd.concat(bounds, axis=1)
-                    # get the mean CI range
-                    diff = bounds["upper"] - bounds["lower"]
-                    ci_range = float(diff.mean())
-                    df.columns = [
-                        df.columns[0] + "\nMean CI range:"
-                                        " {:.3g}".format(ci_range)
-                    ]
-                    ci.append(bounds)
-                values.append(df)
+        for df, Var, var_ci in self._yield_values(metric=metric):
+            values.append(df)
+            if var_ci is not None:
+                ci.append(var_ci)
         # put all Variables in the same dataframe
         values = pd.concat(values)
-        # values are all Nan or NaNf - not plotted
-        if np.isnan(values.to_numpy()).all():
-            return None
         # create plot
         fig, ax = self._boxplot_definition(
             metric=metric,
@@ -483,7 +476,7 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def boxplot_tc(  # todo: set limits to show confidence intervals
+    def boxplot_tc(
             self, metric:str,
             out_name:str=None,
             out_types:str='png',
@@ -515,34 +508,17 @@ class QA4SMPlotter():
         fnames = []
         # group Vars and CIs relative to the same dataset
         metric_tc, ci = {}, {}
-        for df, Var in self._yield_values(metric=metric, tc=True):
-            if not Var.is_CI:
-                id, names = Var.metric_ds
-                bounds = []
-                for ci_df, ci_Var in self._yield_values(metric=metric):
-                    # make sure they refer to the right variable
-                    if ci_Var.is_CI and \
-                            (ci_Var.metric_ds == Var.metric_ds) and \
-                            (ci_Var.other_dss == Var.other_dss):
-                        ci_df.columns = [ci_Var.bound]
-                        bounds.append(ci_df)
-                if bounds:  # could be that variable doesn't have CIs
-                    bounds = pd.concat(bounds, axis=1)
-                    # get the mean CI range
-                    diff = bounds["upper"] - bounds["lower"]
-                    ci_range = diff.mean()
-                    df.columns = [
-                        df.columns[0] + "\nMean CI range:"
-                                        " {:.3g}".format(ci_range)
-                    ]
-                    if id in ci.keys():
-                        ci[id].append(bounds)
-                    else:
-                        ci[id] = [bounds]
-                if id in metric_tc.keys():
-                    metric_tc[id][0].append(df)
+        for df, Var, var_ci in self._yield_values(metric=metric, tc=True):
+            id, names = Var.metric_ds
+            if var_ci is not None:
+                if id in ci.keys():
+                    ci[id].append(var_ci)
                 else:
-                    metric_tc[id] = [df], Var
+                    ci[id] = [var_ci]
+            if id in metric_tc.keys():
+                metric_tc[id][0].append(df)
+            else:
+                metric_tc[id] = [df], Var
 
         for id, values in metric_tc.items():
             dfs, Var = values
@@ -552,14 +528,14 @@ class QA4SMPlotter():
                 continue
             # necessary if statement to prevent key error when no CIs are in the netCDF
             if ci:
-                bounds = ci[id]
+                ci_id = ci[id]
             else:
-                bounds = ci
+                ci_id = None
             # create plot
             fig, ax = self._boxplot_definition(
                 metric=metric,
                 df=df,
-                ci=bounds,
+                ci=ci_id,
                 type='boxplot_tc',
                 Var=Var,
                 **plotting_kwargs
@@ -610,7 +586,7 @@ class QA4SMPlotter():
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
         # create mapplot
-        fig, ax = mapplot(df=Var.values[Var.varname],
+        fig, ax = plm.mapplot(df=Var.values[Var.varname],
                           metric=metric,
                           ref_short=ref_meta[1]['short_name'],
                           ref_grid_stepsize=ref_grid_stepsize,
@@ -631,7 +607,7 @@ class QA4SMPlotter():
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
         if globals.watermark_pos not in [None, False]:
-            make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
+            plm.make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
 
         # save file or just return the image
         if save_files:
@@ -669,7 +645,7 @@ class QA4SMPlotter():
             List of files that were created
         """
         fnames = []
-        for Var in self.img._iter_vars(**{'metric':metric}):
+        for Var in self.img._iter_vars(type="metric", filter_parms={"metric":metric}):
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
@@ -722,4 +698,231 @@ class QA4SMPlotter():
                                              **plotting_kwargs)
 
         return fnames_bplot, fnames_mapplot
+
+    def meta_single(
+            self,
+            metric:str,
+            metadata:str,
+            df:pd.DataFrame=None,
+            axis=None,
+            plot_type:str="catplot",
+            **plotting_kwargs
+    ) -> Union[tuple, None]:
+        """
+        Boxplot of a metric grouped by the given metadata.
+
+        Parameters
+        ----------
+        metric : str
+            specified metric
+        metadata : str
+            specified metadata
+        df : pd.DataFrame, optional
+            metric values can be specified, in which case they will be used from here and
+            not parsed from the metric name
+        axis : matplotlib.axes.Axis, optional
+            if provided, the function will create the plot on the specified axis
+        plot_type : str, default is 'catplot'
+            one of 'catplot' or 'multiplot', defines the type of plots for the 'classes' and 'continuous'
+            metadata types
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
+        """
+        values = []
+        for data, Var, var_ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
+            values.append(data)
+
+        values = pd.concat(values, axis=1)
+        # override values from metric
+        if df is not None:
+            values = df
+        # get meta and select only metric values with metadata available
+        meta_values = self.img.metadata[metadata].values.dropna()
+        values = values.reindex(index=meta_values.index)
+        mu = globals._metric_description[metric].format(globals._metric_units[self.ref['short_name']])
+
+        out = plm.boxplot_metadata(
+            df=values,
+            metadata_values=meta_values,
+            ax_label=Var.Metric.pretty_name + mu,
+            axis=axis,
+            plot_type=plot_type,
+            **plotting_kwargs
+        )
+
+        if axis is None:
+            fig, ax = out
+
+            return fig, ax
+
+    def meta_combo(
+            self,
+            metric:str,
+            metadata:str,
+            metadata_discrete:str,
+    ):
+        """
+        Cross-boxplot between two given metadata types
+
+        Parameters
+        ----------
+        metric : str
+            specified metric
+        metadata: str
+            'continuous' or 'classes' metadata which provides the number of subplots (bins)
+        metadata_discrete : str
+            'discrete' metadata which is shown in the subplots
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
+        """
+        values = []
+        for df, Var, ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
+            values.append(df)
+        values = pd.concat(values, axis=1)
+
+        metric_name = globals._metric_name[metric]
+        metric_units = globals._metric_description[metric].format(
+            globals._metric_units[self.img.datasets.ref["short_name"]]
+        )
+
+        Meta_cont = self.img.metadata[metadata]
+        meta_values = Meta_cont.values.dropna()
+
+        bin_funct = plm.bin_function_lut(globals.metadata[metadata][2])
+        binned_values = bin_funct(
+            df=values,
+            metadata_values=meta_values,
+            meta_key=metadata,
+        )
+        # dictionary with subset values
+        values_subset = {
+            a_bin: values.reindex(index=binned_values[a_bin].index) for a_bin in binned_values.keys()
+        }
+        kwargs = {
+            "metric": metric,
+            "metadata": metadata_discrete,
+            "common_y": metric_name + metric_units
+        }
+        n_datasets = len(self.img.datasets.others)
+        fig, axes = plm.aggregate_subplots(
+            to_plot=values_subset,
+            funct=self.meta_single,
+            n_bars=n_datasets,
+            **kwargs
+        )
+
+        return fig, axes
+
+    def plot_metadata(
+            self, metric:str,
+            metadata:str,
+            metadata_discrete:str=None,
+            save_file:bool=False,
+            out_types:str='png',
+            **plotting_kwargs
+    ):
+        """
+        Wrapper built around the 'meta_single' or 'meta_combo' functions to produce a metadata-based boxplot of a
+        metric.
+
+        Parameters
+        __________
+        metric : str
+            name of metric to plot
+        metadata : str
+            name of metadata to subdivide the metric results
+        metadata_discrete : str
+            name of the metadata of the type 'discrete'
+
+        Retrun
+        ------
+        fig : matplotlib.figure.Figure
+            the boxplot
+        ax : matplotlib.axes.Axes
+        """
+        if metadata_discrete is None:
+            fig, ax = self.meta_single(
+                metric=metric, metadata=metadata, **plotting_kwargs
+            )
+            metadata_tuple = [metadata]
+
+        else:
+            metadata_tuple = [metadata, metadata_discrete]
+            if not any(globals.metadata[i][2] == "discrete" for i in metadata_tuple):
+                raise ValueError(
+                    "One of the provided metadata names should correspond to the 'discrete' type, see globals.py"
+                )
+            if all(globals.metadata[i][2] == "discrete" for i in metadata_tuple):
+                raise ValueError(
+                    "At least one of the provided metadata should not be of the 'continuous' type"
+                )
+            fig, ax = self.meta_combo(
+                metric=metric, metadata=metadata,
+                metadata_discrete=metadata_discrete, **plotting_kwargs
+            )
+        meta_names = [globals.metadata[i][0] for i in metadata_tuple]
+        title = self._titles_lut("metadata").format(
+            globals._metric_name[metric],
+            ", ".join(meta_names),
+            self.img.datasets.ref["pretty_title"]
+        )
+        fig.suptitle(title)
+
+        plm.make_watermark(fig=fig, offset=0)
+
+        if save_file:
+            out_name = self._filenames_lut("metadata").format(
+                metric,
+                "_and_".join(metadata_tuple)
+            )
+            self._save_plot(out_name, out_types=out_types)
+
+            return out_name
+
+        else:
+            return fig, ax
+
+    def plot_save_metadata(self, metric):
+        """
+        Plots and saves three metadata boxplots per metric (defined in globals.py):
+
+        1. Boxplot by land cover class (2010 map)
+        2. Boxplot by Koeppen-Geiger climate classification
+        3. Boxplot by instrument depth and soil type (granularity)
+
+        Parameters
+        ----------
+        metric : str
+            name of metric
+
+        Return
+        ------
+        filenames: list
+            list of file names
+        """
+        filenames = []
+
+        # makes no sense to plot the metadata for some metrics
+        if metric in globals._metadata_exclude:
+            return filenames
+
+        for type, meta_keys in globals.out_metadata_plots.items():
+            # the presence of instrument_depth in the out file depends on the ismn release version
+            if all(meta_key in self.img.metadata.keys() for meta_key in meta_keys):
+                outfile = self.plot_metadata(metric, *meta_keys, save_file=True)
+                filenames.append(outfile)
+            else:
+                warnings.warn(
+                    "Not all: " + ", ".join(meta_keys) + " are present in the netCDF variables"
+                )
+
+        return filenames
 

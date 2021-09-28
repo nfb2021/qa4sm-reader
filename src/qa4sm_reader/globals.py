@@ -8,7 +8,7 @@ import cartopy.crs as ccrs
 
 # === plot defaults ===
 matplotlib_ppi = 72  # Don't change this, it's a matplotlib convention.
-index_names = ['lat', 'lon', 'gpi']  # Names used for 'lattitude' and 'longitude' coordinate.
+index_names = ['lat', 'lon', 'gpi']  # Names used for 'latitude' and 'longitude' coordinate.
 time_name = 'time' # not used at the moment, dropped on load
 period_name = 'period' # not used at the moment, dropped on load
 
@@ -31,6 +31,7 @@ boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_b
 boxplot_height = 6
 boxplot_width = 2.1 # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
+tick_size = 8.5
 
 # === watermark defaults ===
 watermark = u'made with QA4SM (qa4sm.eu)'  # Watermark string
@@ -41,6 +42,13 @@ watermark_pad = 5  # padding above/below watermark in points (matplotlib uses 72
 # === filename template ===
 ds_fn_templ = "{i}-{ds}.{var}"
 ds_fn_sep = "_with_"
+
+# === metadata files to save ===
+out_metadata_plots = {
+    "lc": ["lc_2010"],
+    "climate": ["climate_KG"],
+    "soil": ["instrument_depth", "soil_type"],
+}
 
 # === colormaps used for plotting metrics ===
 # Colormaps can be set for classes of similar metrics or individually for metrics.
@@ -67,7 +75,6 @@ metric_groups = {
         ],
     3: ['snr', 'err_std', 'beta']
 }
-
 
 # === variable template ===
 # how the metric is separated from the rest
@@ -217,8 +224,8 @@ _metric_units = {  # from /qa4sm/validator/validation/graphics.py
 _metric_name = {  # from /qa4sm/validator/validation/globals.py
     'R': 'Pearson\'s r',
     'p_R': 'Pearson\'s r p-value',
-    'rho': 'Spearman\'s rho',
-    'p_rho': 'Spearman\'s rho p-value',
+    'rho': 'Spearman\'s ρ',
+    'p_rho': 'Spearman\'s ρ p-value',
     'RMSD': 'Root-mean-square deviation',
     'BIAS': 'Bias (difference of means)',
     'n_obs': '# observations',
@@ -367,3 +374,121 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
 }
+
+# Metadata statics
+# ----------------
+# information needed for plotting the metadata-boxplots
+
+lc_classes = {
+    "unknown": "Not provided",
+    0: 'Other',
+    10: 'Cropland',
+    11: 'Cropland',
+    12: 'Cropland',
+    20: 'Cropland',
+    30: 'Cropland',
+    40: 'Tree cover',
+    50: 'Tree cover',
+    60: 'Tree cover',
+    61: 'Tree cover',
+    62: 'Tree cover',
+    70: 'Tree cover',
+    71: 'Tree cover',
+    72: 'Tree cover',
+    80: 'Tree cover',
+    81: 'Tree cover',
+    82: 'Tree cover',
+    90: 'Tree cover',
+    100: 'Tree cover',
+    110: 'Tree cover',
+    120: 'Grassland',
+    121: 'Grassland',
+    122: 'Grassland',
+    130: 'Grassland',
+    140: 'Other',
+    150: 'Other',
+    152: 'Other',
+    153: 'Other',
+    160: 'Tree cover',
+    170: 'Tree cover',
+    180: 'Grassland',
+    190: 'Urban areas',
+    200: 'Other',
+    201: 'Other',
+    202: 'Other',
+    210: 'Other',
+    220: 'Other'
+}
+
+climate_classes = {
+    "unknown": "Not provided",
+    "Af": "Tropical",
+    "Am": "Tropical",
+    "As": "Tropical",
+    "Aw": "Tropical",
+    "BWk": "Arid",
+    "BWh": "Arid",
+    "BWn": "Arid",
+    "BSk": "Arid",
+    "BSh": "Arid",
+    "BSn": "Arid",
+    "Csa": "Temperate",
+    "Csb": "Temperate",
+    "Csc": "Temperate",
+    "Cwa": "Temperate",
+    "Cwb": "Temperate",
+    "Cwc": "Temperate",
+    "Cfa": "Temperate",
+    "Cfb": "Temperate",
+    "Cfc": "Temperate",
+    "Dsa": "Continental",
+    "Dsb": "Continental",
+    "Dsc": "Continental",
+    "Dsd": "Continental",
+    "Dwa": "Continental",
+    "Dwb": "Continental",
+    "Dwc": "Continental",
+    "Dwd": "Continental",
+    "Dfa": "Continental",
+    "Dfb": "Continental",
+    "Dfc": "Continental",
+    "Dfd": "Continental",
+    "ET": "Polar",
+    "EF": "Polar",
+    "W": "Water",
+    "Mediterranean":"Mediterranean",
+}
+
+metadata = {
+    "clay_fraction":("clay fraction", None, "continuous", "[% weight]"),
+    "climate_KG":("Koeppen-Geiger climate class", climate_classes, "classes", None),
+    "climate_insitu":("climate in-situ", climate_classes, "classes", None),
+    "elevation":("elevation", None, "continuous", "[m]"),
+    "instrument":("instrument type", None, "discrete", None),  # todo: improve labels (too packed)
+    "lc_2000":("land cover class (2000)", lc_classes, "classes", None),
+    "lc_2005":("land cover class (2005)", lc_classes, "classes", None),
+    "lc_2010":("land cover class (2010)", lc_classes, "classes", None),
+    "lc_insitu":("land cover class in-situ", lc_classes, "classes", None), # todo: handle custom names
+    "network":("network", None, "discrete", None),
+    "organic_carbon":("concentration of organic carbon", None, "continuous", "[% weight]"),
+    "sand_fraction":("sand fraction", None, "continuous", "[% weight]"),
+    "saturation":("saturation", None, "continuous", "[m³/m³]"),
+    "silt_fraction":("silt fraction", None, "continuous", "[% weight]"),
+    "station":("station", None, "discrete", None),
+    "instrument_depthfrom": ("upper depth", None, "continuous", "[m]"),
+    "instrument_depthto": ("lower depth", None, "continuous", "[m]"),
+    # --- generated during the image initialization:
+    "soil_type": ("soil texture", None, "discrete", None),
+    "instrument_depth": ("instrument depth", None, "continuous", "[m]"),
+}
+
+soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
+instrument_depths = ["instrument_depthfrom", "instrument_depthto"]
+
+# metrics to be excluded from the automatic plotting
+_metadata_exclude = [
+    'p_R',
+    'p_rho',
+    'tau',
+    'p_tau',
+]
