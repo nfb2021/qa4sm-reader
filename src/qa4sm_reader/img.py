@@ -82,7 +82,7 @@ class QA4SMImg(object):
             # this try here is to obey tests, withouth a necessity of changing and commiting test files again
             try:
                 self.ref_dataset_grid_stepsize = self.ds.val_dc_dataset0_grid_stepsize
-            except:
+            except AttributeError:
                 self.ref_dataset_grid_stepsize = 'nan'
 
     def _open_ds(self, extent=None, period=None, engine='h5netcdf'):

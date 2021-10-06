@@ -253,10 +253,10 @@ class QA4SMPlotter():
 
     def _yield_values(
             self,
-            metric:str,
-            tc:bool=False,
-            stats:bool=True,
-            mean_ci:bool=True,
+            metric: str,
+            tc: bool = False,
+            stats: bool = True,
+            mean_ci: bool = True,
     ) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
@@ -265,8 +265,6 @@ class QA4SMPlotter():
         ----------
         metric: str
             metric name
-        add_stats : bool, optional (default: from globals)
-            Add stats of median, iqr and N to the box bottom.
         tc: bool, default is False
             True if TC. Then, caption starts with "Other Data:"
         stats: bool
@@ -317,11 +315,11 @@ class QA4SMPlotter():
             else:
                 ci = None
             # values are all Nan or NaNf - not plotted
-            if np.isnan(df.to_numpy()).all():
+            df_arr = df.to_numpy()
+            if np.isnan(df_arr).all() or df_arr.size == 0:
                 continue
 
             yield df, Var, ci
-
 
     def _boxplot_definition(
             self,
@@ -424,7 +422,7 @@ class QA4SMPlotter():
             out_types:str='png',
             save_files:bool=False,
             **plotting_kwargs
-    ) -> list:
+    ) -> Union[list, None]:
         """
         Creates a boxplot for common and double metrics. Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
@@ -454,6 +452,10 @@ class QA4SMPlotter():
             values.append(df)
             if var_ci is not None:
                 ci.append(var_ci)
+
+        # handle empty results
+        if not values:
+            return None
         # put all Variables in the same dataframe
         values = pd.concat(values)
         # create plot

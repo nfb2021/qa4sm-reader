@@ -3,20 +3,19 @@ import os
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg, extract_periods
-from qa4sm_reader import globals
-import matplotlib.pyplot as plt
+
 
 def plot_all(
-        filepath:str,
-        metrics:list=None,
-        extent:tuple=None,
-        out_dir:str=None,
-        out_type:str='png',
-        save_all:bool=True,
-        save_metadata:bool=False,
-        engine:str='h5netcdf',
+        filepath: str,
+        metrics: list = None,
+        extent: tuple = None,
+        out_dir: str = None,
+        out_type: str = 'png',
+        save_all: bool = True,
+        save_metadata: bool = False,
+        engine: str = 'h5netcdf',
         **plotting_kwargs
-) -> (list, list):
+) -> tuple:
     """
     Creates boxplots for all metrics and map plots for all variables.
     Saves the output in a folder-structure.
@@ -85,9 +84,10 @@ def plot_all(
         
     return fnames_bplot, fnames_mapplot
 
+
 def get_img_stats(
-        filepath:str,
-        extent:tuple=None
+        filepath: str,
+        extent: tuple = None,
 ) -> pd.DataFrame:
     """
     Creates a dataframe containing summary statistics for each metric
