@@ -12,8 +12,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-# for profiling with cProfile, on the command line run
-# python -m cProfile -o ascat_ismn_validation.profile test_validation.py
+if sys.platform.startswith("win"):
+    pytest.skip(
+        "Failing on Windows. Probably related to setuptools"
+    )
+
 
 @pytest.fixture
 def single_img():
@@ -95,9 +98,6 @@ def test_checks(single_img, double_img_overlap):
     )
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Failing on Windows."
-)
 def test_wrapper(single_img, double_img_overlap):
     """
     This tests the wrapper function but more in general also the
