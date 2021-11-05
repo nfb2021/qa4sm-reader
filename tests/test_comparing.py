@@ -84,9 +84,6 @@ def test_get_pairwise(single_img, double_img_overlap):
                                    "plus the column with difference values"
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Failing on Windows. Probably related to shapely library."
-)
 def test_checks(single_img, double_img_overlap):
     """No assertion, but will throw error if any of the checks are not passed"""
     assert single_img.perform_checks()
@@ -98,6 +95,9 @@ def test_checks(single_img, double_img_overlap):
     )
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"), reason="Failing on Windows."
+)
 def test_wrapper(single_img, double_img_overlap):
     """
     This tests the wrapper function but more in general also the
