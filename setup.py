@@ -20,4 +20,7 @@ except VersionConflict:
 
 
 if __name__ == "__main__":
-    setup(use_pyscaffold=True)
+    if sys.platform.startswith("win"):
+        setup()
+    else:
+        setup(use_pyscaffold=True)
