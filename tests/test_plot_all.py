@@ -28,8 +28,8 @@ def test_plot_all(plotdir):
         save_metadata=True,
     )
 
-    assert len(os.listdir(plotdir)) == 59
-    assert all(os.path.splitext(file)[1] == ".png" for file in os.listdir(plotdir)), \
-        "Not all files have been saved as .png"
+    assert len(os.listdir(plotdir)) == 60
+    assert all(os.path.splitext(file)[1] in [".png", ".csv"] for file in os.listdir(plotdir)), \
+        "Not all files have been saved as .png or .csv"
 
     shutil.rmtree(plotdir)

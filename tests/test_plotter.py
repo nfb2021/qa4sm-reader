@@ -131,6 +131,20 @@ def test_boxplot(basic_plotter, plotdir):
     shutil.rmtree(plotdir)
 
 
+def test_csv(basic_plotter, plotdir):
+    csv_file = basic_plotter.save_stats()
+    # file is in the right format
+    assert csv_file.suffix == '.csv'
+
+    csv_dframe = pd.read_csv(csv_file, index_col="Metric", dtype=str).drop("Group", axis="columns")
+    dframe = basic_plotter.img.stats_df().drop("Group", axis="columns")
+
+    # .csv file is the same as the statistics DataFrame
+    assert csv_dframe.equals(dframe)
+
+    shutil.rmtree(plotdir)
+
+
 def test_mapplot_double(basic_plotter_double, plotdir):
     n_obs_files = basic_plotter_double.mapplot_metric('n_obs', out_types='png', save_files=True)  # should be 1
     assert len(list(n_obs_files)) == 1
