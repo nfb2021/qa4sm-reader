@@ -3,10 +3,7 @@ from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
 from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths
 
-from parse import *
 from pathlib import Path
-from collections import OrderedDict
-import itertools
 import warnings
 
 import numpy as np
@@ -483,7 +480,12 @@ class QA4SMImg(object):
         for metric in self.metrics.keys():
             stats.extend(self._metric_stats(metric))
         # create a dataframe
-        stats_df = pd.DataFrame(stats, columns = ['Mean', 'Median', 'IQ range', 'Dataset', 'Metric', 'Group'])
+        stats_df = pd.DataFrame(
+            stats,
+            columns=[
+                'Mean', 'Median', 'IQ range', 'Dataset', 'Metric', 'Group'
+            ]
+        )
         stats_df.set_index('Metric', inplace=True)
         stats_df.sort_values(by='Group', inplace=True)
         # format the numbers for display

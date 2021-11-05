@@ -13,6 +13,7 @@ def plot_all(
         out_type: str = 'png',
         save_all: bool = True,
         save_metadata: bool = False,
+        save_csv: bool = True,
         engine: str = 'h5netcdf',
         **plotting_kwargs
 ) -> tuple:
@@ -36,6 +37,8 @@ def plot_all(
         all plotted images are saved to the output directory
     save_metadata: bool, optional. Default is False.
         for each metric, 3 metadata plots are provided (see plotter.QA4SMPlotter.plot_save_metadata)
+    save_csv: bool, optional. Default is True.
+        save a .csv file with the validation statistics
     engine: str, optional (default: h5netcdf)
         Engine used by xarray to read data from file. For qa4sm this should
         be h5netcdf.
@@ -46,9 +49,10 @@ def plot_all(
     fnames_boxplots: list
     fnames_mapplots: list
         lists of filenames for created mapplots and boxplots
+    fnames_csv: list
     """
     # initialise image and plotter
-    fnames_bplot, fnames_mapplot = [], []
+    fnames_bplot, fnames_mapplot, fnames_csv = [], [], []
     periods = extract_periods(filepath)
     for period in periods:
         img = QA4SMImg(
@@ -81,8 +85,12 @@ def plot_all(
                 fnames_mapplot.extend(metric_mapplots)
             if img.metadata and save_metadata:
                 fnames_bplot.extend(plotter.plot_save_metadata(metric))
+
+        if save_csv:
+            out_csv = plotter.save_stats()
+            fnames_csv.append(out_csv)
         
-    return fnames_bplot, fnames_mapplot
+    return fnames_bplot, fnames_mapplot, fnames_csv
 
 
 def get_img_stats(

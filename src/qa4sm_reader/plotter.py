@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
 from pathlib import Path
-import seaborn as sns
+
 import pandas as pd
 from typing import Union
 import numpy as np
@@ -11,6 +11,7 @@ from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
 from qa4sm_reader import plotting_methods as plm
 
+from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
 
 
@@ -18,7 +19,8 @@ class QA4SMPlotter():
     """
     Class to create image files of plots from the validation results in a QA4SMImage
     """
-    def __init__(self, image, out_dir:str=None):
+
+    def __init__(self, image, out_dir: str = None):
         """
         Create box plots from results in a qa4sm output file.
 
@@ -36,11 +38,13 @@ class QA4SMPlotter():
 
         try:
             self.img.vars
-        except:
-            warn("The initialized QA4SMImg object has not been loaded. 'load_data' needs to be "
-                 "set to 'True' in the initialization of the Image.")
+        except AttributeError:
+            raise PlotterError(
+                "The initialized QA4SMImg object has not been loaded. 'load_data' needs "
+                "to be set to 'True' in the initialization of the Image."
+            )
 
-    def get_dir(self, out_dir:str) -> Path:
+    def get_dir(self, out_dir: str) -> Path:
         """Use output path if specified, otherwise same directory as the one storing the netCDF file"""
         if out_dir:
             out_dir = Path(out_dir)  # use directory if specified
@@ -51,7 +55,7 @@ class QA4SMPlotter():
 
         return out_dir
 
-    def _standard_filename(self, out_name:str, out_type:str='png') -> Path:
+    def _standard_filename(self, out_name: str, out_type: str = 'png') -> Path:
         """
         Standardized behaviour for filenames: if provided name has extension, it is kept; otherwise, it is saved as
         .png to self.out_dir
@@ -81,7 +85,7 @@ class QA4SMPlotter():
         return out_path
 
     @staticmethod
-    def _box_caption(Var, tc:bool=False) -> str:
+    def _box_caption(Var, tc: bool = False) -> str:
         """
         Create the dataset part of the box (axis) caption
 
@@ -152,7 +156,7 @@ class QA4SMPlotter():
         return parts
 
     @staticmethod
-    def _titles_lut(type:str) -> str:
+    def _titles_lut(type: str) -> str:
         """
         Lookup table for plot titles
 
@@ -172,12 +176,13 @@ class QA4SMPlotter():
         try:
             return titles[type]
 
-        except KeyError as e:
-            message = "type '{}' is not in the lookup table".format(type)
-            warn(message)
+        except KeyError:
+            raise PlotterError(
+                f"type '{type}' is not in the lookup table"
+            )
 
     @staticmethod
-    def _filenames_lut(type:str) -> str:
+    def _filenames_lut(type: str) -> str:
         """
         Lookup table for file names
 
@@ -194,16 +199,18 @@ class QA4SMPlotter():
             'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
             'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}',
             'metadata': 'boxplot_{}_metadata_{}',
+            'table': 'statistics_table',
         }
 
         try:
             return names[type]
 
-        except KeyError as e:
-            message = "type '{}' is not in the lookup table".format(type)
-            warn(message)
+        except KeyError:
+            raise PlotterError(
+                f"type '{type}' is not in the lookup table"
+            )
 
-    def create_title(self, Var, type:str) -> str:
+    def create_title(self, Var, type: str) -> str:
         """
         Create title of the plot
 
@@ -220,7 +227,7 @@ class QA4SMPlotter():
 
         return title
 
-    def create_filename(self, Var, type:str) -> str:
+    def create_filename(self, Var, type: str) -> str:
         """
         Create name of the file
 
@@ -234,7 +241,7 @@ class QA4SMPlotter():
         name = self._filenames_lut(type=type)
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         # fetch parts of the name for the variable
-        if not type in ["mapplot_tc", "mapplot_double"]:
+        if type not in ["mapplot_tc", "mapplot_double"]:
             parts = [Var.metric]
             if mds_meta:
                 parts.extend([mds_meta[0], mds_meta[1]['short_name']])
@@ -242,7 +249,7 @@ class QA4SMPlotter():
             parts = [ref_meta[0], ref_meta[1]['short_name']]
             if type == "mapplot_tc":
                 # necessary to respect old naming convention
-                for dss in  Var.other_dss:
+                for dss in Var.other_dss:
                     parts.extend([dss[0], dss[1]['short_name']])
                 parts.extend([Var.metric, mds_meta[0], mds_meta[1]['short_name']])
             parts.extend([mds_meta[0], mds_meta[1]['short_name'], Var.metric])
@@ -281,7 +288,7 @@ class QA4SMPlotter():
         ci: pd.DataFrame
             dataframe with "upper" and "lower" CI
         """
-        Vars = self.img._iter_vars(type="metric", filter_parms={"metric":metric})
+        Vars = self.img._iter_vars(type="metric", filter_parms={"metric": metric})
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
@@ -323,9 +330,9 @@ class QA4SMPlotter():
 
     def _boxplot_definition(
             self,
-            metric:str,
-            df:pd.DataFrame,
-            type:str,
+            metric: str,
+            df: pd.DataFrame,
+            type: str,
             ci=None,
             offset=0.07,
             Var=None,
@@ -369,10 +376,10 @@ class QA4SMPlotter():
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
-            for Var in self.img._iter_vars(type="metric", filter_parms={"metric":metric}):
+            for Var in self.img._iter_vars(type="metric", filter_parms={"metric": metric}):
                 Var = Var
                 break
-        if not type=="metadata":
+        if not type == "metadata":
             title = self.create_title(Var, type=type)
             ax.set_title(title, pad=globals.title_pad)
         # add watermark
@@ -385,7 +392,7 @@ class QA4SMPlotter():
 
         return fig, ax
 
-    def _save_plot(self, out_name:str, out_types:str='png') -> list:
+    def _save_plot(self, out_name: str, out_types: str = 'png') -> list:
         """
         Save plot with name to self.out_dir
 
@@ -417,10 +424,10 @@ class QA4SMPlotter():
         return fnames
 
     def boxplot_basic(
-            self, metric:str,
-            out_name:str=None,
-            out_types:str='png',
-            save_files:bool=False,
+            self, metric: str,
+            out_name: str = None,
+            out_types: str = 'png',
+            save_files: bool = False,
             **plotting_kwargs
     ) -> Union[list, None]:
         """
@@ -436,7 +443,7 @@ class QA4SMPlotter():
             name of output file
         out_types: str or list
             extensions which the files should be saved in
-        save_file: bool, optional. Default is False
+        save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for _boxplot_definition function
 
@@ -479,10 +486,10 @@ class QA4SMPlotter():
             return fig, ax
 
     def boxplot_tc(
-            self, metric:str,
-            out_name:str=None,
-            out_types:str='png',
-            save_files:bool=False,
+            self, metric: str,
+            out_name: str = None,
+            out_types: str = 'png',
+            save_files: bool = False,
             **plotting_kwargs
     ) -> list:
         """
@@ -498,7 +505,7 @@ class QA4SMPlotter():
             name of output file
         out_types: str or list
             extensions which the files should be saved in
-        save_file: bool, optional. Default is False
+        save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for _boxplot_definition function
 
@@ -558,9 +565,9 @@ class QA4SMPlotter():
 
     def mapplot_var(
             self, Var,
-            out_name:str=None,
-            out_types:str='png',
-            save_files:bool=False,
+            out_name: str = None,
+            out_types: str = 'png',
+            save_files: bool = False,
             **plotting_kwargs
     ) -> list:
         """
@@ -569,13 +576,13 @@ class QA4SMPlotter():
 
         Parameters
         ----------
-        var : QA4SMMetricVariab;e
+        Var : QA4SMMetricVariab;e
             Var in the image to make the map for.
         out_name: str
             name of output file
         out_types: str or list
             extensions which the files should be saved in
-        save_file: bool, optional. Default is False
+        save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for mapplot function
 
@@ -589,11 +596,11 @@ class QA4SMPlotter():
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
         # create mapplot
         fig, ax = plm.mapplot(df=Var.values[Var.varname],
-                          metric=metric,
-                          ref_short=ref_meta[1]['short_name'],
-                          ref_grid_stepsize=ref_grid_stepsize,
-                          plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
-                          **plotting_kwargs)
+                              metric=metric,
+                              ref_short=ref_meta[1]['short_name'],
+                              ref_grid_stepsize=ref_grid_stepsize,
+                              plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
+                              **plotting_kwargs)
 
         # title and plot settings depend on the metric group
         if Var.g == 0:
@@ -621,9 +628,9 @@ class QA4SMPlotter():
             return fig, ax
 
     def mapplot_metric(
-            self, metric:str,
-            out_types:str='png',
-            save_files:bool=False,
+            self, metric: str,
+            out_types: str = 'png',
+            save_files: bool = False,
             **plotting_kwargs
     ) -> list:
         """
@@ -633,11 +640,9 @@ class QA4SMPlotter():
         ----------
         metric : str
             Name of a metric. File is searched for variables for that metric.
-        out_name: str
-            name of output file
         out_types: str or list
             extensions which the files should be saved in
-        save_file: bool, optional. Default is False
+        save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for mapplot function
 
@@ -647,7 +652,7 @@ class QA4SMPlotter():
             List of files that were created
         """
         fnames = []
-        for Var in self.img._iter_vars(type="metric", filter_parms={"metric":metric}):
+        for Var in self.img._iter_vars(type="metric", filter_parms={"metric": metric}):
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
@@ -665,9 +670,9 @@ class QA4SMPlotter():
             return fnames
 
     def plot_metric(
-            self, metric:str,
-            out_types:str='png',
-            save_all:bool=True,
+            self, metric: str,
+            out_types: str = 'png',
+            save_all: bool = True,
             **plotting_kwargs
     ) -> tuple:
         """
@@ -703,11 +708,11 @@ class QA4SMPlotter():
 
     def meta_single(
             self,
-            metric:str,
-            metadata:str,
-            df:pd.DataFrame=None,
+            metric: str,
+            metadata: str,
+            df: pd.DataFrame = None,
             axis=None,
-            plot_type:str="catplot",
+            plot_type: str = "catplot",
             **plotting_kwargs
     ) -> Union[tuple, None]:
         """
@@ -763,9 +768,9 @@ class QA4SMPlotter():
 
     def meta_combo(
             self,
-            metric:str,
-            metadata:str,
-            metadata_discrete:str,
+            metric: str,
+            metadata: str,
+            metadata_discrete: str,
     ):
         """
         Cross-boxplot between two given metadata types
@@ -824,11 +829,11 @@ class QA4SMPlotter():
         return fig, axes
 
     def plot_metadata(
-            self, metric:str,
-            metadata:str,
-            metadata_discrete:str=None,
-            save_file:bool=False,
-            out_types:str='png',
+            self, metric: str,
+            metadata: str,
+            metadata_discrete: str = None,
+            save_file: bool = False,
+            out_types: str = 'png',
             **plotting_kwargs
     ):
         """
@@ -928,3 +933,12 @@ class QA4SMPlotter():
 
         return filenames
 
+    def save_stats(self):
+        """Saves the summary statistics to a .csv file and returns the name"""
+        table = self.img.stats_df()
+        filename = self._filenames_lut("table") + '.csv'
+        filepath = self.out_dir.joinpath(filename)
+
+        table.to_csv(path_or_buf=filepath)
+
+        return filepath
