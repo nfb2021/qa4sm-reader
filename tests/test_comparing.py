@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 if sys.platform.startswith("win"):
-    pytest.skip(
+    pytestmark = pytest.mark.skip(
         "Failing on Windows. Probably related to setuptools"
     )
 
