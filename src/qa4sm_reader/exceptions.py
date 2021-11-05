@@ -8,3 +8,7 @@ class ImageError(Exception):
 
 class PlotterError(Exception):
     pass
+
+
+class ComparisonError(Exception):
+    pass
