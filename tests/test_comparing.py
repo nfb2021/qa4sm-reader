@@ -1,5 +1,6 @@
 import threading
 import os
+import sys
 
 import numpy as np
 import numpy.testing
@@ -11,8 +12,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-# for profiling with cProfile, on the command line run
-# python -m cProfile -o ascat_ismn_validation.profile test_validation.py
+# if sys.platform.startswith("win"):
+#     pytestmark = pytest.mark.skip(
+#         "Failing on Windows."
+#     )
+
 
 @pytest.fixture
 def single_img():

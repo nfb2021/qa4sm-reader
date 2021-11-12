@@ -30,11 +30,13 @@ import warnings
 
 cconfig['data_dir'] = os.path.join(os.path.dirname(__file__), 'cartopy')
 
+
 def _float_gcd(a, b, atol=1e-08):
     "Greatest common divisor (=groesster gemeinsamer teiler)"
     while abs(b) > atol:
         a, b = b, a % b
     return a
+
 
 def _get_grid(a):
     "Find the stepsize of the grid behind a and return the parameters for that grid axis."
@@ -48,6 +50,7 @@ def _get_grid(a):
     len_a = int((a_max - a_min) / da + 1)
     return a_min, a_max, da, len_a
 
+
 def _get_grid_for_irregulars(a, grid_stepsize):
     "Find the stepsize of the grid behind a for datasets with predeifned grid stepsize, and return the parameters for that grid axis."
     a = np.unique(a)
@@ -57,15 +60,17 @@ def _get_grid_for_irregulars(a, grid_stepsize):
     len_a = int((a_max - a_min) / da + 1)
     return a_min, a_max, da, len_a
 
+
 def _value2index(a, a_min, da):
     "Return the indexes corresponding to a. a and the returned index is a numpy array."
     return ((a - a_min) / da).astype('int')
+
 
 def _format_floats(x):
     """Format floats in the statistsics table"""
     if isinstance(x, float):
         if abs(x) < 0.000001:
-            return "~ 0"
+            return "0"
         elif 0.1 < abs(x) < 1e3:
             return np.format_float_positional(x, precision=2)
         else:
@@ -73,17 +78,19 @@ def _format_floats(x):
     else:
         return x
 
+
 def oversample(lon, lat, data, extent, dx, dy):
     """Sample to regular grid"""
     other = BasicGrid(lon, lat)
     reg_grid = genreg_grid(dx, dy, minlat=extent[2], maxlat=extent[3],
                            minlon=extent[0], maxlon=extent[1])
-    max_dist = dx * 111 * 1000 # a mean distance for one degree it's around 111 km
+    max_dist = dx * 111 * 1000  # a mean distance for one degree it's around 111 km
     lut = reg_grid.calc_lut(other, max_dist=max_dist)
     img = np.ma.masked_where(lut == -1, data[lut])
     img[np.isnan(img)] = np.ma.masked
 
     return img.reshape(-1, reg_grid.shape[1]), reg_grid
+
 
 def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None):
     """
@@ -114,12 +121,12 @@ def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None):
         'upper' or 'lower' - define how the plot should be oriented, for irregular grids it should return 'upper'
     """
     xx = df.index.get_level_values(index[1])  # lon
-    yy = df.index.get_level_values(index[0])   # lat
+    yy = df.index.get_level_values(index[0])  # lat
 
     if grid_stepsize not in ['nan', None]:
         x_min, x_max, dx, len_x = _get_grid_for_irregulars(xx, grid_stepsize)
         y_min, y_max, dy, len_y = _get_grid_for_irregulars(yy, grid_stepsize)
-        data_extent = (x_min - dx/2, x_max + dx/2, y_min - dy/2, y_max + dy/2)
+        data_extent = (x_min - dx / 2, x_max + dx / 2, y_min - dy / 2, y_max + dy / 2)
         zz, grid = oversample(xx, yy, df.values, data_extent, dx, dy)
         origin = 'upper'
     else:
@@ -133,6 +140,7 @@ def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None):
         origin = 'lower'
 
     return zz, data_extent, origin
+
 
 def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.975], diff_map=False):
     """
@@ -198,6 +206,7 @@ def get_value_range(ds, metric=None, force_quantile=False, quantiles=[0.025, 0.9
 
     return v_min, v_max
 
+
 def get_quantiles(ds, quantiles) -> tuple:
     """
     Gets lower and upper quantiles from pandas.Series or pandas.DataFrame
@@ -225,6 +234,7 @@ def get_quantiles(ds, quantiles) -> tuple:
     else:
         raise TypeError("Inappropriate argument type. 'ds' must be pandas.Series or pandas.DataFrame.")
 
+
 def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
     """
     Gets the plot_extent from the values. Uses range of values and
@@ -248,7 +258,7 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
         # todo: problem if only single lon/lat point is present?
         x_min, x_max, dx, len_x = _get_grid(df.index.get_level_values(lon))
         y_min, y_max, dy, len_y = _get_grid(df.index.get_level_values(lat))
-        extent = [x_min-dx/2., x_max+dx/2., y_min-dx/2., y_max+dx/2.]
+        extent = [x_min - dx / 2., x_max + dx / 2., y_min - dx / 2., y_max + dx / 2.]
     elif grid and grid_stepsize:
         x_min, x_max, dx, len_x = _get_grid_for_irregulars(df.index.get_level_values(lon), grid_stepsize)
         y_min, y_max, dy, len_y = _get_grid_for_irregulars(df.index.get_level_values(lat), grid_stepsize)
@@ -275,10 +285,11 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
 
     return extent
 
+
 def init_plot(figsize, dpi, add_cbar=None, projection=None) -> tuple:
     """Initialize mapplot"""
     if not projection:
-        projection=globals.crs
+        projection = globals.crs
     fig = plt.figure(figsize=figsize, dpi=dpi)
     if add_cbar:
         gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[19, 1])
@@ -290,6 +301,7 @@ def init_plot(figsize, dpi, add_cbar=None, projection=None) -> tuple:
         cax = None
 
     return fig, ax, cax
+
 
 def get_extend_cbar(metric):
     """
@@ -317,6 +329,7 @@ def get_extend_cbar(metric):
         else:
             return 'neither'
 
+
 def style_map(
         ax, plot_extent, add_grid=True,
         map_resolution=globals.naturalearth_resolution,
@@ -332,7 +345,8 @@ def style_map(
         # https://github.com/SciTools/cartopy/issues/1342
         try:
             grid_interval = max((plot_extent[1] - plot_extent[0]),
-                                (plot_extent[3] - plot_extent[2])) / 5  # create apprx. 5 gridlines in the bigger dimension
+                                (plot_extent[3] - plot_extent[
+                                    2])) / 5  # create apprx. 5 gridlines in the bigger dimension
             if grid_interval <= min(grid_intervals):
                 raise RuntimeError
             grid_interval = min(grid_intervals, key=lambda x: abs(
@@ -384,6 +398,7 @@ def style_map(
 
     return ax
 
+
 def make_watermark(
         fig,
         placement=globals.watermark_pos,
@@ -429,7 +444,8 @@ def make_watermark(
     else:
         raise NotImplementedError
 
-def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None, diff_map=False):
+
+def _make_cbar(fig, im, cax, ref_short: str, metric: str, label=None, diff_map=False):
     """
     Make colorbar to use in plots
 
@@ -469,6 +485,7 @@ def _make_cbar(fig, im, cax, ref_short:str, metric:str, label=None, diff_map=Fal
 
     return fig, im, cax
 
+
 def _CI_difference(fig, ax, ci):
     """
     Insert the median value of the upper and lower CI difference
@@ -502,11 +519,12 @@ def _CI_difference(fig, ax, ci):
         ypos = float(ci_df["lower"].min())
         ax.annotate(
             "Mean CI\nRange:\n {:.2g}".format(ci_range),
-            xy = (xmin - 0.2, ypos),
+            xy=(xmin - 0.2, ypos),
             horizontalalignment="center"
         )
 
-def _add_dummies(df:pd.DataFrame, to_add:int) -> list:
+
+def _add_dummies(df: pd.DataFrame, to_add: int) -> list:
     """
     Add empty columns in dataframe to avoid error in matplotlib when not all boxplot groups have the same
     number of values
@@ -516,6 +534,7 @@ def _add_dummies(df:pd.DataFrame, to_add:int) -> list:
         df[str(n)] = np.nan
 
     return df
+
 
 def patch_styling(
         box_dict,
@@ -529,7 +548,8 @@ def patch_styling(
         whis.set(color="grey", linewidth=1.6)
         caps.set(color="grey", linewidth=1.6)
 
-def _box_stats(ds:pd.Series, med:bool=True, iqrange:bool=True, count:bool=True) -> str:
+
+def _box_stats(ds: pd.Series, med: bool = True, iqrange: bool = True, count: bool = True) -> str:
     """
     Create the metric part with stats of the box (axis) caption
 
@@ -548,7 +568,7 @@ def _box_stats(ds:pd.Series, med:bool=True, iqrange:bool=True, count:bool=True) 
         caption with summary stats
     """
     # interquartile range
-    iqr = ds.quantile(q=[0.75,0.25]).diff()
+    iqr = ds.quantile(q=[0.75, 0.25]).diff()
     iqr = abs(float(iqr.loc[0.25]))
 
     met_str = []
@@ -561,6 +581,7 @@ def _box_stats(ds:pd.Series, med:bool=True, iqrange:bool=True, count:bool=True) 
     stats = '\n'.join(met_str)
 
     return stats
+
 
 def boxplot(
         df,
@@ -601,7 +622,7 @@ def boxplot(
     ax : matplotlib.axes.Axes
     """
     values = df.copy()
-    center_pos = np.arange(len(values.columns))*2
+    center_pos = np.arange(len(values.columns)) * 2
     # make plot
     ax = axis
     if axis is None:
@@ -618,11 +639,11 @@ def boxplot(
             upper.append(intervals["upper"])
         lower = _add_dummies(
             pd.concat(lower, ignore_index=True, axis=1),
-            len(center_pos)-len(ci),
+            len(center_pos) - len(ci),
         )
         upper = _add_dummies(
             pd.concat(upper, ignore_index=True, axis=1),
-            len(center_pos)-len(ci),
+            len(center_pos) - len(ci),
         )
         low = lower.boxplot(
             positions=center_pos - spacing,
@@ -651,8 +672,8 @@ def boxplot(
     patch_styling(cen, 'white')
     if ci:
         low_ci = Patch(color='skyblue', alpha=0.7, label='Lower CI')
-        up_ci = Patch(color='tomato',  alpha=0.7, label='Upper CI')
-        #_CI_difference(fig, ax, ci)
+        up_ci = Patch(color='tomato', alpha=0.7, label='Upper CI')
+        # _CI_difference(fig, ax, ci)
         plt.legend(
             handles=[low_ci, up_ci],
             fontsize=8,
@@ -671,23 +692,25 @@ def boxplot(
     if axis is None:
         return fig, ax
 
+
 # TODO: test?
 def resize_bins(sorted, nbins):
     """Resize the bins for "continuous" metadata types"""
     bin_edges = np.linspace(0, 100, nbins + 1)
     p_rank = 100.0 * (np.arange(sorted.size) + 0.5) / sorted.size
     # use +- 1 to make sure nothing falls outside bins
-    bin_edges = np.interp(bin_edges, p_rank, sorted, left=sorted[0]-1, right=sorted[-1]+1)
+    bin_edges = np.interp(bin_edges, p_rank, sorted, left=sorted[0] - 1, right=sorted[-1] + 1)
     bin_values = np.digitize(sorted, bin_edges)
     unique_values, counts = np.unique(bin_values, return_counts=True)
     bin_size = max(counts)
 
     return bin_values, unique_values, bin_size
 
+
 def bin_continuous(
-        df:pd.DataFrame,
-        metadata_values:pd.DataFrame,
-        meta_key:str,
+        df: pd.DataFrame,
+        metadata_values: pd.DataFrame,
+        meta_key: str,
         nbins=4,
         min_size=5,
         **kwargs,
@@ -735,7 +758,7 @@ def bin_continuous(
     # put binned data in dataframe
     binned = {}
     for bin in unique_values:
-        bin_index = np.where(bin_values==bin)
+        bin_index = np.where(bin_values == bin)
         bin_sorted = sorted[bin_index]
         bin_df = df.iloc[bin_index]
         bin_label = "{:.2f}-{:.2f} {}".format(min(bin_sorted), max(bin_sorted), meta_units)
@@ -748,10 +771,11 @@ def bin_continuous(
 
     return binned
 
+
 def bin_classes(
-        df:pd.DataFrame,
-        metadata_values:pd.DataFrame,
-        meta_key:str,
+        df: pd.DataFrame,
+        metadata_values: pd.DataFrame,
+        meta_key: str,
         min_size=5,
         **kwargs,
 ):
@@ -778,7 +802,7 @@ def bin_classes(
     """
     classes_lut = globals.metadata[meta_key][1]
     grouped = metadata_values.applymap(
-        lambda x : classes_lut[x]
+        lambda x: classes_lut[x]
     )
     binned = {}
     for meta_class, meta_df in grouped.groupby(meta_key).__iter__():
@@ -793,10 +817,11 @@ def bin_classes(
 
     return binned
 
+
 def bin_discrete(
-        df:pd.DataFrame,
-        metadata_values:pd.DataFrame,
-        meta_key:str,
+        df: pd.DataFrame,
+        metadata_values: pd.DataFrame,
+        meta_key: str,
         min_size=5,
         **kwargs,
 ) -> pd.DataFrame:
@@ -834,7 +859,7 @@ def bin_discrete(
     formatted = []
     for meta, meta_df in grouped.groupby(meta_key).__iter__():
         if meta_df["values"].count() < min_size:
-           continue
+            continue
         formatted.append(meta_df)
     # If too few points are available to make the plots
     if not formatted:
@@ -843,6 +868,7 @@ def bin_discrete(
         formatted = pd.concat(formatted)
         # return None as no CI data is needed for this plot
         return formatted
+
 
 def bin_function_lut(type):
     """Lookup table between the metadata type and the binning function"""
@@ -858,7 +884,8 @@ def bin_function_lut(type):
 
     return lut[type]
 
-def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
+
+def _stats_discrete(df: pd.DataFrame, meta_key: str, stats_key: str) -> list:
     """Return list of stats by group, where groups are created with a specific key"""
     stats_list = []
     for _key, group in df.groupby(meta_key).__iter__():
@@ -868,11 +895,12 @@ def _stats_discrete(df:pd.DataFrame, meta_key:str, stats_key:str) -> list:
 
     return stats_list
 
+
 def combine_soils(
-        soil_fractions:dict,
-        clay_fine:int=35,
-        clay_coarse:int=20,
-        sand_coarse:int=65,
+        soil_fractions: dict,
+        clay_fine: int = 35,
+        clay_coarse: int = 20,
+        sand_coarse: int = 65,
 ) -> pd.DataFrame:
     """
     Create a metadata granulometry classification based on 'coarse', 'medium' or 'fine' soil types. Uses
@@ -895,14 +923,15 @@ def combine_soils(
         Dataframe with the new metadata type
     """
     # get thresholds on cartesian plane
-    cf_y = clay_fine*np.sin(2/3*np.pi)
-    cc_y = clay_coarse*np.sin(2/3*np.pi)
-    sc_x = 100-sand_coarse
+    cf_y = clay_fine * np.sin(2 / 3 * np.pi)
+    cc_y = clay_coarse * np.sin(2 / 3 * np.pi)
+    sc_x = 100 - sand_coarse
     # transform values to cartesian
-    x = soil_fractions["sand_fraction"].values.apply(lambda x: 100-x)
-    y = soil_fractions["clay_fraction"].values.apply(lambda x: x*np.sin(2/3*np.pi))
-    soil_combined = pd.concat([x,y], axis=1)
+    x = soil_fractions["sand_fraction"].values.apply(lambda x: 100 - x)
+    y = soil_fractions["clay_fraction"].values.apply(lambda x: x * np.sin(2 / 3 * np.pi))
+    soil_combined = pd.concat([x, y], axis=1)
     soil_combined.columns = ["x", "y"]
+
     # function to calssify
     def sort_soil_type(row):
         if row["x"] < sc_x and row["y"] < cc_y:
@@ -911,11 +940,13 @@ def combine_soils(
             return "Medium\ngranulometry"
         else:
             return "Fine\ngranulometry"
+
     soil_combined = soil_combined.apply(lambda row: sort_soil_type(row), axis=1).to_frame("soil_type")
 
     return soil_combined
 
-def combine_depths(depth_dict:dict) -> pd.DataFrame:
+
+def combine_depths(depth_dict: dict) -> pd.DataFrame:
     """
     Create a metadata entry for the instrument depth by finding the middle point between the upper and lower
     specified instrument depths
@@ -939,7 +970,8 @@ def combine_depths(depth_dict:dict) -> pd.DataFrame:
 
     return depths_combined
 
-def aggregate_subplots(to_plot:dict, funct, n_bars, common_y=None, **kwargs):
+
+def aggregate_subplots(to_plot: dict, funct, n_bars, common_y=None, **kwargs):
     """
     Aggregate multiple subplots into one image
 
@@ -966,40 +998,41 @@ def aggregate_subplots(to_plot:dict, funct, n_bars, common_y=None, **kwargs):
             fig, axes = funct(df=data, **kwargs)
     elif sub_n > 1:
         # provide the figure and subplots
-        rows = int(np.ceil(sub_n/2))
+        rows = int(np.ceil(sub_n / 2))
         fig, axes = plt.subplots(rows, 2, sharey=True)
         for n, (bin_label, data) in enumerate(to_plot.items()):
             if n % 2 == 0:
                 try:
-                    ax=axes[int(n/2), 0]
+                    ax = axes[int(n / 2), 0]
                 except IndexError:  # If only two subplots, it is a 1-dimensional array
-                    ax=axes[0]
+                    ax = axes[0]
             else:
                 try:
-                    ax=axes[int(n/2), 1]
+                    ax = axes[int(n / 2), 1]
                 except IndexError:
-                    ax=axes[1]
+                    ax = axes[1]
             # Make sure funct has the correct parameters format
             if 'axis' not in funct.__code__.co_varnames:
                 raise KeyError(
                     "'axis' should be in the parameters of the given function {}".format(funct)
                 )
             funct(df=data, axis=ax, **kwargs)
-            ax.set_title(bin_label, fontdict={"fontsize":10})
+            ax.set_title(bin_label, fontdict={"fontsize": 10})
             if n != 0:
-                ax.legend([],[], frameon=False)
+                ax.legend([], [], frameon=False)
         # eliminate extra subplot if odd number
-        if rows*2 > sub_n:
-            fig.delaxes(axes[rows-1, 1])
+        if rows * 2 > sub_n:
+            fig.delaxes(axes[rows - 1, 1])
 
         plt.subplots_adjust(wspace=0.1, hspace=0.25)
-        fig.set_figheight(globals.boxplot_height*(np.ceil(sub_n/2) + 0.2))
-        fig.set_figwidth(globals.boxplot_width*n_bars*2)
+        fig.set_figheight(globals.boxplot_height * (np.ceil(sub_n / 2) + 0.2))
+        fig.set_figwidth(globals.boxplot_width * n_bars * 2)
 
         if common_y:
             fig.text(0.05, 0.5, common_y, va='center', rotation='vertical')
 
     return fig, axes
+
 
 def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
     """
@@ -1024,7 +1057,8 @@ def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
 
     return fig, axes
 
-def _dict2df(to_plot_dict:dict, meta_key:str) -> pd.DataFrame:
+
+def _dict2df(to_plot_dict: dict, meta_key: str) -> pd.DataFrame:
     """Transform a dictionary into a DataFrame for catplotting"""
     to_plot_df = []
     for range, values in to_plot_dict.items():
@@ -1040,15 +1074,17 @@ def _dict2df(to_plot_dict:dict, meta_key:str) -> pd.DataFrame:
 
     return to_plot_df
 
-def add_cat_info(to_plot:pd.DataFrame, metadata_name:str) -> pd.DataFrame:
+
+def add_cat_info(to_plot: pd.DataFrame, metadata_name: str) -> pd.DataFrame:
     """Add info (N, median value) to metadata category labels"""
     groups = to_plot.groupby(metadata_name)["values"]
     counts = groups.count()
     to_plot[metadata_name] = to_plot[metadata_name].apply(
-        lambda x : x + "\nN: {}".format(counts[x])
+        lambda x: x + "\nN: {}".format(counts[x])
     )
 
     return to_plot
+
 
 def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
     """
@@ -1090,7 +1126,7 @@ def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
         data=to_plot,
         palette="Set2",
         ax=axis,
-        showfliers = False,
+        showfliers=False,
         orient=orient,
     )
     n_bars = to_plot["Dataset"].nunique()
@@ -1099,21 +1135,20 @@ def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
     unit_width = len(to_plot[metadata_name].unique())
     # needed for overlapping station names
     box.tick_params(labelsize=globals.tick_size)
-    dims = [globals.boxplot_width*n_meta*2, globals.boxplot_height]
+    dims = [globals.boxplot_width * n_meta * 2, globals.boxplot_height]
     if orient == "v":
         axis.set(xlabel=None, ylabel=y_axis)
-        axis.yaxis.grid(True) # Hide the horizontal gridlines
-        axis.xaxis.grid(False) # Show the vertical gridlines
+        axis.yaxis.grid(True)  # Hide the horizontal gridlines
+        axis.xaxis.grid(False)  # Show the vertical gridlines
 
     if orient == "h":
         axis.set(ylabel=None, xlabel=y_axis)
-        axis.yaxis.grid(False) # Hide the horizontal gridlines
-        axis.xaxis.grid(True) # Show the vertical gridlines
+        axis.yaxis.grid(False)  # Hide the horizontal gridlines
+        axis.xaxis.grid(True)  # Show the vertical gridlines
 
     axis.set_axisbelow(True)
     axis.spines['right'].set_visible(False)
     axis.spines['top'].set_visible(False)
-
 
     axis.legend(loc="best", fontsize="small")
 
@@ -1127,14 +1162,15 @@ def bplot_catplot(to_plot, y_axis, metadata_name, axis=None, **kwargs) -> tuple:
         axis.set(xlabel=None)
         axis.set(ylabel=None)
 
+
 def boxplot_metadata(
-        df:pd.DataFrame,
-        metadata_values:pd.DataFrame,
+        df: pd.DataFrame,
+        metadata_values: pd.DataFrame,
         offset=0.02,
         ax_label=None,
         nbins=4,
         axis=None,
-        plot_type:str="catplot",
+        plot_type: str = "catplot",
         **bplot_kwargs,
 ) -> tuple:
     """
@@ -1211,6 +1247,7 @@ def boxplot_metadata(
 
         return fig, axes
 
+
 def mapplot(
         df, metric,
         ref_short,
@@ -1225,7 +1262,7 @@ def mapplot(
         diff_map=False,
         **style_kwargs
 ) -> tuple:
-        """
+    """
         Create an overview map from df using values as color. Plots a scatterplot for ISMN and an image plot for other
         input values.
 
@@ -1267,66 +1304,67 @@ def mapplot(
             the boxplot
         ax : matplotlib.axes.Axes
         """
-        if not colormap:
-            cmap = globals._colormaps[metric]
-        else:
-            cmap = colormap
-        v_min, v_max = get_value_range(df, metric)
-        # everything changes if the plot is a difference map
-        if diff_map:
-            v_min, v_max = get_value_range(df, metric=None, diff_map=True)
-            cmap = globals._diff_colormaps[metric]
+    if not colormap:
+        cmap = globals._colormaps[metric]
+    else:
+        cmap = colormap
+    v_min, v_max = get_value_range(df, metric)
+    # everything changes if the plot is a difference map
+    if diff_map:
+        v_min, v_max = get_value_range(df, metric=None, diff_map=True)
+        cmap = globals._diff_colormaps[metric]
 
-        # mask values outside range (e.g. for negative STDerr from TCA)
-        if metric in globals._metric_mask_range.keys():
-            mask_under, mask_over = globals._metric_mask_range[metric]  # get values from scratch to disregard quantiles
-            cmap = copy.copy(cmap)
-            if mask_under is not None:
-                v_min = mask_under
-                cmap.set_under("red")
-            if mask_over is not None:
-                v_max = mask_over
-                cmap.set_over("red")
+    # mask values outside range (e.g. for negative STDerr from TCA)
+    if metric in globals._metric_mask_range.keys():
+        mask_under, mask_over = globals._metric_mask_range[metric]  # get values from scratch to disregard quantiles
+        cmap = copy.copy(cmap)
+        if mask_under is not None:
+            v_min = mask_under
+            cmap.set_under("red")
+        if mask_over is not None:
+            v_max = mask_over
+            cmap.set_over("red")
 
-        # initialize plot
-        fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
+    # initialize plot
+    fig, ax, cax = init_plot(figsize, dpi, add_cbar, projection)
 
-        # scatter point or mapplot
-        if ref_short in globals.scattered_datasets:  # scatter
-            if not plot_extent:
-                plot_extent = get_plot_extent(df)
+    # scatter point or mapplot
+    if ref_short in globals.scattered_datasets:  # scatter
+        if not plot_extent:
+            plot_extent = get_plot_extent(df)
 
-            markersize = globals.markersize ** 2
-            lat, lon, gpi = globals.index_names
-            im = ax.scatter(df.index.get_level_values(lon),
-                            df.index.get_level_values(lat),
-                            c=df, cmap=cmap, s=markersize,
-                            vmin=v_min, vmax=v_max,
-                            edgecolors='black', linewidths=0.1,
-                            zorder=2, transform=globals.data_crs)
-        else:  # mapplot
-            if not plot_extent:
-                plot_extent = get_plot_extent(df, grid_stepsize=ref_grid_stepsize, grid=True)
-            if isinstance(ref_grid_stepsize, np.ndarray):
-                ref_grid_stepsize = ref_grid_stepsize[0]
-            zz, zz_extent, origin = geotraj_to_geo2d(df, grid_stepsize=ref_grid_stepsize)  # prep values
-            im = ax.imshow(zz, cmap=cmap, vmin=v_min,
-                           vmax=v_max, interpolation='nearest',
-                           origin=origin, extent=zz_extent,
-                           transform=globals.data_crs, zorder=2)
+        markersize = globals.markersize ** 2
+        lat, lon, gpi = globals.index_names
+        im = ax.scatter(df.index.get_level_values(lon),
+                        df.index.get_level_values(lat),
+                        c=df, cmap=cmap, s=markersize,
+                        vmin=v_min, vmax=v_max,
+                        edgecolors='black', linewidths=0.1,
+                        zorder=2, transform=globals.data_crs)
+    else:  # mapplot
+        if not plot_extent:
+            plot_extent = get_plot_extent(df, grid_stepsize=ref_grid_stepsize, grid=True)
+        if isinstance(ref_grid_stepsize, np.ndarray):
+            ref_grid_stepsize = ref_grid_stepsize[0]
+        zz, zz_extent, origin = geotraj_to_geo2d(df, grid_stepsize=ref_grid_stepsize)  # prep values
+        im = ax.imshow(zz, cmap=cmap, vmin=v_min,
+                       vmax=v_max, interpolation='nearest',
+                       origin=origin, extent=zz_extent,
+                       transform=globals.data_crs, zorder=2)
 
-        if add_cbar:  # colorbar
-            _make_cbar(fig, im, cax, ref_short, metric, label=label, diff_map=diff_map)
-        style_map(ax, plot_extent, **style_kwargs)
-        fig.canvas.draw()  # very slow. necessary bcs of a bug in cartopy: https://github.com/SciTools/cartopy/issues/1207
+    if add_cbar:  # colorbar
+        _make_cbar(fig, im, cax, ref_short, metric, label=label, diff_map=diff_map)
+    style_map(ax, plot_extent, **style_kwargs)
+    fig.canvas.draw()  # very slow. necessary bcs of a bug in cartopy: https://github.com/SciTools/cartopy/issues/1207
 
-        return fig, ax
+    return fig, ax
+
 
 def plot_spatial_extent(
-        polys:dict,
-        ref_points:bool=None,
-        overlapping:bool=False,
-        intersection_extent:tuple=None,
+        polys: dict,
+        ref_points: bool = None,
+        overlapping: bool = False,
+        intersection_extent: tuple = None,
         reg_grid=False,
         grid_stepsize=None,
         **kwargs,
@@ -1354,9 +1392,9 @@ def plot_spatial_extent(
         name, Pol = items
         if n == 0:
             union = Pol
-         # get maximum extent
+        # get maximum extent
         union = union.union(Pol)
-        style = {'color':'powderblue', 'alpha':0.4}
+        style = {'color': 'powderblue', 'alpha': 0.4}
         # shade the union/intersection of the polygons
         if overlapping:
             x, y = Pol.exterior.xy
@@ -1375,15 +1413,15 @@ def plot_spatial_extent(
     if ref_points is not None:
         if overlapping and intersection_extent is not None:
             minlon, maxlon, minlat, maxlat = intersection_extent
-            mask = (ref_points[:,0]>=minlon) & (ref_points[:,0]<=maxlon) &\
-                   (ref_points[:,1]>=minlat) & (ref_points[:,1]<=maxlat)
+            mask = (ref_points[:, 0] >= minlon) & (ref_points[:, 0] <= maxlon) & \
+                   (ref_points[:, 1] >= minlat) & (ref_points[:, 1] <= maxlat)
             selected = ref_points[mask]
             outside = ref_points[~ mask]
         else:
             selected, outside = ref_points, np.array([])
         marker_styles = [
-            {"marker": "o", "c":"turquoise", "s":15},
-            {"marker": "o", "c":"tomato", "s":15},
+            {"marker": "o", "c": "turquoise", "s": 15},
+            {"marker": "o", "c": "tomato", "s": 15},
         ]
         # mapplot with imshow for gridded (non-ISMN) references
         if reg_grid:
@@ -1425,7 +1463,7 @@ def plot_spatial_extent(
             ):
                 if point_set.size != 0:
                     im = ax.scatter(
-                        point_set[:,0], point_set[:,1],
+                        point_set[:, 0], point_set[:, 1],
                         edgecolors='black', linewidths=0.1,
                         zorder=4, transform=globals.data_crs,
                         **style, label=name
@@ -1437,8 +1475,8 @@ def plot_spatial_extent(
     title_style = {"fontsize": 12}
     ax.set_title("Spatial extent of the comparison", **title_style)
     # provide extent of plot
-    d_lon = abs(union.bounds[0] - union.bounds[2])* 1/8
-    d_lat = abs(union.bounds[1] - union.bounds[3])* 1/8
+    d_lon = abs(union.bounds[0] - union.bounds[2]) * 1 / 8
+    d_lat = abs(union.bounds[1] - union.bounds[3]) * 1 / 8
     plot_extent = (union.bounds[0] - d_lon, union.bounds[2] + d_lon,
                    union.bounds[1] - d_lat, union.bounds[3] + d_lat)
     grid_intervals = [1, 5, 10, 30]

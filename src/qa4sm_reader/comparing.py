@@ -8,22 +8,20 @@ from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy import stats
 
 from typing import Union
 from warnings import warn
 
-class ComparisonError(Exception):
-    pass
+from qa4sm_reader.exceptions import ComparisonError
 
 
-class QA4SMComparison():
+class QA4SMComparison:
     """
     Class that provides comparison plots and table for a list of netCDF files. As initialising a QA4SMImage can
     take some time, the class can be updated keeping memory of what has already been initialized
     """
-    def __init__(self, paths:list or str, extent:tuple=None, get_intersection:bool=True):
+
+    def __init__(self, paths: list or str, extent: tuple = None, get_intersection: bool = True):
         """
         Initialise the QA4SMImages from the paths to netCDF files specified
 
@@ -51,7 +49,7 @@ class QA4SMComparison():
         self.ref = self._check_ref()
         self.union = not get_intersection
 
-    def _init_imgs(self, extent:tuple=None, get_intersection:bool=True) -> list:
+    def _init_imgs(self, extent: tuple = None, get_intersection: bool = True) -> list:
         """
         Initialize the QA4SMImages for the selected validation results files. If 'extent' is specified, this is used. If
         not, by default the intersection of results is taken and the images are initialized with it, unless 'get_union'
@@ -142,7 +140,7 @@ class QA4SMComparison():
                 if metric in glob.metric_groups[0] or metric in ["tau", "p_tau"]:
                     continue
                 img_metrics[metric] = glob._metric_name[metric]
-            if n==0:
+            if n == 0:
                 common_metrics = img_metrics
                 continue
             common_keys = common_metrics.keys() & img_metrics.keys()
@@ -159,7 +157,7 @@ class QA4SMComparison():
         polys = []
         for img in self.compared:  # get names and extents for all images
             minlon, maxlon, minlat, maxlat = img.extent
-            bounds = [(minlon,minlat), (maxlon, minlat),
+            bounds = [(minlon, minlat), (maxlon, minlat),
                       (maxlon, maxlat), (minlon, maxlat)]
             Pol = Polygon(bounds)
             polys.append(Pol)
@@ -186,7 +184,7 @@ class QA4SMComparison():
         template = "Validation {}: {} validated against {}"
         for n, img in enumerate(self.compared):
             datasets = img.datasets
-            if len(datasets.others)==2:
+            if len(datasets.others) == 2:
                 for n, ds_meta in enumerate(datasets.others):
                     name = template.format(
                         n, ds_meta["pretty_title"],
@@ -250,8 +248,8 @@ class QA4SMComparison():
 
     def _combine_geometry(
             self,
-            imgs:list,
-            get_intersection:bool=True,
+            imgs: list,
+            get_intersection: bool = True,
             return_polys=False
     ) -> tuple:
         """
@@ -276,7 +274,7 @@ class QA4SMComparison():
 
         for n, img in enumerate(imgs):
             minlon, maxlon, minlat, maxlat = img.extent
-            bounds = [(minlon,minlat), (maxlon, minlat),
+            bounds = [(minlon, minlat), (maxlon, minlat),
                       (maxlon, maxlat), (minlon, maxlat)]
             Pol = Polygon(bounds)
             name = "Validation {}: ".format(n) + img.name
@@ -309,8 +307,8 @@ class QA4SMComparison():
 
     def visualize_extent(
             self,
-            intersection:bool=True,
-            plot_points:bool=False,
+            intersection: bool = True,
+            plot_points: bool = False,
     ):
         """
         Method to get and visualize the comparison extent including the reference points.
@@ -341,11 +339,11 @@ class QA4SMComparison():
             ref_points=ref_points,
             overlapping=self.overlapping,
             intersection_extent=extent,
-            reg_grid=(ref!="ISMN"),
+            reg_grid=(ref != "ISMN"),
             grid_stepsize=ref_grid_stepsize
         )
 
-    def _get_data(self, metric:str) -> dict:  # todo: use new handlers to get metadata for Variable
+    def _get_data(self, metric: str) -> dict:  # todo: use new handlers to get metadata for Variable
         """
         Get the list of image Variable names from a metric
 
@@ -359,12 +357,12 @@ class QA4SMComparison():
         varnames: dict
             dict of {"varlist":[list of var dfs], "ci_list":[list of CIs dfs]
         """
-        varnames = {"varlist":[], "ci_list":[]}
+        varnames = {"varlist": [], "ci_list": []}
         n = 0
         for i, img in enumerate(self.compared):
             for Var in img._iter_vars(
                     type="metric",
-                    filter_parms={"metric":metric}
+                    filter_parms={"metric": metric}
             ):
                 var_cis = []
                 id = i
@@ -374,7 +372,7 @@ class QA4SMComparison():
                     if self.single_image:
                         id = n
                     col_name = "Validation {}:\n{}\n".format(
-                        id, QA4SMPlotter._box_caption(Var, tc=Var.g==3)
+                        id, QA4SMPlotter._box_caption(Var, tc=Var.g == 3)
                     )
                     data = data.rename(col_name)
                     varnames["varlist"].append(data)
@@ -382,7 +380,7 @@ class QA4SMComparison():
                     # get CIs too, if present
                     for CI_Var in img._iter_vars(
                             type="ci",
-                            filter_parms={"metric":metric, "metric_ds":Var.metric_ds}
+                            filter_parms={"metric": metric, "metric_ds": Var.metric_ds}
                     ):
                         # a bit of necessary code repetition
                         varname = CI_Var.varname
@@ -396,7 +394,7 @@ class QA4SMComparison():
 
         return varnames
 
-    def subset_with_extent(self, dfs:list) -> list:
+    def subset_with_extent(self, dfs: list) -> list:
         """
         Return the original dataframe with only the values included in the selected extent. Basically the
         same method as in QA4SMImg, but it is done here to avoid re-initializing the images
@@ -412,8 +410,10 @@ class QA4SMComparison():
         lat, lon, gpi = glob.index_names
         subset = []
         for df in dfs:
-            mask = (df.index.get_level_values(lon) >= self.extent[0]) & (df.index.get_level_values(lon) <= self.extent[1]) &\
-                   (df.index.get_level_values(lat) >= self.extent[2]) & (df.index.get_level_values(lat) <= self.extent[3])
+            mask = (df.index.get_level_values(lon) >= self.extent[0]) & (
+                        df.index.get_level_values(lon) <= self.extent[1]) & \
+                   (df.index.get_level_values(lat) >= self.extent[2]) & (
+                               df.index.get_level_values(lat) <= self.extent[3])
             df.where(mask, inplace=True)
             subset.append(df)
 
@@ -428,7 +428,7 @@ class QA4SMComparison():
 
         return df
 
-    def _handle_multiindex(self, dfs:list) -> pd.DataFrame:
+    def _handle_multiindex(self, dfs: list) -> pd.DataFrame:
         """
         Handle ValueError 'cannot handle a non-unique multi-index!' when non-unique multi-index is different in
         the two dfs (e.g. multiple station depths). Update: should have been solved by simply adding gpi to the
@@ -463,8 +463,8 @@ class QA4SMComparison():
 
     def _get_pairwise(
             self,
-            metric:str,
-            add_stats:bool=True,
+            metric: str,
+            add_stats: bool = True,
             return_cis=False
     ) -> pd.DataFrame:
         """
@@ -495,7 +495,7 @@ class QA4SMComparison():
         pair_df = self._handle_multiindex(subset)
 
         if self.overlapping:
-            diff = pair_df.iloc[:,0] - pair_df.iloc[:,1]
+            diff = pair_df.iloc[:, 0] - pair_df.iloc[:, 1]
             diff = diff.rename(
                 "Difference of common points\nbetween validations 0 and 1\n"
             )
@@ -542,7 +542,7 @@ class QA4SMComparison():
             if pairwise:
                 self._check_pairwise()
 
-    def diff_table(self, metrics:list) -> pd.DataFrame:
+    def diff_table(self, metrics: list) -> pd.DataFrame:
         """
         Create a table where all the metrics for the different validation runs are compared
 
@@ -578,7 +578,7 @@ class QA4SMComparison():
 
         return table
 
-    def diff_boxplot(self, metric:str, **kwargs):
+    def diff_boxplot(self, metric: str, **kwargs):
         """
         Create a boxplot where two validations are compared. If the comparison is on the subsets union,
         the shown difference corresponds only to the points in the common spatial extent.
@@ -599,18 +599,19 @@ class QA4SMComparison():
         fig, axes = plm.boxplot(
             df,
             ci=ci,
-            label= "{} {}".format(Metric.pretty_name, um),
+            label="{} {}".format(Metric.pretty_name, um),
             figsize=figsize,
         )
         # titles for the plot
-        fonts = {"fontsize":12}
-        title_plot = "Comparison of {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
+        fonts = {"fontsize": 12}
+        title_plot = "Comparison of {} {}\nagainst the reference {}".format(Metric.pretty_name, um,
+                                                                            self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        plm.make_watermark(fig, glob.watermark_pos, offset= 0.04)
+        plm.make_watermark(fig, glob.watermark_pos, offset=0.04)
         plt.tight_layout()
 
-    def diff_mapplot(self, metric:str, **kwargs):
+    def diff_mapplot(self, metric: str, **kwargs):
         """
         Create a pairwise mapplot of the difference between the validations, for a metric. Difference is other - reference
 
@@ -629,19 +630,20 @@ class QA4SMComparison():
         cbar_label = "Difference between {} and {}".format(*df.columns)
 
         fig, axes = plm.mapplot(
-            df.iloc[:,2],
+            df.iloc[:, 2],
             metric=metric,
             ref_short=self.ref['short_name'],
             diff_map=True,
             label=cbar_label
         )
-        fonts = {"fontsize":12}
-        title_plot = "Overview of the difference in {} {}\nagainst the reference {}".format(Metric.pretty_name, um, self.ref["pretty_title"])
+        fonts = {"fontsize": 12}
+        title_plot = "Overview of the difference in {} {}\nagainst the reference {}".format(Metric.pretty_name, um,
+                                                                                            self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        plm.make_watermark(fig, glob.watermark_pos, offset= 0.08)
+        plm.make_watermark(fig, glob.watermark_pos, offset=0.08)
 
-    def wrapper(self, method:str, metric=None, **kwargs):
+    def wrapper(self, method: str, metric=None, **kwargs):
         """
         Call the method using a list of paths and the already initialised images
 
@@ -663,7 +665,6 @@ class QA4SMComparison():
                 'Difference method not valid. Choose one of %s' % ', '.join(diff_methods_lut.keys())
             )
             raise e
-
 
         if not metric:
             raise ComparisonError(

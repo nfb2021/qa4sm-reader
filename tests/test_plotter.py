@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,13 @@ from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, \
     bin_discrete, combine_soils, combine_depths
 from qa4sm_reader.handlers import Metadata
+
+
+# if sys.platform.startswith("win"):
+#     pytestmark = pytest.mark.skip(
+#         "Failing on Windows."
+#     )
+
 
 @pytest.fixture
 def plotdir():
@@ -127,6 +135,20 @@ def test_boxplot(basic_plotter, plotdir):
     bias_files = basic_plotter.boxplot_basic('BIAS', out_types='png', save_files=True)  # should be 1
     assert len(os.listdir(plotdir)) == 1 + 1 + 1
     assert len(list(bias_files)) == 1
+
+    shutil.rmtree(plotdir)
+
+
+def test_csv(basic_plotter, plotdir):
+    csv_file = basic_plotter.save_stats()
+    # file is in the right format
+    assert csv_file.suffix == '.csv'
+
+    csv_dframe = pd.read_csv(csv_file, index_col="Metric", dtype=str).drop("Group", axis="columns")
+    dframe = basic_plotter.img.stats_df().drop("Group", axis="columns")
+
+    # .csv file is the same as the statistics DataFrame
+    assert csv_dframe.equals(dframe)
 
     shutil.rmtree(plotdir)
 
