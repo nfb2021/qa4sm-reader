@@ -15,10 +15,11 @@ from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_contin
 from qa4sm_reader.handlers import Metadata
 
 
-if sys.platform.startswith("win"):
-    pytestmark = pytest.mark.skip(
-        "Failing on Windows. Probably related to setuptools"
-    )
+# if sys.platform.startswith("win"):
+#     pytestmark = pytest.mark.skip(
+#         "Failing on Windows."
+#     )
+
 
 @pytest.fixture
 def plotdir():

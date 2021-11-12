@@ -9,10 +9,11 @@ import shutil
 import qa4sm_reader.plot_all as pa
 
 
-if sys.platform.startswith("win"):
-    pytestmark = pytest.mark.skip(
-        "Failing on Windows. Probably related to setuptools"
-    )
+# if sys.platform.startswith("win"):
+#     pytestmark = pytest.mark.skip(
+#         "Failing on Windows."
+#     )
+
 
 @pytest.fixture
 def plotdir():

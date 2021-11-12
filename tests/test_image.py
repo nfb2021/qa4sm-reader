@@ -9,10 +9,10 @@ from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader import globals
 
 
-if sys.platform.startswith("win"):
-    pytestmark = pytest.mark.skip(
-        "Failing on Windows. Probably related to setuptools"
-    )
+# if sys.platform.startswith("win"):
+#     pytestmark = pytest.mark.skip(
+#         "Failing on Windows."
+#     )
 
 
 @pytest.fixture
