@@ -27,6 +27,7 @@ jobs:
       - name: Build
         shell: bash -l {0}
         run: |
+          pip install setuptools==58.5.3
           python setup.py --version
           python setup.py sdist
           pip install wheel && python setup.py bdist_wheel
