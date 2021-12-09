@@ -144,8 +144,8 @@ def test_csv(basic_plotter, plotdir):
     # file is in the right format
     assert csv_file.suffix == '.csv'
 
-    csv_dframe = pd.read_csv(csv_file, index_col="Metric", dtype=str).drop("Group", axis="columns")
-    dframe = basic_plotter.img.stats_df().drop("Group", axis="columns")
+    csv_dframe = pd.read_csv(csv_file, index_col="Metric", dtype=str)
+    dframe = basic_plotter.img.stats_df()
 
     # .csv file is the same as the statistics DataFrame
     assert csv_dframe.equals(dframe)

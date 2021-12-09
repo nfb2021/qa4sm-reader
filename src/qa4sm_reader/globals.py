@@ -218,6 +218,8 @@ _metric_units = {  # from /qa4sm/validator/validation/graphics.py
     'ESA_CCI_SM_combined': r'm³/m³',
     'ESA_CCI_SM_passive': r'm³/m³',
     'SMOS': r'm³/m³',
+    'CGLS_CSAR_SSM1km': r'percentage of saturation',
+    'CGLS_SCATSAR_SWI1km': r'percentage of saturation',
 }
 
 # label name for all metrics
