@@ -297,7 +297,6 @@ _metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
     'SMOS': 'm³/m³',
     'CGLS_CSAR_SSM1km': '% sat',
     'CGLS_SCATSAR_SWI1km': '% sat',
-    'CCI': '% sat',
 }
 
 # Backups
