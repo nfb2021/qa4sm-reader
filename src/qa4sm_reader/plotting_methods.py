@@ -467,12 +467,10 @@ def _make_cbar(fig, im, cax, ref_short: str, metric: str, label=None, diff_map=F
         Whether the colorbar is for a difference plot
     """
     if label is None:
-        try:
-            label = globals._metric_name[metric] + \
-                    globals._metric_description[metric].format(
-                        globals._metric_units[ref_short])
-        except KeyError as e:
-            raise Exception('The metric \'{}\' or reference \'{}\' is not known.\n'.format(metric, ref_short) + str(e))
+        label = globals._metric_name[metric] + \
+                globals._metric_description[metric].format(
+                    globals.get_metric_units(ref_short)
+                )
 
     extend = get_extend_cbar(metric)
     if diff_map:

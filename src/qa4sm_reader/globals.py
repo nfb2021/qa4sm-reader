@@ -4,13 +4,15 @@
 Settings and global variables used in the reading and plotting procedures
 """
 # todo: reduce dependency on globals (e.g flexible if new datasets/versions are added)
+import warnings
+
 import cartopy.crs as ccrs
 
 # === plot defaults ===
 matplotlib_ppi = 72  # Don't change this, it's a matplotlib convention.
 index_names = ['lat', 'lon', 'gpi']  # Names used for 'latitude' and 'longitude' coordinate.
-time_name = 'time' # not used at the moment, dropped on load
-period_name = 'period' # not used at the moment, dropped on load
+time_name = 'time'  # not used at the moment, dropped on load
+period_name = 'period'  # not used at the moment, dropped on load
 
 dpi = 100  # Resolution in which plots are going to be rendered.
 title_pad = 12.0  # Padding below the title in points. default padding is matplotlib.rcParams['axes.titlepad'] = 6.0
@@ -23,13 +25,15 @@ naturalearth_resolution = '110m'  # One of '10m', '50m' and '110m'. Finer resolu
 crs = ccrs.PlateCarree()  # projection. Must be a class from cartopy.crs. Note, that plotting labels does not work for most projections.
 markersize = 4  # diameter of Marker in points.
 map_pad = 0.15  # padding relative to map height.
-grid_intervals = [2, 5, 10, 30]  # grid spacing in degree to choose from (plotter will try to make 5 gridlines in the smaller dimension)
-max_title_len = 8 * map_figsize[0]  # maximum length of plot title in chars. if longer, it will be broken in multiple lines.
+grid_intervals = [2, 5, 10,
+                  30]  # grid spacing in degree to choose from (plotter will try to make 5 gridlines in the smaller dimension)
+max_title_len = 8 * map_figsize[
+    0]  # maximum length of plot title in chars. if longer, it will be broken in multiple lines.
 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
 boxplot_height = 6
-boxplot_width = 2.1 # times (n+1), where n is the number of boxes.
+boxplot_width = 2.1  # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 tick_size = 8.5
 
@@ -58,18 +62,20 @@ out_metadata_plots = {
 
 import colorcet
 import matplotlib.pyplot as plt
+
 _cclasses = {
     'div_better': plt.cm.get_cmap('RdYlBu'),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
-    'div_worse': plt.cm.get_cmap('RdYlBu_r'), # diverging: 1 bad, 0 special, -1 good (difference of bias)
+    'div_worse': plt.cm.get_cmap('RdYlBu_r'),  # diverging: 1 bad, 0 special, -1 good (difference of bias)
     'div_neutr': plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
-    'seq_worse': plt.cm.get_cmap('YlGn_r'), #'YlGn_r',  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS):
-    'seq_better': plt.cm.get_cmap('YlGn'), #'YlGn'  # sequential: increasing value good (n_obs, STDerr)
+    'seq_worse': plt.cm.get_cmap('YlGn_r'),
+    # 'YlGn_r',  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS):
+    'seq_better': plt.cm.get_cmap('YlGn'),  # 'YlGn'  # sequential: increasing value good (n_obs, STDerr)
 }
 
 # 0=common metrics, 2=paired metrics (2 datasets), 3=triple metrics (TC, 3 datasets)
 metric_groups = {
     0: ['n_obs'],
-    2: ['R', 'p_R', 'rho','p_rho', 'RMSD', 'BIAS',
+    2: ['R', 'p_R', 'rho', 'p_rho', 'RMSD', 'BIAS',
         'urmsd', 'mse', 'mse_corr', 'mse_bias', 'mse_var',
         'RSS', 'tau', 'p_tau'
         ],
@@ -95,12 +101,12 @@ var_name_ds_sep = {
 }
 
 # === metadata tempplates ===
-_ref_ds_attr = 'val_ref' # global meta values variable that links to the reference dc
-_ds_short_name_attr = 'val_dc_dataset{:d}' # attribute convention for other datasets
-_ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}' # attribute convention for other datasets
-_version_short_name_attr = 'val_dc_version{:d}' # attribute convention for other datasets
-_version_pretty_name_attr = 'val_dc_version_pretty_name{:d}' # attribute convention for other datasets
-_val_dc_variable_pretty_name = 'val_dc_variable_pretty_name{:d}' # attribute convention for variable name
+_ref_ds_attr = 'val_ref'  # global meta values variable that links to the reference dc
+_ds_short_name_attr = 'val_dc_dataset{:d}'  # attribute convention for other datasets
+_ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}'  # attribute convention for other datasets
+_version_short_name_attr = 'val_dc_version{:d}'  # attribute convention for other datasets
+_version_pretty_name_attr = 'val_dc_version_pretty_name{:d}'  # attribute convention for other datasets
+_val_dc_variable_pretty_name = 'val_dc_variable_pretty_name{:d}'  # attribute convention for variable name
 
 # format should have (metric, ds, ref, other ds)
 _variable_pretty_name = {
@@ -122,7 +128,7 @@ _colormaps = {  # from /qa4sm/validator/validation/graphics.py
     'mse_bias': _cclasses['seq_worse'],
     'mse_var': _cclasses['seq_worse'],
     'RSS': _cclasses['seq_worse'],
-    'tau':_cclasses['div_better'],
+    'tau': _cclasses['div_better'],
     'p_tau': _cclasses['seq_worse'],
     'snr': _cclasses['div_better'],
     'err_std': _cclasses['seq_worse'],
@@ -205,20 +211,43 @@ _metric_description = {  # from /qa4sm/validator/validation/graphics.py
     'beta': r' in $({})$',
 }
 
+
 # units for all datasets
-_metric_units = {  # from /qa4sm/validator/validation/graphics.py
-    'ISMN': r'm³/m³',
-    'C3S': r'm³/m³',
-    'GLDAS': r'm³/m³',
-    'ASCAT': r'percentage of saturation',
-    'SMAP': r'm³/m³',
-    'ERA5': r'm³/m³',
-    'ERA5_LAND': r'm³/m³',
-    'ESA_CCI_SM_active': r'percentage of saturation',
-    'ESA_CCI_SM_combined': r'm³/m³',
-    'ESA_CCI_SM_passive': r'm³/m³',
-    'SMOS': r'm³/m³',
-}
+def get_metric_units(dataset, raise_error=False):
+    # function to get m.u. with possibility to raise error
+    _metric_units = {  # from /qa4sm/validator/validation/graphics.py
+        'ISMN': 'm³/m³',
+        'C3S': 'm³/m³',
+        'GLDAS': 'm³/m³',
+        'ASCAT': '% sat',
+        'SMAP': 'm³/m³',
+        'ERA5': 'm³/m³',
+        'ERA5_LAND': 'm³/m³',
+        'ESA_CCI_SM_active': '% sat',
+        'ESA_CCI_SM_combined': 'm³/m³',
+        'ESA_CCI_SM_passive': 'm³/m³',
+        'SMOS': 'm³/m³',
+        'CGLS_CSAR_SSM1km': '% sat',
+        'CGLS_SCATSAR_SWI1km': '% sat',
+    }
+
+    try:
+        return _metric_units[dataset]
+
+    except KeyError:
+        if raise_error:
+            raise KeyError(
+                f"The dataset {dataset} has not been specified in {__name__}"
+            )
+
+        else:
+            warnings.warn(
+                f"The dataset {dataset} has not been specified in {__name__}. "
+                f"Set 'raise_error' to True to raise an exception for this case."
+            )
+
+            return ""
+
 
 # label name for all metrics
 _metric_name = {  # from /qa4sm/validator/validation/globals.py
@@ -282,23 +311,6 @@ _metric_description_HTML = {  # from /qa4sm/validator/validation/graphics.py
     'beta': ' [{}]',
 }
 
-# units for all datasets for HTML rendering
-_metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
-    'ISMN': 'm³/m³',
-    'C3S': 'm³/m³',
-    'GLDAS': 'm³/m³',
-    'ASCAT': '% sat',
-    'SMAP': 'm³/m³',
-    'ERA5': 'm³/m³',
-    'ERA5_LAND': 'm³/m³',
-    'ESA_CCI_SM_active': '% sat',
-    'ESA_CCI_SM_combined': 'm³/m³',
-    'ESA_CCI_SM_passive': 'm³/m³',
-    'SMOS': 'm³/m³',
-    'CGLS_CSAR_SSM1km': '% sat',
-    'CGLS_SCATSAR_SWI1km': '% sat',
-}
-
 # Backups
 # -------
 # to fallbsck to in case the dataset attributes in the .nc file are missing some entries. Sould have variable short
@@ -306,7 +318,7 @@ _metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
 
 # available backups
 _backups = {
-    "_version_short_name_attr" : "_dataset_version_pretty_names",
+    "_version_short_name_attr": "_dataset_version_pretty_names",
     "_val_dc_variable_pretty_name": "_dataset_variable_names"
 }
 
@@ -336,7 +348,7 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "SMOS_105_DES": "V.105 Descending",
     "ERA5_test": " ERA5 test",
     "ERA5_20190613": "v20190613",
-    "ERA5_LAND_V20190904" : "v20190904",
+    "ERA5_LAND_V20190904": "v20190904",
     "ERA5_LAND_TEST": "ERA5-Land test",
     "CGLS_CSAR_SSM1km_V1_1": "v1_1",
     "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
@@ -369,7 +381,7 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "SMOS_105_DES": "soil moisture",
     "ERA5_test": "svwl1",
     "ERA5_20190613": "svwl1",
-    "ERA5_LAND_V20190904" : "svwl1",
+    "ERA5_LAND_V20190904": "svwl1",
     "ERA5_LAND_TEST": "svwl1",
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
@@ -456,25 +468,25 @@ climate_classes = {
     "ET": "Polar",
     "EF": "Polar",
     "W": "Water",
-    "Mediterranean":"Mediterranean",
+    "Mediterranean": "Mediterranean",
 }
 
 metadata = {
-    "clay_fraction":("clay fraction", None, "continuous", "[% weight]"),
-    "climate_KG":("Koeppen-Geiger climate class", climate_classes, "classes", None),
-    "climate_insitu":("climate in-situ", climate_classes, "classes", None),
-    "elevation":("elevation", None, "continuous", "[m]"),
-    "instrument":("instrument type", None, "discrete", None),  # todo: improve labels (too packed)
-    "lc_2000":("land cover class (2000)", lc_classes, "classes", None),
-    "lc_2005":("land cover class (2005)", lc_classes, "classes", None),
-    "lc_2010":("land cover class (2010)", lc_classes, "classes", None),
-    "lc_insitu":("land cover class in-situ", lc_classes, "classes", None), # todo: handle custom names
-    "network":("network", None, "discrete", None),
-    "organic_carbon":("concentration of organic carbon", None, "continuous", "[% weight]"),
-    "sand_fraction":("sand fraction", None, "continuous", "[% weight]"),
-    "saturation":("saturation", None, "continuous", "[m³/m³]"),
-    "silt_fraction":("silt fraction", None, "continuous", "[% weight]"),
-    "station":("station", None, "discrete", None),
+    "clay_fraction": ("clay fraction", None, "continuous", "[% weight]"),
+    "climate_KG": ("Koeppen-Geiger climate class", climate_classes, "classes", None),
+    "climate_insitu": ("climate in-situ", climate_classes, "classes", None),
+    "elevation": ("elevation", None, "continuous", "[m]"),
+    "instrument": ("instrument type", None, "discrete", None),  # todo: improve labels (too packed)
+    "lc_2000": ("land cover class (2000)", lc_classes, "classes", None),
+    "lc_2005": ("land cover class (2005)", lc_classes, "classes", None),
+    "lc_2010": ("land cover class (2010)", lc_classes, "classes", None),
+    "lc_insitu": ("land cover class in-situ", lc_classes, "classes", None),  # todo: handle custom names
+    "network": ("network", None, "discrete", None),
+    "organic_carbon": ("concentration of organic carbon", None, "continuous", "[% weight]"),
+    "sand_fraction": ("sand fraction", None, "continuous", "[% weight]"),
+    "saturation": ("saturation", None, "continuous", "[m³/m³]"),
+    "silt_fraction": ("silt fraction", None, "continuous", "[% weight]"),
+    "station": ("station", None, "discrete", None),
     "instrument_depthfrom": ("upper depth", None, "continuous", "[m]"),
     "instrument_depthto": ("lower depth", None, "continuous", "[m]"),
     # --- generated during the image initialization:

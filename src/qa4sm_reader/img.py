@@ -459,8 +459,11 @@ class QA4SMImg(object):
                                                                                 o, other_ds['short_name'],
                                                                                 other_ds['pretty_version']))
 
-                var_stats.extend([globals._metric_name[metric] + globals._metric_description_HTML[metric].format(
-                    globals._metric_units_HTML[ds_name['short_name']]), Var.g])
+                metric_def = globals._metric_name[metric] +\
+                             globals.get_metric_units(
+                                 [ds_name['short_name']]
+                             )
+                var_stats.extend([metric_def, Var.g])
             # put the separate variable statistics in the same list
             metric_stats.append(var_stats)
 
