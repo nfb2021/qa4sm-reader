@@ -219,14 +219,11 @@ class QA4SMDatasets():
                  'pretty_version': self._fetch_attribute("_version_pretty_name_attr", dc),
                  'pretty_variable': self._fetch_attribute("_val_dc_variable_pretty_name", dc)}
 
-        # not from dataset. The except statement is to avoid problems
-        # if the dataset name is not specified
-        try:
-            names['mu'] = "{}".format(
-                globals._metric_units_HTML[names['short_name']]
+        # not from dataset.
+        names['mu'] = "{}".format(
+                globals.get_metric_units(names['short_name'])
             )
-        except KeyError:
-            names['mu'] = ''
+
         # combined name for plots:
         names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
 

@@ -556,7 +556,7 @@ class QA4SMComparison:
         for metric in metrics:
             ref = self._check_ref()["short_name"]
             units = glob._metric_description_HTML[metric].format(
-                glob._metric_units_HTML[ref]
+                glob.get_metric_units(ref)
             )
             description = glob._metric_name[metric] + units
             medians = self._get_pairwise(metric).median()
@@ -593,7 +593,7 @@ class QA4SMComparison:
         # prepare axis name
         Metric = QA4SMMetric(metric)
         ref_ds = self.ref['short_name']
-        um = glob._metric_description[metric].format(glob._metric_units[ref_ds])
+        um = glob._metric_description[metric].format(glob.get_metric_units(ref_ds))
         figwidth = glob.boxplot_width * (len(df.columns) + 1)
         figsize = [figwidth, glob.boxplot_height]
         fig, axes = plm.boxplot(
@@ -625,7 +625,7 @@ class QA4SMComparison:
         self.perform_checks(overlapping=True, union=True, pairwise=True)
         df = self._get_pairwise(metric=metric, add_stats=False).dropna()
         Metric = QA4SMMetric(metric)
-        um = glob._metric_description[metric].format(glob._metric_units[self.ref['short_name']])
+        um = glob._metric_description[metric].format(glob.get_metric_units(self.ref['short_name']))
         # make mapplot
         cbar_label = "Difference between {} and {}".format(*df.columns)
 

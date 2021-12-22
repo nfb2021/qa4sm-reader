@@ -229,6 +229,7 @@ def get_metric_units(dataset, raise_error=False):
         'SMOS': 'm³/m³',
         'CGLS_CSAR_SSM1km': '% sat',
         'CGLS_SCATSAR_SWI1km': '% sat',
+        'SMOS_2022': 'm³/m³'
     }
 
     try:
@@ -287,6 +288,7 @@ _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'SMOS': r'SMOS IC',
     'CGLS_CSAR_SSM1km': r'CGLS S1 SSM',
     'CGLS_SCATSAR_SWI1km': r'CGLS SCATSAR SWI',
+    'SMOS_2022': r'SMOS',
 }
 
 # label format for all metrics for HTML rendering
@@ -352,6 +354,7 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "ERA5-Land test",
     "CGLS_CSAR_SSM1km_V1_1": "v1_1",
     "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
+    "SMOS_test_dataset_RE042010": "SMOS_test_dataset_RE042010",
 }
 
 # fallback for dataset val_dc_variable in case they are not in the metadata
@@ -385,6 +388,7 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "svwl1",
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
+    "SMOS_test_dataset_RE042010": "soil moisture"
 }
 
 # Metadata statics
