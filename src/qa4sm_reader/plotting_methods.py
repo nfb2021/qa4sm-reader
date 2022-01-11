@@ -1502,7 +1502,7 @@ def _res2dpi_fraction(res, units):
         "deg": [0.01, 0.33],
     }
 
-    fraction = (res - min(res_range[units])) / (max(res_range[units]) - min(res_range[units]))
+    fraction = (res - min(res_range[units]))**2 / (max(res_range[units]) - min(res_range[units]))**2
 
     return 1 - fraction
 
@@ -1523,5 +1523,6 @@ def output_dpi(res, units, extent, dpi_min=100, dpi_max=250):
     dpi_fraction = dpi_vec / 2**(1/2)
 
     dpi = dpi_min + (dpi_max-dpi_min) * dpi_fraction
+    print(dpi)
 
     return dpi
