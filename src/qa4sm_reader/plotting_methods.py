@@ -614,6 +614,8 @@ def boxplot(
         Resolution for raster graphic output. The default is globals.dpi.
     spacing : float, optional.
         Space between the central boxplot and the CIs. Default is 0.3
+    axis : matplotlib Axis obj.
+        if provided, the plot will be shown on it
 
     Returns
     -------
@@ -1258,7 +1260,7 @@ def mapplot(
         add_cbar=True,
         label=None,
         figsize=globals.map_figsize,
-        dpi=globals.dpi,
+        dpi=100,
         diff_map=False,
         **style_kwargs
 ) -> tuple:
@@ -1488,3 +1490,38 @@ def plot_spatial_extent(
         framealpha=0.4,
         edgecolor='black'
     )
+
+
+def _res2dpi_fraction(res, units):
+    # converts a certain validation resolution to a 0-1 fraction
+    # indicating the output quality
+    # equivalent min/max ranges for km and degrees based on
+    # available datasets, approximated
+    res_range = {
+        "km": [1, 36],
+        "deg": [0.01, 0.33],
+    }
+
+    fraction = (res - min(res_range[units])) / (max(res_range[units]) - min(res_range[units]))
+
+    return 1 - fraction
+
+
+def _extent2dpi_fraction(extent):
+    # converts a certain validation extent to a 0-1 fraction
+    # indicating the output quality
+    max_extent = 360 * 110
+    actual_extent = (extent[1]-extent[0]) * (extent[3]-extent[2])
+
+    return actual_extent / max_extent
+
+
+def output_dpi(res, units, extent, dpi_min=100, dpi_max=250):
+    # get ouput dpi based on image extent and validation resolution
+    dpi_vec = _extent2dpi_fraction(extent)**2 + _res2dpi_fraction(res, units)**2
+    dpi_vec = np.sqrt(dpi_vec)
+    dpi_fraction = dpi_vec / 2**(1/2)
+
+    dpi = dpi_min + (dpi_max-dpi_min) * dpi_fraction
+
+    return dpi

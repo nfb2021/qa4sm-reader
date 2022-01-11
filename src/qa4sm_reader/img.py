@@ -58,7 +58,7 @@ class QA4SMImg(object):
         index_names : list, optional (default: ['lat', 'lon'] - as in globals.py)
             Names of dimension variables in x and y direction (lat, lon).
         load_data: bool, default is True
-            if true, initialize all the datasets, variables and metadata
+            if true, initialise all the datasets, variables and metadata
         engine: str, optional (default: h5netcdf)
             Engine used by xarray to read data from file.
         """
@@ -111,6 +111,20 @@ class QA4SMImg(object):
 
         else:
             return ds
+
+    @property
+    def res_info(self) -> dict:
+        # Return the resolution of the validation as a dictionary {units: str, value: float/int}
+        try:
+            res_units = self.ds.attrs["val_resolution_unit"]
+            resolution = self.ds.attrs["val_resolution"]
+
+        # fallback to globals if the output afftribute is missing
+        except KeyError:
+            res_units = globals.resolution_units[self.datasets.ref['short_name']]
+            resolution = globals.resolution[self.datasets.ref['short_name']]
+
+        return {"units": res_units, "value": resolution}
 
     @property
     def has_CIs(self):

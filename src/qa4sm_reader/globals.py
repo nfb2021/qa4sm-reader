@@ -12,7 +12,8 @@ index_names = ['lat', 'lon', 'gpi']  # Names used for 'latitude' and 'longitude'
 time_name = 'time' # not used at the moment, dropped on load
 period_name = 'period' # not used at the moment, dropped on load
 
-dpi = 100  # Resolution in which plots are going to be rendered.
+dpi_min = 100  # Resolution in which plots are going to be rendered.
+dpi_max = 200
 title_pad = 12.0  # Padding below the title in points. default padding is matplotlib.rcParams['axes.titlepad'] = 6.0
 data_crs = ccrs.PlateCarree()  # Default map projection. use one of
 
@@ -375,6 +376,40 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "svwl1",
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
+}
+
+# fallback for resolution information
+resolution = {  # from /qa4sm/validator/fixtures/datasets.json
+    'ISMN': None,
+    'C3S': 0.25,
+    'GLDAS': 0.25,
+    'ASCAT': 12.5,
+    'SMAP': 36,
+    'ERA5': 0.25,
+    'ERA5_LAND': 0.1,
+    'ESA_CCI_SM_active': 0.25,
+    'ESA_CCI_SM_combined': 0.25,
+    'ESA_CCI_SM_passive': 0.25,
+    'SMOS': 25,
+    'CGLS_CSAR_SSM1km': 1,
+    'CGLS_SCATSAR_SWI1km': 1,
+}
+
+# fallback for resolution unit information
+resolution_units = {  # from /qa4sm/validator/fixtures/datasets.json
+    'ISMN': 'point',
+    'C3S': 'deg',
+    'GLDAS': 'deg',
+    'ASCAT': 'km',
+    'SMAP': 'km',
+    'ERA5': 'deg',
+    'ERA5_LAND': 'deg',
+    'ESA_CCI_SM_active': 'deg',
+    'ESA_CCI_SM_combined': 'deg',
+    'ESA_CCI_SM_passive': 'deg',
+    'SMOS': 'km',
+    'CGLS_CSAR_SSM1km': 'km',
+    'CGLS_SCATSAR_SWI1km': 'km',
 }
 
 # Metadata statics

@@ -372,7 +372,6 @@ class QA4SMPlotter():
             ci=ci,
             label=label,
             figsize=figsize,
-            dpi=globals.dpi
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
@@ -568,6 +567,7 @@ class QA4SMPlotter():
             out_name: str = None,
             out_types: str = 'png',
             save_files: bool = False,
+            compute_dpi=True,
             **plotting_kwargs
     ) -> list:
         """
@@ -585,6 +585,7 @@ class QA4SMPlotter():
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for mapplot function
+        compute_dpi : bool
 
         Returns
         -------
@@ -594,6 +595,21 @@ class QA4SMPlotter():
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
+
+        if compute_dpi:
+            unit, res = self.img.res_info.values()
+            extent = self.img.extent
+            if res is not None and extent is not None:
+                dpi = plm.output_dpi(
+                    res,
+                    unit,
+                    extent,
+                    dpi_min=globals.dpi_min,
+                    dpi_max=globals.dpi_max,
+                )
+
+                plotting_kwargs["dpi"] = dpi
+
         # create mapplot
         fig, ax = plm.mapplot(df=Var.values[Var.varname],
                               metric=metric,
