@@ -1387,7 +1387,7 @@ def plot_spatial_extent(
     reg_grid : bool, default is False,
         plotting oprion for regular grids (satellites)
     """
-    fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi)
+    fig, ax, cax = init_plot(figsize=globals.map_figsize, dpi=globals.dpi_min)
     legend_elements = []
     # plot polygons
     for n, items in enumerate(polys.items()):
