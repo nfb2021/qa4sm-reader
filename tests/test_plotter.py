@@ -11,14 +11,9 @@ import shutil
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, \
-    bin_discrete, combine_soils, combine_depths
+    bin_discrete, combine_soils, combine_depths, output_dpi
 from qa4sm_reader.handlers import Metadata
-
-
-# if sys.platform.startswith("win"):
-#     pytestmark = pytest.mark.skip(
-#         "Failing on Windows."
-#     )
+from qa4sm_reader.globals import dpi_min, dpi_max
 
 
 @pytest.fixture
@@ -382,3 +377,26 @@ def test_dict2df():
     assert len(df_meta.index) == 40, "should be 10 values x 2 Datasets x 2 metadata"
     assert all(actual == exp for actual, exp in zip(df_meta["Dataset"].unique(), ["dataset1", "dataset2"]))
     assert all(actual == exp for actual, exp in zip(df_meta[key].unique(), ["meta1", "meta2"]))
+
+
+def test_output_dpi():
+    res1, unit1 = 12.5, "km"
+    res2, unit2 = 25, "km"
+    extent1 = 71.6, 34, 48.3, -11.2
+    extent2 = 71.6, 54, 48.3, -11.2
+
+    dpi1 = output_dpi(res1, unit1, extent1)
+    dpi2 = output_dpi(res2, unit2, extent1)
+    dpi3 = output_dpi(res1, unit1, extent2)
+
+    assert dpi1 > dpi2, "lower resolution should produce a lower dpi"
+    assert dpi1 > dpi3, "smaller extent should produce a lower dpi"
+
+    # test dpi formula
+    dpi_fraction = np.sqrt(
+        ((1 - (res1 - 1)/35)**2)**2 + (((extent1[1]-extent1[0]) * (extent1[3]-extent1[2]))/(360 * 110))**2
+    ) / np.sqrt(2)
+    dpi1_should = dpi_min + (dpi_max-dpi_min) * dpi_fraction
+
+    assert dpi1_should == dpi1, "Check correctness of dpi formula and/or constants, " \
+                                "e.g. the maximum resolution in km"
