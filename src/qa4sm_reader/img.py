@@ -119,12 +119,14 @@ class QA4SMImg(object):
             res_units = self.ds.attrs["val_resolution_unit"]
             resolution = self.ds.attrs["val_resolution"]
 
-        # fallback to globals if the output afftribute is missing
+        # fallback to globals if the output attribute is missing
         except KeyError:
-            res_units = globals.resolution_units[self.datasets.ref['short_name']]
-            resolution = globals.resolution[self.datasets.ref['short_name']]
+            resolution, res_units = globals.get_resolution_info(
+                self.datasets.ref['short_name'],
+                raise_error=False,
+            )
 
-        return {"units": res_units, "value": resolution}
+        return {"value": resolution, "units": res_units}
 
     @property
     def has_CIs(self):

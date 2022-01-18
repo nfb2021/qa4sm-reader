@@ -593,7 +593,7 @@ class QA4SMPlotter():
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
-        unit, res = self.img.res_info.values()
+        res, unit = self.img.res_info.values()
         extent = self.img.extent
 
         if res is not None:

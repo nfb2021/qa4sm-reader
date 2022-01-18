@@ -118,6 +118,30 @@ def test_mapplot(basic_plotter, plotdir):
     shutil.rmtree(plotdir)  # cleanup
 
 
+def test_mapplot_dpi_configurations(basic_plotter, plotdir):
+    # test keyword compute_dpi is passed
+    n_obs_files = basic_plotter.mapplot_metric(
+        'n_obs',
+        out_types='png',
+        save_files=True,
+        **{"compute_dpi": False}
+    )  # should be 1
+    assert len(list(n_obs_files)) == 1
+    assert len(os.listdir(plotdir)) == 1
+
+    # test compute_dpi works
+    n_obs_files_dpi_computed = basic_plotter.mapplot_metric(
+        'n_obs',
+        out_types='png',
+        save_files=True,
+        **{"compute_dpi": True}
+    )  # should be 1
+    assert len(list(n_obs_files)) == 1
+    assert len(os.listdir(plotdir)) == 1
+
+    shutil.rmtree(plotdir)
+
+
 def test_boxplot(basic_plotter, plotdir):
     n_obs_files = basic_plotter.boxplot_basic('n_obs', out_types='png', save_files=True)  # should be 1
     assert len(list(n_obs_files)) == 1
