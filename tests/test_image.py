@@ -3,16 +3,9 @@
 import os
 import numpy as np
 import pytest
-import sys
 
 from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader import globals
-
-
-# if sys.platform.startswith("win"):
-#     pytestmark = pytest.mark.skip(
-#         "Failing on Windows."
-#     )
 
 
 @pytest.fixture
@@ -115,6 +108,7 @@ def test_metric_df(img):
     df = img.metric_df(['R'])
     assert list(df.columns) == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
 
+
 def test_metrics_in_file(img):
     """Test that all metrics are initialized correctly"""
     assert list(img.common.keys()) == globals.metric_groups[0]
@@ -142,6 +136,7 @@ def test_vars_in_file(img):
     vars = np.sort(np.array(vars))
 
     assert all(vars == vars_should)
+
 
 def test_find_groups(img):
     """Test that all metrics for a specific group can be collected"""
@@ -222,7 +217,12 @@ def test_stats_df(img):
     assert tot_stats == 25
 
 
-# ---- Test image where some of the variables are confidence intervals ----
+def test_res_info(img):
+    assert list(img.res_info.keys()) == ['value', 'units']
+    assert list(img.res_info.values()) == [0.1, 'deg']
+
+
+# ---- Test image where some variables are confidence intervals ----
 def test_testfile(ci_img):
     someCIs = [
         "RMSD_ci_lower_between_0-ERA5_and_1-ESA_CCI_SM_combined",
@@ -247,4 +247,3 @@ def test_ci_in_vars(ci_img):
         ]
 
 # todo: test for img.metadata property (with updated file)
-
