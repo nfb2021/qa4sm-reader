@@ -413,6 +413,8 @@ def test_output_dpi():
     dpi2 = output_dpi(res2, unit2, extent1)
     dpi3 = output_dpi(res1, unit1, extent2)
 
+    assert type(dpi1) == float
+
     assert dpi1 > dpi2, "lower resolution should produce a lower dpi"
     assert dpi1 > dpi3, "smaller extent should produce a lower dpi"
 
