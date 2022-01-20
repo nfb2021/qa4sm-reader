@@ -1530,4 +1530,4 @@ def output_dpi(
 
     dpi = dpi_min + (dpi_max-dpi_min) * dpi_fraction
 
-    return dpi
+    return float(dpi)
