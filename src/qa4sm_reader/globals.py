@@ -247,7 +247,7 @@ def get_metric_units(dataset, raise_error=False):
                 f"Set 'raise_error' to True to raise an exception for this case."
             )
 
-            return ""
+            return "n.a."
 
 
 # label name for all metrics
