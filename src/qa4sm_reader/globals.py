@@ -218,16 +218,16 @@ _metric_units = {  # from /qa4sm/validator/validation/graphics.py
     'ISMN': 'm³/m³',
     'C3S': 'm³/m³',
     'GLDAS': 'm³/m³',
-    'ASCAT': '% sat',
+    'ASCAT': '% saturation',
     'SMAP': 'm³/m³',
     'ERA5': 'm³/m³',
     'ERA5_LAND': 'm³/m³',
-    'ESA_CCI_SM_active': '% sat',
+    'ESA_CCI_SM_active': '% saturation',
     'ESA_CCI_SM_combined': 'm³/m³',
     'ESA_CCI_SM_passive': 'm³/m³',
     'SMOS': 'm³/m³',
-    'CGLS_CSAR_SSM1km': '% sat',
-    'CGLS_SCATSAR_SWI1km': '% sat',
+    'CGLS_CSAR_SSM1km': '% saturation',
+    'CGLS_SCATSAR_SWI1km': '% saturation',
 }
 
 # label name for all metrics
