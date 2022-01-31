@@ -1357,7 +1357,6 @@ def mapplot(
     if add_cbar:  # colorbar
         _make_cbar(fig, im, cax, ref_short, metric, label=label, diff_map=diff_map)
     style_map(ax, plot_extent, **style_kwargs)
-    fig.canvas.draw()  # very slow. necessary bcs of a bug in cartopy: https://github.com/SciTools/cartopy/issues/1207
 
     return fig, ax
 
@@ -1531,4 +1530,4 @@ def output_dpi(
 
     dpi = dpi_min + (dpi_max-dpi_min) * dpi_fraction
 
-    return dpi
+    return float(dpi)
