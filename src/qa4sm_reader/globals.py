@@ -7,14 +7,17 @@ Settings and global variables used in the reading and plotting procedures
 import warnings
 
 import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 
-# === plot defaults ===
+# PLOT DEFAULT SETTINGS
+# =====================================================
 matplotlib_ppi = 72  # Don't change this, it's a matplotlib convention.
 index_names = ['lat', 'lon', 'gpi']  # Names used for 'latitude' and 'longitude' coordinate.
 time_name = 'time'  # not used at the moment, dropped on load
 period_name = 'period'  # not used at the moment, dropped on load
 
-dpi = 100  # Resolution in which plots are going to be rendered.
+dpi_min = 100  # Resolution in which plots are going to be rendered.
+dpi_max = 200
 title_pad = 12.0  # Padding below the title in points. default padding is matplotlib.rcParams['axes.titlepad'] = 6.0
 data_crs = ccrs.PlateCarree()  # Default map projection. use one of
 
@@ -58,20 +61,59 @@ out_metadata_plots = {
 # Colormaps can be set for classes of similar metrics or individually for metrics.
 # Any colormap name can be used, that works with matplotlib.pyplot.cm.get_cmap('colormap')
 # more on colormaps: https://matplotlib.org/users/colormaps.html | https://morphocode.com/the-use-of-color-in-maps/
-# colorcet: http://colorcet.pyviz.org/user_guide/Continuous.html
-
-import colorcet
-import matplotlib.pyplot as plt
 
 _cclasses = {
     'div_better': plt.cm.get_cmap('RdYlBu'),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
     'div_worse': plt.cm.get_cmap('RdYlBu_r'),  # diverging: 1 bad, 0 special, -1 good (difference of bias)
     'div_neutr': plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
-    'seq_worse': plt.cm.get_cmap('YlGn_r'),
-    # 'YlGn_r',  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS):
-    'seq_better': plt.cm.get_cmap('YlGn'),  # 'YlGn'  # sequential: increasing value good (n_obs, STDerr)
+    'seq_worse': plt.cm.get_cmap('YlGn_r'),  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
+    'seq_better': plt.cm.get_cmap('YlGn'),  # sequential: increasing value good (n_obs, STDerr)
 }
 
+_colormaps = {  # from /qa4sm/validator/validation/graphics.py
+    'R': _cclasses['div_better'],
+    'p_R': _cclasses['seq_worse'],
+    'rho': _cclasses['div_better'],
+    'p_rho': _cclasses['seq_worse'],
+    'RMSD': _cclasses['seq_worse'],
+    'BIAS': _cclasses['div_neutr'],
+    'n_obs': _cclasses['seq_better'],
+    'urmsd': _cclasses['seq_worse'],
+    'mse': _cclasses['seq_worse'],
+    'mse_corr': _cclasses['seq_worse'],
+    'mse_bias': _cclasses['seq_worse'],
+    'mse_var': _cclasses['seq_worse'],
+    'RSS': _cclasses['seq_worse'],
+    'tau': _cclasses['div_better'],
+    'p_tau': _cclasses['seq_worse'],
+    'snr': _cclasses['div_better'],
+    'err_std': _cclasses['seq_worse'],
+    'beta': _cclasses['div_neutr'],
+}
+
+# Colorbars for difference plots
+_diff_colormaps = {  # from /qa4sm/validator/validation/graphics.py
+    'R': _cclasses['div_better'],
+    'p_R': _cclasses['div_worse'],
+    'rho': _cclasses['div_better'],
+    'p_rho': _cclasses['div_worse'],
+    'tau': _cclasses['div_better'],
+    'p_tau': _cclasses['div_worse'],
+    'RMSD': _cclasses['div_worse'],
+    'BIAS': _cclasses['div_worse'],
+    'urmsd': _cclasses['div_worse'],
+    'RSS': _cclasses['div_worse'],
+    'mse': _cclasses['div_worse'],
+    'mse_corr': _cclasses['div_worse'],
+    'mse_bias': _cclasses['div_worse'],
+    'mse_var': _cclasses['div_worse'],
+    'snr': _cclasses['div_better'],
+    'err_std': _cclasses['div_worse'],
+    'beta': _cclasses['div_worse'],
+}
+
+# METRICS AND VARIABLES DEFINITIONS
+# =====================================================
 # 0=common metrics, 2=paired metrics (2 datasets), 3=triple metrics (TC, 3 datasets)
 metric_groups = {
     0: ['n_obs'],
@@ -100,7 +142,7 @@ var_name_ds_sep = {
     3: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"
 }
 
-# === metadata tempplates ===
+# === metadata templates ===
 _ref_ds_attr = 'val_ref'  # global meta values variable that links to the reference dc
 _ds_short_name_attr = 'val_dc_dataset{:d}'  # attribute convention for other datasets
 _ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}'  # attribute convention for other datasets
@@ -114,26 +156,6 @@ _variable_pretty_name = {
     3: "{} of {} \n against {}, {}"
 }
 
-_colormaps = {  # from /qa4sm/validator/validation/graphics.py
-    'R': _cclasses['div_better'],
-    'p_R': _cclasses['seq_worse'],
-    'rho': _cclasses['div_better'],
-    'p_rho': _cclasses['seq_worse'],
-    'RMSD': _cclasses['seq_worse'],
-    'BIAS': _cclasses['div_neutr'],
-    'n_obs': _cclasses['seq_better'],
-    'urmsd': _cclasses['seq_worse'],
-    'mse': _cclasses['seq_worse'],
-    'mse_corr': _cclasses['seq_worse'],
-    'mse_bias': _cclasses['seq_worse'],
-    'mse_var': _cclasses['seq_worse'],
-    'RSS': _cclasses['seq_worse'],
-    'tau': _cclasses['div_better'],
-    'p_tau': _cclasses['seq_worse'],
-    'snr': _cclasses['div_better'],
-    'err_std': _cclasses['seq_worse'],
-    'beta': _cclasses['div_neutr'],
-}
 # check if every metric has a colormap
 for group in metric_groups.keys():
     assert all([m in _colormaps.keys() for m in metric_groups[group]])
@@ -164,51 +186,30 @@ _metric_mask_range = {
     'err_std': [0, None],  # values below 0 exit but should be marked
 }
 
-# Colorbars for difference plots
-_diff_colormaps = {  # from /qa4sm/validator/validation/graphics.py
-    'R': _cclasses['div_better'],
-    'p_R': _cclasses['div_worse'],
-    'rho': _cclasses['div_better'],
-    'p_rho': _cclasses['div_worse'],
-    'tau': _cclasses['div_better'],
-    'p_tau': _cclasses['div_worse'],
-    'RMSD': _cclasses['div_worse'],
-    'BIAS': _cclasses['div_worse'],
-    'urmsd': _cclasses['div_worse'],
-    'RSS': _cclasses['div_worse'],
-    'mse': _cclasses['div_worse'],
-    'mse_corr': _cclasses['div_worse'],
-    'mse_bias': _cclasses['div_worse'],
-    'mse_var': _cclasses['div_worse'],
-    'snr': _cclasses['div_better'],
-    'err_std': _cclasses['div_worse'],
-    'beta': _cclasses['div_worse'],
-}
-
 # check if every metric has a colormap
 for group in metric_groups.keys():
     assert all([m in _colormaps.keys() for m in metric_groups[group]])
 
 # label format for all metrics
 _metric_description = {  # from /qa4sm/validator/validation/graphics.py
-    'R': '',
-    'p_R': '',
-    'rho': '',
-    'p_rho': '',
-    'tau': '',
-    'p_tau': '',
-    'RMSD': r' in ${}$',
-    'BIAS': r' in ${}$',
-    'n_obs': '',
-    'urmsd': r' in ${}$',
-    'RSS': r' in $({})^2$',
-    'mse': r' in $({})^2$',
-    'mse_corr': r' in $({})^2$',
-    'mse_bias': r' in $({})^2$',
-    'mse_var': r' in $({})^2$',
-    'snr': r' in $(dB)$',
-    'err_std': r' in $({})$',
-    'beta': r' in $({})$',
+    'R': ' [-]',
+    'p_R': ' [-]',
+    'rho': ' [-]',
+    'p_rho': ' [-]',
+    'tau': ' [-]',
+    'p_tau': ' [-]',
+    'RMSD': ' [{}]',
+    'BIAS': ' [{}]',
+    'n_obs': ' ',
+    'urmsd': ' [{}]',
+    'RSS': ' [({})²]',
+    'mse': ' [({})²]',
+    'mse_corr': ' [({})²]',
+    'mse_bias': ' [({})²]',
+    'mse_var': ' [({})²]',
+    'snr': ' [db]',
+    'err_std': ' [{}]',
+    'beta': ' [{}]',
 }
 
 
@@ -272,7 +273,13 @@ _metric_name = {  # from /qa4sm/validator/validation/globals.py
     'beta': 'TC scaling coefficient',
 }
 
-# === pretty names for datasets ===
+
+# BACKUPS
+# =====================================================
+# to fallback to in case the dataset attributes in the .nc file are
+# missing some entries. Sould have variable short name as keys as these
+# should be always available in the template.
+
 # fallback for dataset pretty names in case they are not in the metadata
 _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'ISMN': r'ISMN',
@@ -290,33 +297,6 @@ _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'CGLS_SCATSAR_SWI1km': r'CGLS SCATSAR SWI',
     'SMOS_2022': r'SMOS',
 }
-
-# label format for all metrics for HTML rendering
-_metric_description_HTML = {  # from /qa4sm/validator/validation/graphics.py
-    'R': ' [-]',
-    'p_R': ' [-]',
-    'rho': ' [-]',
-    'p_rho': ' [-]',
-    'tau': ' [-]',
-    'p_tau': ' [-]',
-    'RMSD': ' [{}]',
-    'BIAS': ' [{}]',
-    'n_obs': ' ',
-    'urmsd': ' [{}]',
-    'RSS': ' [({})²]',
-    'mse': ' [({})²]',
-    'mse_corr': ' [({})²]',
-    'mse_bias': ' [({})²]',
-    'mse_var': ' [({})²]',
-    'snr': ' [db]',
-    'err_std': ' [{}]',
-    'beta': ' [{}]',
-}
-
-# Backups
-# -------
-# to fallbsck to in case the dataset attributes in the .nc file are missing some entries. Sould have variable short
-# name as keys as these should be always available in the template.
 
 # available backups
 _backups = {
@@ -391,8 +371,71 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "SMOS_test_dataset_RE042010": "soil moisture"
 }
 
-# Metadata statics
-# ----------------
+
+# ----------- fallback for resolution information -----------------------
+def get_resolution_info(dataset, raise_error=False):
+    # function to get resolution information with possibility to raise error
+    # This info is first looked for in the validation file; if not present,
+    # this function works as fallback unless the specific dataset is not
+    # listed in the lookup table, in which case an error can be rased, according
+    # to 'raise_error'
+
+    resolution = {  # from /qa4sm/validator/fixtures/datasets.json
+        'ISMN': None,
+        'C3S': 0.25,
+        'GLDAS': 0.25,
+        'ASCAT': 12.5,
+        'SMAP': 36,
+        'ERA5': 0.25,
+        'ERA5_LAND': 0.1,
+        'ESA_CCI_SM_active': 0.25,
+        'ESA_CCI_SM_combined': 0.25,
+        'ESA_CCI_SM_passive': 0.25,
+        'SMOS': 25,
+        'CGLS_CSAR_SSM1km': 1,
+        'CGLS_SCATSAR_SWI1km': 1,
+    }
+
+    # fallback for resolution unit information
+    resolution_units = {  # from /qa4sm/validator/fixtures/datasets.json
+        'ISMN': 'point',
+        'C3S': 'deg',
+        'GLDAS': 'deg',
+        'ASCAT': 'km',
+        'SMAP': 'km',
+        'ERA5': 'deg',
+        'ERA5_LAND': 'deg',
+        'ESA_CCI_SM_active': 'deg',
+        'ESA_CCI_SM_combined': 'deg',
+        'ESA_CCI_SM_passive': 'deg',
+        'SMOS': 'km',
+        'CGLS_CSAR_SSM1km': 'km',
+        'CGLS_SCATSAR_SWI1km': 'km',
+    }
+
+    try:
+        dataset_res = resolution[dataset]
+        dataset_units = resolution_units[dataset]
+
+        return dataset_res, dataset_units
+
+    except KeyError:
+        if raise_error:
+            raise KeyError(
+                f"The dataset {dataset} has not been specified in {__name__}"
+            )
+
+        else:
+            warnings.warn(
+                f"The dataset {dataset} has not been specified in {__name__}. "
+                f"Set 'raise_error' to True to raise an exception for this case."
+            )
+
+            return None, None
+
+
+# METADATA STATICS
+# =====================================================
 # information needed for plotting the metadata-boxplots
 
 lc_classes = {

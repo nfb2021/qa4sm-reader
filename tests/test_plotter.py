@@ -11,14 +11,9 @@ import shutil
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, \
-    bin_discrete, combine_soils, combine_depths
+    bin_discrete, combine_soils, combine_depths, output_dpi
 from qa4sm_reader.handlers import Metadata
-
-
-# if sys.platform.startswith("win"):
-#     pytestmark = pytest.mark.skip(
-#         "Failing on Windows."
-#     )
+from qa4sm_reader.globals import dpi_min, dpi_max
 
 
 @pytest.fixture
@@ -123,6 +118,30 @@ def test_mapplot(basic_plotter, plotdir):
     shutil.rmtree(plotdir)  # cleanup
 
 
+def test_mapplot_dpi_configurations(basic_plotter, plotdir):
+    # test keyword compute_dpi is passed
+    n_obs_files = basic_plotter.mapplot_metric(
+        'n_obs',
+        out_types='png',
+        save_files=True,
+        **{"compute_dpi": False}
+    )  # should be 1
+    assert len(list(n_obs_files)) == 1
+    assert len(os.listdir(plotdir)) == 1
+
+    # test compute_dpi works
+    n_obs_files_dpi_computed = basic_plotter.mapplot_metric(
+        'n_obs',
+        out_types='png',
+        save_files=True,
+        **{"compute_dpi": True}
+    )  # should be 1
+    assert len(list(n_obs_files)) == 1
+    assert len(os.listdir(plotdir)) == 1
+
+    shutil.rmtree(plotdir)
+
+
 def test_boxplot(basic_plotter, plotdir):
     n_obs_files = basic_plotter.boxplot_basic('n_obs', out_types='png', save_files=True)  # should be 1
     assert len(list(n_obs_files)) == 1
@@ -144,8 +163,8 @@ def test_csv(basic_plotter, plotdir):
     # file is in the right format
     assert csv_file.suffix == '.csv'
 
-    csv_dframe = pd.read_csv(csv_file, index_col="Metric", dtype=str).drop("Group", axis="columns")
-    dframe = basic_plotter.img.stats_df().drop("Group", axis="columns")
+    csv_dframe = pd.read_csv(csv_file, index_col="Metric", dtype=str)
+    dframe = basic_plotter.img.stats_df()
 
     # .csv file is the same as the statistics DataFrame
     assert csv_dframe.equals(dframe)
@@ -382,3 +401,28 @@ def test_dict2df():
     assert len(df_meta.index) == 40, "should be 10 values x 2 Datasets x 2 metadata"
     assert all(actual == exp for actual, exp in zip(df_meta["Dataset"].unique(), ["dataset1", "dataset2"]))
     assert all(actual == exp for actual, exp in zip(df_meta[key].unique(), ["meta1", "meta2"]))
+
+
+def test_output_dpi():
+    res1, unit1 = 12.5, "km"
+    res2, unit2 = 25, "km"
+    extent1 = 71.6, 34, 48.3, -11.2
+    extent2 = 71.6, 54, 48.3, -11.2
+
+    dpi1 = output_dpi(res1, unit1, extent1)
+    dpi2 = output_dpi(res2, unit2, extent1)
+    dpi3 = output_dpi(res1, unit1, extent2)
+
+    assert type(dpi1) == float
+
+    assert dpi1 > dpi2, "lower resolution should produce a lower dpi"
+    assert dpi1 > dpi3, "smaller extent should produce a lower dpi"
+
+    # test dpi formula
+    dpi_fraction = np.sqrt(
+        ((1 - (res1 - 1)/35)**2)**2 + (((extent1[1]-extent1[0]) * (extent1[3]-extent1[2]))/(360 * 110))**2
+    ) / np.sqrt(2)
+    dpi1_should = dpi_min + (dpi_max-dpi_min) * dpi_fraction
+
+    assert dpi1_should == dpi1, "Check correctness of dpi formula and/or constants, " \
+                                "e.g. the maximum resolution in km"

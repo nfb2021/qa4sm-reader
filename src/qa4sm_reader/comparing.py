@@ -555,7 +555,7 @@ class QA4SMComparison:
         table = {}
         for metric in metrics:
             ref = self._check_ref()["short_name"]
-            units = glob._metric_description_HTML[metric].format(
+            units = glob._metric_description[metric].format(
                 glob.get_metric_units(ref)
             )
             description = glob._metric_name[metric] + units

@@ -20,7 +20,7 @@ class QA4SMPlotter():
     Class to create image files of plots from the validation results in a QA4SMImage
     """
 
-    def __init__(self, image, out_dir: str = None):
+    def __init__(self, image: QA4SMImg, out_dir: str = None):
         """
         Create box plots from results in a qa4sm output file.
 
@@ -134,8 +134,7 @@ class QA4SMPlotter():
 
         Returns
         -------
-        parts: list
-            list of parts for title
+        parts: list of parts for title
         """
         parts = []
         ref, mds, other = [meta for meta in Var.get_varmeta()]
@@ -281,12 +280,10 @@ class QA4SMPlotter():
 
         Yield
         -----
-        df: pd.DataFrame
-            dataframe with variable values and caption name
+        df: pd.DataFrame with variable values and caption name
         Var: QA4SMMetricVariable
             variable corresponding to the dataframe
-        ci: pd.DataFrame
-            dataframe with "upper" and "lower" CI
+        ci: pd.DataFrame with "upper" and "lower" CI
         """
         Vars = self.img._iter_vars(type="metric", filter_parms={"metric": metric})
 
@@ -343,12 +340,10 @@ class QA4SMPlotter():
 
         Parameters
         ----------
-        df: pd.DataFrame
-            dataframe to plot
+        df: pd.DataFrame to plot
         type: str
             one of _titles_lut
-        ci : list
-            list of Dataframes containing "upper" and "lower" CIs
+        ci : list of Dataframes containing "upper" and "lower" CIs
         xticks: list
             caption to each boxplot (or triplet thereof)
         offset: float
@@ -374,7 +369,6 @@ class QA4SMPlotter():
             ci=ci,
             label=label,
             figsize=figsize,
-            dpi=globals.dpi
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
@@ -407,8 +401,7 @@ class QA4SMPlotter():
 
         Returns
         -------
-        fnames: list
-            list of file names with all the extensions
+        fnames: list of file names with all the extensions
         """
         fnames = []
         if isinstance(out_types, str):
@@ -451,8 +444,7 @@ class QA4SMPlotter():
 
         Returns
         -------
-        fnames: list
-            list of file names with all the extensions
+        fnames: list of file names with all the extensions
         """
         fnames, values = [], []
         ci = []
@@ -513,8 +505,7 @@ class QA4SMPlotter():
 
         Returns
         -------
-        fnames: list
-            list of file names with all the extensions
+        fnames: list of file names with all the extensions
         """
         fnames = []
         # group Vars and CIs relative to the same dataset
@@ -570,8 +561,9 @@ class QA4SMPlotter():
             out_name: str = None,
             out_types: str = 'png',
             save_files: bool = False,
-            **plotting_kwargs
-    ) -> list:
+            compute_dpi:bool = True,
+            **style_kwargs,
+    ) -> Union[list, tuple]:
         """
         Plots values to a map, using the values as color. Plots a scatterplot for
         ISMN and a image plot for other input values.
@@ -586,34 +578,61 @@ class QA4SMPlotter():
             extensions which the files should be saved in
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
-        plotting_kwargs: arguments for mapplot function
+        compute_dpi : bool, optional. Default is True.
+            if selected, the output resolution of the image is
+            calculated on the basis of the resolution of the
+            reference dataset and the extent of the validation
+            (i.e., hiigh resolution, global validations will
+            have the maximum available dpi).
+            Otherwise, high resolution datasets are assigned the
+            maximum dpi as per globals.max_dpi
+        style_kwargs: arguments for mapplot function
 
         Returns
         -------
-        fnames: list
-            list of file names with all the extensions
+        fnames: list of file names with all the extensions
         """
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
+        res, unit = self.img.res_info.values()
+        extent = self.img.extent
+
+        if res is not None:
+            if compute_dpi and extent is not None:
+                dpi = plm.output_dpi(
+                    res,
+                    unit,
+                    extent,
+                )
+
+                style_kwargs["dpi"] = dpi
+
+            elif not compute_dpi and unit == "km" and res <= 1:
+                style_kwargs["dpi"] = globals.dpi_max
+
         # create mapplot
         fig, ax = plm.mapplot(df=Var.values[Var.varname],
                               metric=metric,
                               ref_short=ref_meta[1]['short_name'],
                               ref_grid_stepsize=ref_grid_stepsize,
                               plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
-                              **plotting_kwargs)
+                              **style_kwargs)
 
         # title and plot settings depend on the metric group
         if Var.g == 0:
             title = "{} between all datasets".format(globals._metric_name[metric])
-            out_name = self.create_filename(Var, type='mapplot_common')
+            save_name = self.create_filename(Var, type='mapplot_common')
         elif Var.g == 2:
             title = self.create_title(Var=Var, type='mapplot_basic')
-            out_name = self.create_filename(Var, type='mapplot_double')
+            save_name = self.create_filename(Var, type='mapplot_double')
         else:
             title = self.create_title(Var=Var, type='mapplot_tc')
-            out_name = self.create_filename(Var, type='mapplot_tc')
+            save_name = self.create_filename(Var, type='mapplot_tc')
+
+        # overwrite output file name if given
+        if out_name:
+            save_name = out_name
 
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
@@ -622,7 +641,7 @@ class QA4SMPlotter():
 
         # save file or just return the image
         if save_files:
-            fnames = self._save_plot(out_name, out_types=out_types)
+            fnames = self._save_plot(save_name, out_types=out_types)
 
             return fnames
 
