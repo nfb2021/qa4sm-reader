@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
+import warnings
+
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg, extract_periods
+from qa4sm_reader.exceptions import PlotterError
 
 
 def plot_all(
@@ -84,7 +87,12 @@ def plot_all(
             if metric_mapplots:
                 fnames_mapplot.extend(metric_mapplots)
             if img.metadata and save_metadata:
-                fnames_bplot.extend(plotter.plot_save_metadata(metric))
+                try:
+                    fnames_bplot.extend(plotter.plot_save_metadata(metric))
+                except PlotterError:
+                    warnings.warn(
+                        "Too few points are available to generate metadata-based plots"
+                    )
 
         if save_csv:
             out_csv = plotter.save_stats()

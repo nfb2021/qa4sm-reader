@@ -3,6 +3,7 @@
 Contains helper functions for plotting qa4sm results.
 """
 from qa4sm_reader import globals
+from qa4sm_reader.exceptions import PlotterError
 
 import numpy as np
 import pandas as pd
@@ -716,7 +717,7 @@ def bin_continuous(
         nbins=4,
         min_size=5,
         **kwargs,
-) -> dict:
+) -> Union[dict, None]:
     """
     Subset the continuous metadata types
 
@@ -780,7 +781,7 @@ def bin_classes(
         meta_key: str,
         min_size=5,
         **kwargs,
-):
+) -> Union[dict, None]:
     """
     Subset the continuous metadata types
 
@@ -826,7 +827,7 @@ def bin_discrete(
         meta_key: str,
         min_size=5,
         **kwargs,
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, None]:
     """
     Provide a formatted dataframe for discrete type metadata (e.g. station or network)
 
@@ -865,7 +866,7 @@ def bin_discrete(
         formatted.append(meta_df)
     # If too few points are available to make the plots
     if not formatted:
-        return None, None
+        return None
     else:
         formatted = pd.concat(formatted)
         # return None as no CI data is needed for this plot
@@ -1220,7 +1221,7 @@ def boxplot_metadata(
         nbins=nbins,
     )
     if to_plot is None:
-        raise ValueError(
+        raise PlotterError(
             "There are too few points per metadata to generate the boxplots. You can set 'min_size'"
             "to a lower value to allow for smaller samples."
         )
