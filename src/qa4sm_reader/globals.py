@@ -192,24 +192,24 @@ for group in metric_groups.keys():
 
 # label format for all metrics
 _metric_description = {  # from /qa4sm/validator/validation/graphics.py
-    'R': ' [-]',
-    'p_R': ' [-]',
-    'rho': ' [-]',
-    'p_rho': ' [-]',
-    'tau': ' [-]',
-    'p_tau': ' [-]',
-    'RMSD': ' [{}]',
-    'BIAS': ' [{}]',
-    'n_obs': ' ',
-    'urmsd': ' [{}]',
-    'RSS': ' [({})²]',
-    'mse': ' [({})²]',
-    'mse_corr': ' [({})²]',
-    'mse_bias': ' [({})²]',
-    'mse_var': ' [({})²]',
-    'snr': ' [db]',
-    'err_std': ' [{}]',
-    'beta': ' [{}]',
+    'R': '',
+    'p_R': '',
+    'rho': '',
+    'p_rho': '',
+    'tau': '',
+    'p_tau': '',
+    'RMSD': ' in {}',
+    'BIAS': ' in {}',
+    'n_obs': '',
+    'urmsd': ' in {}',
+    'RSS': ' in ({})²',
+    'mse': ' in ({})²',
+    'mse_corr': ' in ({})²',
+    'mse_bias': ' in ({})²',
+    'mse_var': ' in ({})²',
+    'snr': ' in dB',
+    'err_std': ' in {}',
+    'beta': ' in {}',
 }
 
 
@@ -220,16 +220,16 @@ def get_metric_units(dataset, raise_error=False):
         'ISMN': 'm³/m³',
         'C3S': 'm³/m³',
         'GLDAS': 'm³/m³',
-        'ASCAT': '% sat',
+        'ASCAT': '% saturation',
         'SMAP': 'm³/m³',
         'ERA5': 'm³/m³',
         'ERA5_LAND': 'm³/m³',
-        'ESA_CCI_SM_active': '% sat',
+        'ESA_CCI_SM_active': '% saturation',
         'ESA_CCI_SM_combined': 'm³/m³',
         'ESA_CCI_SM_passive': 'm³/m³',
         'SMOS': 'm³/m³',
-        'CGLS_CSAR_SSM1km': '% sat',
-        'CGLS_SCATSAR_SWI1km': '% sat',
+        'CGLS_CSAR_SSM1km': '% saturation',
+        'CGLS_SCATSAR_SWI1km': '% saturation',
         'SMOS_L3': 'm³/m³',
     }
 
@@ -272,7 +272,6 @@ _metric_name = {  # from /qa4sm/validator/validation/globals.py
     'err_std': 'Error standard deviation',
     'beta': 'TC scaling coefficient',
 }
-
 
 # BACKUPS
 # =====================================================
