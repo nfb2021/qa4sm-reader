@@ -641,7 +641,7 @@ class QA4SMComparison:
                                                                                             self.ref["pretty_title"])
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        plm.make_watermark(fig, glob.watermark_pos, offset=0.08)
+        plm.make_watermark(fig, glob.watermark_pos, offset=0.13)
 
     def wrapper(self, method: str, metric=None, **kwargs):
         """
