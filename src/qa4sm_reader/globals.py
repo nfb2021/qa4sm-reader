@@ -230,7 +230,7 @@ def get_metric_units(dataset, raise_error=False):
         'SMOS': 'm³/m³',
         'CGLS_CSAR_SSM1km': '% sat',
         'CGLS_SCATSAR_SWI1km': '% sat',
-        'SMOS_2022': 'm³/m³'
+        'SMOS_L3': 'm³/m³',
     }
 
     try:
@@ -282,20 +282,20 @@ _metric_name = {  # from /qa4sm/validator/validation/globals.py
 
 # fallback for dataset pretty names in case they are not in the metadata
 _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
-    'ISMN': r'ISMN',
-    'C3S': r'C3S',
-    'GLDAS': r'GLDAS',
-    'ASCAT': r'H-SAF ASCAT SSM CDR',
-    'SMAP': r'SMAP level 3',
-    'ERA5': r'ERA5',
-    'ERA5_LAND': r'ERA5-Land',
-    'ESA_CCI_SM_active': r'ESA CCI SM active',
-    'ESA_CCI_SM_combined': r'ESA CCI SM combined',
-    'ESA_CCI_SM_passive': r'ESA CCI SM passive',
-    'SMOS': r'SMOS IC',
-    'CGLS_CSAR_SSM1km': r'CGLS S1 SSM',
-    'CGLS_SCATSAR_SWI1km': r'CGLS SCATSAR SWI',
-    'SMOS_2022': r'SMOS',
+    'ISMN': 'ISMN',
+    'C3S': 'C3S',
+    'GLDAS': 'GLDAS',
+    'ASCAT': 'H-SAF ASCAT SSM CDR',
+    'SMAP': 'SMAP level 3',
+    'ERA5': 'ERA5',
+    'ERA5_LAND': 'ERA5-Land',
+    'ESA_CCI_SM_active': 'ESA CCI SM active',
+    'ESA_CCI_SM_combined': 'ESA CCI SM combined',
+    'ESA_CCI_SM_passive': 'ESA CCI SM passive',
+    'SMOS': 'SMOS IC',
+    'CGLS_CSAR_SSM1km': 'CGLS S1 SSM',
+    'CGLS_SCATSAR_SWI1km': 'CGLS SCATSAR SWI',
+    'SMOS_L3': 'SMOS L3',
 }
 
 # available backups
@@ -334,7 +334,8 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "ERA5-Land test",
     "CGLS_CSAR_SSM1km_V1_1": "v1_1",
     "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
-    "SMOS_test_dataset_RE042010": "SMOS_test_dataset_RE042010",
+    "Level3_ASC": "Level3 Ascending",
+    "Level3_DESC": "Level3 Descending",
 }
 
 # fallback for dataset val_dc_variable in case they are not in the metadata
@@ -368,7 +369,8 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "svwl1",
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
-    "SMOS_test_dataset_RE042010": "soil moisture"
+    "Level3_ASC": "soil moisture",
+    "Level3_DESC": "soil moisture"
 }
 
 
@@ -394,6 +396,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS': 25,
         'CGLS_CSAR_SSM1km': 1,
         'CGLS_SCATSAR_SWI1km': 1,
+        'SMOS_L3': 25,
     }
 
     # fallback for resolution unit information
@@ -411,6 +414,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS': 'km',
         'CGLS_CSAR_SSM1km': 'km',
         'CGLS_SCATSAR_SWI1km': 'km',
+        'SMOS_L3': 'deg',
     }
 
     try:
