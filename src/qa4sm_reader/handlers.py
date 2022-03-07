@@ -213,15 +213,17 @@ class QA4SMDatasets():
             short name, pretty_name and short_version and pretty_version of the
             dc dataset.
         """
-        names = {}
+        names = {'short_name': self._fetch_attribute("_ds_short_name_attr", dc),
+                 'pretty_name': self._fetch_attribute("_ds_pretty_name_attr", dc),
+                 'short_version': self._fetch_attribute("_version_short_name_attr", dc),
+                 'pretty_version': self._fetch_attribute("_version_pretty_name_attr", dc),
+                 'pretty_variable': self._fetch_attribute("_val_dc_variable_pretty_name", dc)}
 
-        names['short_name'] = self._fetch_attribute("_ds_short_name_attr", dc)
-        names['pretty_name'] = self._fetch_attribute("_ds_pretty_name_attr", dc)
-        names['short_version'] = self._fetch_attribute("_version_short_name_attr", dc)
-        names['pretty_version'] = self._fetch_attribute("_version_pretty_name_attr", dc)
-        names['pretty_variable'] = self._fetch_attribute("_val_dc_variable_pretty_name", dc)
-        # not from dataset:
-        names['mu'] = "{}".format(globals._metric_units_HTML[names['short_name']])
+        # not from dataset.
+        names['mu'] = "{}".format(
+                globals.get_metric_units(names['short_name'])
+            )
+
         # combined name for plots:
         names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
 

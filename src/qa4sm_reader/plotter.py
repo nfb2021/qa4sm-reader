@@ -353,8 +353,10 @@ class QA4SMPlotter():
         """
         # plot label
         parts = [globals._metric_name[metric]]
-        parts.append(globals._metric_description[metric].format(
-            globals._metric_units[self.ref['short_name']]))
+        parts.append(
+            globals._metric_description[metric].format(
+            globals.get_metric_units(self.ref['short_name'])
+        ))
         label = "{}{}".format(*parts)
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
@@ -769,7 +771,7 @@ class QA4SMPlotter():
         # get meta and select only metric values with metadata available
         meta_values = self.img.metadata[metadata].values.dropna()
         values = values.reindex(index=meta_values.index)
-        mu = globals._metric_description[metric].format(globals._metric_units[self.ref['short_name']])
+        mu = globals._metric_description[metric].format(globals.get_metric_units(self.ref['short_name']))
 
         out = plm.boxplot_metadata(
             df=values,
@@ -816,7 +818,7 @@ class QA4SMPlotter():
 
         metric_name = globals._metric_name[metric]
         metric_units = globals._metric_description[metric].format(
-            globals._metric_units[self.img.datasets.ref["short_name"]]
+            globals.get_metric_units(self.ref['short_name'])
         )
 
         Meta_cont = self.img.metadata[metadata]

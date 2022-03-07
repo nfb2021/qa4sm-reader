@@ -66,9 +66,8 @@ _cclasses = {
     'div_better': plt.cm.get_cmap('RdYlBu'),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
     'div_worse': plt.cm.get_cmap('RdYlBu_r'),  # diverging: 1 bad, 0 special, -1 good (difference of bias)
     'div_neutr': plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
-    'seq_worse': plt.cm.get_cmap('YlGn_r'),
-    # 'YlGn_r',  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS):
-    'seq_better': plt.cm.get_cmap('YlGn'),  # 'YlGn'  # sequential: increasing value good (n_obs, STDerr)
+    'seq_worse': plt.cm.get_cmap('YlGn_r'),  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
+    'seq_better': plt.cm.get_cmap('YlGn'),  # sequential: increasing value good (n_obs, STDerr)
 }
 
 _colormaps = {  # from /qa4sm/validator/validation/graphics.py
@@ -213,22 +212,44 @@ _metric_description = {  # from /qa4sm/validator/validation/graphics.py
     'beta': ' in {}',
 }
 
+
 # units for all datasets
-_metric_units = {  # from /qa4sm/validator/validation/graphics.py
-    'ISMN': 'm³/m³',
-    'C3S': 'm³/m³',
-    'GLDAS': 'm³/m³',
-    'ASCAT': '% saturation',
-    'SMAP': 'm³/m³',
-    'ERA5': 'm³/m³',
-    'ERA5_LAND': 'm³/m³',
-    'ESA_CCI_SM_active': '% saturation',
-    'ESA_CCI_SM_combined': 'm³/m³',
-    'ESA_CCI_SM_passive': 'm³/m³',
-    'SMOS': 'm³/m³',
-    'CGLS_CSAR_SSM1km': '% saturation',
-    'CGLS_SCATSAR_SWI1km': '% saturation',
-}
+def get_metric_units(dataset, raise_error=False):
+    # function to get m.u. with possibility to raise error
+    _metric_units = {  # from /qa4sm/validator/validation/graphics.py
+        'ISMN': 'm³/m³',
+        'C3S': 'm³/m³',
+        'GLDAS': 'm³/m³',
+        'ASCAT': '% saturation',
+        'SMAP': 'm³/m³',
+        'ERA5': 'm³/m³',
+        'ERA5_LAND': 'm³/m³',
+        'ESA_CCI_SM_active': '% saturation',
+        'ESA_CCI_SM_combined': 'm³/m³',
+        'ESA_CCI_SM_passive': 'm³/m³',
+        'SMOS': 'm³/m³',
+        'CGLS_CSAR_SSM1km': '% saturation',
+        'CGLS_SCATSAR_SWI1km': '% saturation',
+        'SMOS_L3': 'm³/m³',
+    }
+
+    try:
+        return _metric_units[dataset]
+
+    except KeyError:
+        if raise_error:
+            raise KeyError(
+                f"The dataset {dataset} has not been specified in {__name__}"
+            )
+
+        else:
+            warnings.warn(
+                f"The dataset {dataset} has not been specified in {__name__}. "
+                f"Set 'raise_error' to True to raise an exception for this case."
+            )
+
+            return "n.a."
+
 
 # label name for all metrics
 _metric_name = {  # from /qa4sm/validator/validation/globals.py
@@ -252,45 +273,6 @@ _metric_name = {  # from /qa4sm/validator/validation/globals.py
     'beta': 'TC scaling coefficient',
 }
 
-# label format for all metrics for HTML rendering
-_metric_description_HTML = {  # from /qa4sm/validator/validation/graphics.py
-    'R': ' [-]',
-    'p_R': ' [-]',
-    'rho': ' [-]',
-    'p_rho': ' [-]',
-    'tau': ' [-]',
-    'p_tau': ' [-]',
-    'RMSD': ' [{}]',
-    'BIAS': ' [{}]',
-    'n_obs': ' ',
-    'urmsd': ' [{}]',
-    'RSS': ' [({})²]',
-    'mse': ' [({})²]',
-    'mse_corr': ' [({})²]',
-    'mse_bias': ' [({})²]',
-    'mse_var': ' [({})²]',
-    'snr': ' [dB]',
-    'err_std': ' [{}]',
-    'beta': ' [{}]',
-}
-
-# units for all datasets for HTML rendering
-_metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
-    'ISMN': 'm³/m³',
-    'C3S': 'm³/m³',
-    'GLDAS': 'm³/m³',
-    'ASCAT': '% sat',
-    'SMAP': 'm³/m³',
-    'ERA5': 'm³/m³',
-    'ERA5_LAND': 'm³/m³',
-    'ESA_CCI_SM_active': '% sat',
-    'ESA_CCI_SM_combined': 'm³/m³',
-    'ESA_CCI_SM_passive': 'm³/m³',
-    'SMOS': 'm³/m³',
-    'CGLS_CSAR_SSM1km': '% sat',
-    'CGLS_SCATSAR_SWI1km': '% sat',
-}
-
 # BACKUPS
 # =====================================================
 # to fallback to in case the dataset attributes in the .nc file are
@@ -299,19 +281,20 @@ _metric_units_HTML = {  # from /qa4sm/validator/validation/graphics.py
 
 # fallback for dataset pretty names in case they are not in the metadata
 _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
-    'ISMN': r'ISMN',
-    'C3S': r'C3S',
-    'GLDAS': r'GLDAS',
-    'ASCAT': r'H-SAF ASCAT SSM CDR',
-    'SMAP': r'SMAP level 3',
-    'ERA5': r'ERA5',
-    'ERA5_LAND': r'ERA5-Land',
-    'ESA_CCI_SM_active': r'ESA CCI SM active',
-    'ESA_CCI_SM_combined': r'ESA CCI SM combined',
-    'ESA_CCI_SM_passive': r'ESA CCI SM passive',
-    'SMOS': r'SMOS IC',
-    'CGLS_CSAR_SSM1km': r'CGLS S1 SSM',
-    'CGLS_SCATSAR_SWI1km': r'CGLS SCATSAR SWI',
+    'ISMN': 'ISMN',
+    'C3S': 'C3S',
+    'GLDAS': 'GLDAS',
+    'ASCAT': 'H-SAF ASCAT SSM CDR',
+    'SMAP': 'SMAP level 3',
+    'ERA5': 'ERA5',
+    'ERA5_LAND': 'ERA5-Land',
+    'ESA_CCI_SM_active': 'ESA CCI SM active',
+    'ESA_CCI_SM_combined': 'ESA CCI SM combined',
+    'ESA_CCI_SM_passive': 'ESA CCI SM passive',
+    'SMOS': 'SMOS IC',
+    'CGLS_CSAR_SSM1km': 'CGLS S1 SSM',
+    'CGLS_SCATSAR_SWI1km': 'CGLS SCATSAR SWI',
+    'SMOS_L3': 'SMOS L3',
 }
 
 # available backups
@@ -350,6 +333,8 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "ERA5-Land test",
     "CGLS_CSAR_SSM1km_V1_1": "v1_1",
     "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
+    "Level3_ASC": "Level3 Ascending",
+    "Level3_DESC": "Level3 Descending",
 }
 
 # fallback for dataset val_dc_variable in case they are not in the metadata
@@ -383,6 +368,8 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "svwl1",
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
+    "Level3_ASC": "soil moisture",
+    "Level3_DESC": "soil moisture"
 }
 
 
@@ -408,6 +395,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS': 25,
         'CGLS_CSAR_SSM1km': 1,
         'CGLS_SCATSAR_SWI1km': 1,
+        'SMOS_L3': 25,
     }
 
     # fallback for resolution unit information
@@ -425,6 +413,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS': 'km',
         'CGLS_CSAR_SSM1km': 'km',
         'CGLS_SCATSAR_SWI1km': 'km',
+        'SMOS_L3': 'deg',
     }
 
     try:
