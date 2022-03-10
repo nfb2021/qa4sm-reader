@@ -282,16 +282,19 @@ _metric_name = {  # from /qa4sm/validator/validation/globals.py
 # fallback for dataset pretty names in case they are not in the metadata
 _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'ISMN': 'ISMN',
-    'C3S': 'C3S',
+    'C3S_combined': 'C3S SM combined',
+    'C3S': 'C3S SM combined',  # old name for C3S_combined
     'GLDAS': 'GLDAS',
     'ASCAT': 'H-SAF ASCAT SSM CDR',
-    'SMAP': 'SMAP level 3',
+    'SMAP_L3': 'SMAP level 3',
+    'SMAP': 'SMAP level 3',  # old name for SMAP_L3
     'ERA5': 'ERA5',
     'ERA5_LAND': 'ERA5-Land',
     'ESA_CCI_SM_active': 'ESA CCI SM active',
     'ESA_CCI_SM_combined': 'ESA CCI SM combined',
     'ESA_CCI_SM_passive': 'ESA CCI SM passive',
-    'SMOS': 'SMOS IC',
+    'SMOS_IC': 'SMOS IC',
+    'SMOS': 'SMOS IC',  # old name for SMOS IC
     'CGLS_CSAR_SSM1km': 'CGLS S1 SSM',
     'CGLS_SCATSAR_SWI1km': 'CGLS SCATSAR SWI',
     'SMOS_L3': 'SMOS L3',
@@ -383,16 +386,19 @@ def get_resolution_info(dataset, raise_error=False):
 
     resolution = {  # from /qa4sm/validator/fixtures/datasets.json
         'ISMN': None,
-        'C3S': 0.25,
+        'C3S_combined': 0.25,
+        'C3S': 0.25,   # old name, unused
         'GLDAS': 0.25,
         'ASCAT': 12.5,
-        'SMAP': 36,
+        'SMAP': 36,   # old name, unused
+        'SMAP_L3': 36,
         'ERA5': 0.25,
         'ERA5_LAND': 0.1,
         'ESA_CCI_SM_active': 0.25,
         'ESA_CCI_SM_combined': 0.25,
         'ESA_CCI_SM_passive': 0.25,
-        'SMOS': 25,
+        'SMOS': 25,   # old name, unused
+        'SMOS_IC': 25,
         'CGLS_CSAR_SSM1km': 1,
         'CGLS_SCATSAR_SWI1km': 1,
         'SMOS_L3': 25,
@@ -401,16 +407,19 @@ def get_resolution_info(dataset, raise_error=False):
     # fallback for resolution unit information
     resolution_units = {  # from /qa4sm/validator/fixtures/datasets.json
         'ISMN': 'point',
-        'C3S': 'deg',
+        'C3S': 'deg',  # old name, unused
+        'C3S_combined': 'deg',
         'GLDAS': 'deg',
         'ASCAT': 'km',
-        'SMAP': 'km',
+        'SMAP': 'km',   # old name, unused
+        'SMAP_L3': 'km',
         'ERA5': 'deg',
         'ERA5_LAND': 'deg',
         'ESA_CCI_SM_active': 'deg',
         'ESA_CCI_SM_combined': 'deg',
         'ESA_CCI_SM_passive': 'deg',
-        'SMOS': 'km',
+        'SMOS': 'km',   # old name, unused
+        'SMOS_IC': 'km',
         'CGLS_CSAR_SSM1km': 'km',
         'CGLS_SCATSAR_SWI1km': 'km',
         'SMOS_L3': 'deg',
