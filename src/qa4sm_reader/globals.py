@@ -339,8 +339,8 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "ERA5-Land test",
     "CGLS_CSAR_SSM1km_V1_1": "v1_1",
     "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
-    "Level3_ASC": "Level3 Ascending",
-    "Level3_DESC": "Level3 Descending",
+    "SMOSL3_v339_ASC": "version 339 Ascending",
+    "SMOSL3_v339_DESC": "version 339 Descending",
 }
 
 # fallback for dataset val_dc_variable in case they are not in the metadata
@@ -374,8 +374,8 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "ERA5_LAND_TEST": "svwl1",
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
-    "Level3_ASC": "soil moisture",
-    "Level3_DESC": "soil moisture"
+    "SMOSL3_v339_ASC": "soil moisture",
+    "SMOSL3_v339_DESC": "soil moisture"
 }
 
 
