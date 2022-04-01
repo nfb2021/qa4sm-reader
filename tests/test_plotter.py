@@ -367,7 +367,7 @@ def test_combine_soils():
     }
     combined = combine_soils(soil_fractions)
     exp = pd.DataFrame(
-        data=["Coarse\ngranulometry", "Fine\ngranulometry", "Coarse\ngranulometry"],
+        data=["Coarse\ngran.", "Fine\ngran.", "Coarse\ngran."],
         columns=["soil_type"]
     )
 
