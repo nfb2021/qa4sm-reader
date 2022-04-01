@@ -936,11 +936,11 @@ def combine_soils(
     # function to calssify
     def sort_soil_type(row):
         if row["x"] < sc_x and row["y"] < cc_y:
-            return "Coarse\ngranulometry"
+            return "Coarse\ngran."
         elif cc_y < row["y"] < cf_y:
-            return "Medium\ngranulometry"
+            return "Medium\ngran."
         else:
-            return "Fine\ngranulometry"
+            return "Fine\ngran."
 
     soil_combined = soil_combined.apply(lambda row: sort_soil_type(row), axis=1).to_frame("soil_type")
 
