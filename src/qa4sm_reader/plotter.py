@@ -355,8 +355,8 @@ class QA4SMPlotter():
         parts = [globals._metric_name[metric]]
         parts.append(
             globals._metric_description[metric].format(
-            globals.get_metric_units(self.ref['short_name'])
-        ))
+                globals.get_metric_units(self.ref['short_name'])
+            ))
         label = "{}{}".format(*parts)
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
@@ -561,7 +561,7 @@ class QA4SMPlotter():
             out_name: str = None,
             out_types: str = 'png',
             save_files: bool = False,
-            compute_dpi:bool = True,
+            compute_dpi: bool = True,
             **style_kwargs,
     ) -> Union[list, tuple]:
         """
