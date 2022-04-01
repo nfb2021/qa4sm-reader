@@ -425,7 +425,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS_IC': 'km',
         'CGLS_CSAR_SSM1km': 'km',
         'CGLS_SCATSAR_SWI1km': 'km',
-        'SMOS_L3': 'deg',
+        'SMOS_L3': 'km',
     }
 
     try:
@@ -552,7 +552,7 @@ metadata = {
     "instrument_depthfrom": ("upper depth", None, "continuous", "[m]"),
     "instrument_depthto": ("lower depth", None, "continuous", "[m]"),
     # --- generated during the image initialization:
-    "soil_type": ("soil texture", None, "discrete", None),
+    "soil_type": ("soil granulometry", None, "discrete", None),
     "instrument_depth": ("instrument depth", None, "continuous", "[m]"),
 }
 
