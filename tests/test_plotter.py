@@ -13,7 +13,7 @@ from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, \
     bin_discrete, combine_soils, combine_depths, output_dpi
 from qa4sm_reader.handlers import Metadata
-from qa4sm_reader.globals import dpi_min, dpi_max
+from qa4sm_reader.globals import dpi_min, dpi_max, get_resolution_info
 
 
 @pytest.fixture
@@ -420,9 +420,43 @@ def test_output_dpi():
 
     # test dpi formula
     dpi_fraction = np.sqrt(
-        ((1 - (res1 - 1)/35)**2)**2 + (((extent1[1]-extent1[0]) * (extent1[3]-extent1[2]))/(360 * 110))**2
+        ((1 - (res1 - 1) / 35) ** 2) ** 2 + (((extent1[1] - extent1[0]) * (extent1[3] - extent1[2])) / (360 * 110)) ** 2
     ) / np.sqrt(2)
-    dpi1_should = dpi_min + (dpi_max-dpi_min) * dpi_fraction
+    dpi1_should = dpi_min + (dpi_max - dpi_min) * dpi_fraction
 
     assert dpi1_should == dpi1, "Check correctness of dpi formula and/or constants, " \
                                 "e.g. the maximum resolution in km"
+
+
+test_data = [
+    ('ISMN', None, 'point'),
+    ('C3S', 0.25, 'deg'),
+    ('C3S_combined', 0.25, 'deg'),
+    ('GLDAS', 0.25, 'deg'),
+    ('ASCAT', 12.5, 'km'),
+    ('SMAP', 36, 'km'),   # old name, unused
+    ('SMAP_L3', 36, 'km'),
+    ('ERA5', 0.25, 'deg'),
+    ('ERA5_LAND', 0.1, 'deg'),
+    ('ESA_CCI_SM_active', 0.25, 'deg'),
+    ('ESA_CCI_SM_combined', 0.25, 'deg'),
+    ('ESA_CCI_SM_passive', 0.25, 'deg'),
+    ('SMOS', 25, 'km'),   # old name, unused
+    ('SMOS_IC', 25, 'km'),
+    ('CGLS_CSAR_SSM1km', 1, 'km'),
+    ('CGLS_SCATSAR_SWI1km', 1, 'km'),
+    ('SMOS_L3', 25, 'km')
+]
+
+
+@pytest.mark.parametrize(
+    "dataset,dataset_res_should,dataset_units_should", test_data,
+)
+def test_globals_resolutions(dataset, dataset_res_should, dataset_units_should):
+    # important to include this in the tests as changes here
+    # affect the quality of the images and can also break the
+    # code, e.g. if by mistake 'degree' is specified as 'km'
+    dataset_res, dataset_units = get_resolution_info(dataset)
+
+    assert dataset_res == dataset_res_should
+    assert dataset_units == dataset_units_should
