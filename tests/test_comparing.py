@@ -227,7 +227,7 @@ def test_get_data(double_img_overlap):
     data, ci = double_img_overlap._get_data("R").values()
     assert len(data) == 2
     data = data[0]
-    name_should = "Validation 0:\n1-C3S\n(v202012)\nVariable: sm [m³/m³]\n"
+    name_should = 'Val0: 1-C3S (v202012) '
     assert data.name == name_should
     data_should = [
         0.679918, 0.707091, 0.713081, 0.808353,
