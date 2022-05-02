@@ -177,7 +177,7 @@ _metric_value_ranges = {  # from /qa4sm/validator/validation/graphics.py
     'mse_corr': [0, None],
     'mse_bias': [0, None],
     'mse_var': [0, None],
-    'snr': [0, None],
+    'snr': [None, None],
     'err_std': [None, None],
     'beta': [None, None],
 }
