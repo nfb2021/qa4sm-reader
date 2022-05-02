@@ -72,8 +72,8 @@ def plot_all(
 
         if metrics is None:
             metrics = img.metrics
-        # iterate metrics and create files in output directory
 
+        # iterate metrics and create files in output directory
         for metric in metrics:
             metric_bplots, metric_mapplots = plotter.plot_metric(
                 metric=metric,
@@ -88,7 +88,9 @@ def plot_all(
                 fnames_mapplot.extend(metric_mapplots)
             if img.metadata and save_metadata:
                 try:
-                    fnames_bplot.extend(plotter.plot_save_metadata(metric))
+                    fnames_bplot.extend(
+                        plotter.plot_save_metadata(metric, out_types=out_type,)
+                    )
                 except PlotterError:
                     warnings.warn(
                         "Too few points are available to generate metadata-based plots"

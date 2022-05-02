@@ -181,7 +181,7 @@ class QA4SMComparison:
     def validation_names(self) -> list:
         """Create pretty names for the validations that are compared. Should always return 2 values"""
         names = []
-        template = "Validation {}: {} validated against {}"
+        template = "Val{}: {} validated against {}"
         for n, img in enumerate(self.compared):
             datasets = img.datasets
             if len(datasets.others) == 2:
@@ -277,7 +277,7 @@ class QA4SMComparison:
             bounds = [(minlon, minlat), (maxlon, minlat),
                       (maxlon, maxlat), (minlon, maxlat)]
             Pol = Polygon(bounds)
-            name = "Validation {}: ".format(n) + img.name
+            name = f"Val{n}: " + img.name
             polys[name] = Pol
 
         for n, Pol in enumerate(polys.values()):
@@ -371,8 +371,8 @@ class QA4SMComparison:
                 if not Var.is_CI:
                     if self.single_image:
                         id = n
-                    col_name = "Validation {}:\n{}\n".format(
-                        id, QA4SMPlotter._box_caption(Var, tc=Var.g == 3)
+                    col_name = "Val{}: {} ".format(
+                        id, QA4SMPlotter._box_caption(Var, tc=Var.g == 3, short_caption=True)
                     )
                     data = data.rename(col_name)
                     varnames["varlist"].append(data)
@@ -411,9 +411,9 @@ class QA4SMComparison:
         subset = []
         for df in dfs:
             mask = (df.index.get_level_values(lon) >= self.extent[0]) & (
-                        df.index.get_level_values(lon) <= self.extent[1]) & \
+                    df.index.get_level_values(lon) <= self.extent[1]) & \
                    (df.index.get_level_values(lat) >= self.extent[2]) & (
-                               df.index.get_level_values(lat) <= self.extent[3])
+                           df.index.get_level_values(lat) <= self.extent[3])
             df.where(mask, inplace=True)
             subset.append(df)
 
@@ -422,7 +422,7 @@ class QA4SMComparison:
     def rename_with_stats(self, df):
         """Rename columns of df by adding the content of QA4SMPlotter._box_stats()"""
         renamed = [
-            name + plm._box_stats(df[name]) for name in df.columns
+            name + f"\n{plm._box_stats(df[name])}" for name in df.columns
         ]
         df.columns = renamed
 
@@ -497,7 +497,7 @@ class QA4SMComparison:
         if self.overlapping:
             diff = pair_df.iloc[:, 0] - pair_df.iloc[:, 1]
             diff = diff.rename(
-                "Difference of common points\nbetween validations 0 and 1\n"
+                "Val0 - Val1 (common points)"
             )
             pair_df = pd.concat([pair_df, diff], axis=1)
         if add_stats:
@@ -627,7 +627,7 @@ class QA4SMComparison:
         Metric = QA4SMMetric(metric)
         um = glob._metric_description[metric].format(glob.get_metric_units(self.ref['short_name']))
         # make mapplot
-        cbar_label = "Difference between {} and {}".format(*df.columns)
+        cbar_label = "Difference between {} and {}".format(*df.columns) + f"{um}"
 
         fig, axes = plm.mapplot(
             df.iloc[:, 2],
@@ -637,11 +637,11 @@ class QA4SMComparison:
             label=cbar_label
         )
         fonts = {"fontsize": 12}
-        title_plot = "Overview of the difference in {} {}\nagainst the reference {}".format(Metric.pretty_name, um,
-                                                                                            self.ref["pretty_title"])
+        title_plot = f"Overview of the difference in {Metric.pretty_name} " \
+                     f"against the reference {self.ref['pretty_title']}"
         axes.set_title(title_plot, pad=glob.title_pad, **fonts)
 
-        plm.make_watermark(fig, glob.watermark_pos, offset=0.13)
+        plm.make_watermark(fig, glob.watermark_pos, offset=0.01)
 
     def wrapper(self, method: str, metric=None, **kwargs):
         """

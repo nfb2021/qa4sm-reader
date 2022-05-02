@@ -85,7 +85,7 @@ class QA4SMPlotter():
         return out_path
 
     @staticmethod
-    def _box_caption(Var, tc: bool = False) -> str:
+    def _box_caption(Var, tc: bool = False, short_caption: bool = False) -> str:
         """
         Create the dataset part of the box (axis) caption
 
@@ -95,6 +95,8 @@ class QA4SMPlotter():
             variable for a metric
         tc: bool, default is False
             True if TC. Then, caption starts with "Other Data:"
+        short_caption: bool, optional
+            whether to use a shorter version of the caption
 
         Returns
         -------
@@ -106,13 +108,16 @@ class QA4SMPlotter():
         id, meta = mds_meta
         if tc:
             id, meta = other_meta
-        ds_parts.append('{}-{}\n({})\nVariable: {} [{}]'.format(
-            id,
-            meta['pretty_name'],
-            meta['pretty_version'],
-            meta['pretty_variable'],
-            meta['mu'])
-        )
+        if short_caption:
+            ds_parts.append(f"{id}-{meta['pretty_name']} ({meta['pretty_version']})")
+        else:
+            ds_parts.append('{}-{}\n({})\nVariable: {} [{}]'.format(
+                id,
+                meta['pretty_name'],
+                meta['pretty_version'],
+                meta['pretty_variable'],
+                meta['mu'])
+            )
         capt = '\n and \n'.join(ds_parts)
 
         if tc:
@@ -911,14 +916,18 @@ class QA4SMPlotter():
                 metric,
                 "_and_".join(metadata_tuple)
             )
-            self._save_plot(out_name, out_types=out_types)
+            out_name = self._save_plot(out_name, out_types=out_types)
 
             return out_name
 
         else:
             return fig, ax
 
-    def plot_save_metadata(self, metric):
+    def plot_save_metadata(
+            self,
+            metric,
+            out_types: str = 'png',
+    ):
         """
         Plots and saves three metadata boxplots per metric (defined in globals.py):
 
@@ -930,6 +939,8 @@ class QA4SMPlotter():
         ----------
         metric : str
             name of metric
+        out_types: str or list
+            extensions which the files should be saved in
 
         Return
         ------
@@ -942,11 +953,13 @@ class QA4SMPlotter():
         if metric in globals._metadata_exclude:
             return filenames
 
-        for type, meta_keys in globals.out_metadata_plots.items():
+        for meta_type, meta_keys in globals.out_metadata_plots.items():
+
             # the presence of instrument_depth in the out file depends on the ismn release version
             if all(meta_key in self.img.metadata.keys() for meta_key in meta_keys):
-                outfile = self.plot_metadata(metric, *meta_keys, save_file=True)
-                filenames.append(outfile)
+                outfiles = self.plot_metadata(metric, *meta_keys, save_file=True, out_types=out_types)
+                filenames.extend(outfiles)
+
             else:
                 warnings.warn(
                     "Not all: " + ", ".join(meta_keys) + " are present in the netCDF variables"
