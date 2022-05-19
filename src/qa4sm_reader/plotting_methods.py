@@ -1624,7 +1624,7 @@ def output_dpi(res,
     return float(dpi)
 
 
-def average_non_additive(values: pd.Series, nobs: pd.Series) -> float:
+def average_non_additive(values: Union[pd.Series, np.array], nobs: pd.Series) -> float:
     """
     Calculate the average of non-additive values, such as correlation
     scores, as recommended in:
@@ -1646,12 +1646,12 @@ def average_non_additive(values: pd.Series, nobs: pd.Series) -> float:
         pass
 
     # Transform to Fisher's z-scores
-    z_scores = 0.5 * np.log((1 + values) / (1 - values))
+    z_scores = np.arctanh(values)
 
     # Remove the entries where there are NaNs
-    invalid_ids = np.argwhere(np.isnan(z_scores))
-    z_scores = np.delete(z_scores, invalid_ids)
-    nobs = np.delete(nobs, invalid_ids)
+    mask = np.isfinite(values) & np.isfinite(nobs)
+    z_scores = z_scores[mask]
+    nobs = nobs[mask]
 
     # Get the number of points after droppin invalid
     k = len(z_scores)
