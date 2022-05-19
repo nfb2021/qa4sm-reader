@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
-from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths
+from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths, average_non_additive
 
 from pathlib import Path
 import warnings
@@ -459,6 +459,12 @@ class QA4SMImg(object):
         filters = {'metric': metric}
         if id:
             filters.update(id=id)
+
+        # The number of observations are needed for the averaging of correlation values
+        for Var in self._iter_vars(type="metric",
+                                   filter_parms={'metric': 'n_obs'}):
+            nobs = Var.values
+
         # get stats by metric
         for Var in self._iter_vars(type="metric", filter_parms=filters):
             # get interquartile range
@@ -468,8 +474,15 @@ class QA4SMImg(object):
                 continue
             iqr = values.quantile(q=[0.75, 0.25]).diff()
             iqr = abs(float(iqr.loc[0.25]))
+
+            # Mean of correlation values has to be computed differently
+            if metric in ["R", "rho"]:
+                mean = average_non_additive(values, nobs)
+            else:
+                mean = values.mean()
+
             # find the statistics for the metric variable
-            var_stats = [i for i in (values.mean(), values.median(), iqr)]
+            var_stats = [mean, values.median(), iqr]
             if Var.g == 0:
                 var_stats.append('All datasets')
                 var_stats.extend([globals._metric_name[metric], Var.g])
@@ -488,8 +501,9 @@ class QA4SMImg(object):
                             ds_name['pretty_version'], o,
                             other_ds['short_name'],
                             other_ds['pretty_version']))
-
-                metric_def = f"{globals._metric_name[metric]} [{globals.get_metric_units(ds_name['short_name'])}]"
+                um = globals._metric_description[metric].format(
+                    globals.get_metric_units(self.datasets.ref['short_name']))
+                metric_def = f"{globals._metric_name[metric]} {um}"
 
                 var_stats.extend([metric_def, Var.g])
             # put the separate variable statistics in the same list
@@ -509,6 +523,10 @@ class QA4SMImg(object):
         stats = []
         # find stats for all the metrics
         for metric in self.metrics.keys():
+
+            if metric in ["p_R", "p_rho"]:
+                continue
+
             stats.extend(self._metric_stats(metric))
         # create a dataframe
         stats_df = pd.DataFrame(stats,

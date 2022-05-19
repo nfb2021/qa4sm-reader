@@ -11,24 +11,29 @@ from qa4sm_reader.handlers import QA4SMDatasets, QA4SMVariable, QA4SMMetric, \
 
 @pytest.fixture
 def basic_attributes():
-    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
-                            '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc')
+    testfile = os.path.join(
+        os.path.dirname(__file__), 'test_data', 'basic',
+        '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc'
+    )
     ds = xr.open_dataset(testfile)
     return ds.attrs
 
 
 @pytest.fixture
 def tc_attributes():
-    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'tc',
-                            '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc')
+    testfile = os.path.join(
+        os.path.dirname(__file__), 'test_data', 'tc',
+        '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc')
     ds = xr.open_dataset(testfile)
     return ds.attrs
 
 
 @pytest.fixture
 def ci_attributes():
-    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'tc',
-                            "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc")
+    testfile = os.path.join(
+        os.path.dirname(__file__), 'test_data', 'tc',
+        "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc"
+    )
     ds = xr.open_dataset(testfile)
     return ds.attrs
 
@@ -64,9 +69,14 @@ def datasets_names(datasets):
 def tc_metrics(tc_attributes):
     df_nobs = pd.DataFrame(index=range(10), data={'n_obs': range(10)})
     metrics = {
-        "n_obs": QA4SMVariable('n_obs', tc_attributes, values=df_nobs).initialize(),
-        "r": QA4SMVariable('R_between_3-ERA5_LAND_and_1-C3S', tc_attributes).initialize(),
-        "beta": QA4SMVariable('beta_1-C3S_between_3-ERA5_LAND_and_1-C3S_and_2-ASCAT', tc_attributes).initialize(),
+        "n_obs":
+        QA4SMVariable('n_obs', tc_attributes, values=df_nobs).initialize(),
+        "r":
+        QA4SMVariable('R_between_3-ERA5_LAND_and_1-C3S',
+                      tc_attributes).initialize(),
+        "beta":
+        QA4SMVariable('beta_1-C3S_between_3-ERA5_LAND_and_1-C3S_and_2-ASCAT',
+                      tc_attributes).initialize(),
     }
 
     return metrics
@@ -77,9 +87,14 @@ def basic_metrics(basic_attributes):
     df_nobs = pd.DataFrame(index=range(10), data={'n_obs': range(10)})
 
     metrics = {
-        "n_obs": QA4SMVariable('n_obs', basic_attributes, values=df_nobs).initialize(),
-        "r": QA4SMVariable('R_between_6-ISMN_and_4-SMAP', basic_attributes).initialize(),
-        "p": QA4SMVariable('p_rho_between_6-ISMN_and_5-ASCAT', basic_attributes).initialize(),
+        "n_obs":
+        QA4SMVariable('n_obs', basic_attributes, values=df_nobs).initialize(),
+        "r":
+        QA4SMVariable('R_between_6-ISMN_and_4-SMAP',
+                      basic_attributes).initialize(),
+        "p":
+        QA4SMVariable('p_rho_between_6-ISMN_and_5-ASCAT',
+                      basic_attributes).initialize(),
     }
 
     return metrics
@@ -148,10 +163,10 @@ def test_dcs(datasets):
 
 
 def test_fetch_attributes(datasets):
-        del datasets.meta['val_dc_variable_pretty_name0']
-        vers0 = datasets._fetch_attribute('_val_dc_variable_pretty_name', 0)
-        # check that fallback method works
-        assert vers0 == "soil moisture"
+    del datasets.meta['val_dc_variable_pretty_name0']
+    vers0 = datasets._fetch_attribute('_val_dc_variable_pretty_name', 0)
+    # check that fallback method works
+    assert vers0 == "soil moisture"
 
 
 def test_dc_names(datasets_names):
@@ -292,8 +307,10 @@ def test_get_varmeta(basic_metrics):
 
 def test_get_attributes(tc_attributes) -> None:
 
-    r1 = QA4SMVariable('R_between_3-ERA5_LAND_and_2-ASCAT', tc_attributes).initialize()
-    r2 = QA4SMVariable('R_between_3-ERA5_LAND_and_1-C3S', tc_attributes).initialize()
+    r1 = QA4SMVariable('R_between_3-ERA5_LAND_and_2-ASCAT',
+                       tc_attributes).initialize()
+    r2 = QA4SMVariable('R_between_3-ERA5_LAND_and_1-C3S',
+                       tc_attributes).initialize()
     r = QA4SMMetric('R', variables_list=[r1, r2])
 
     assert r.g == r1.g == r2.g
@@ -303,8 +320,7 @@ def test_get_attributes(tc_attributes) -> None:
 def test_ci_var(ci_attributes):
     ci_var = QA4SMVariable(
         "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined",
-        ci_attributes
-    ).initialize()
+        ci_attributes).initialize()
 
     assert ci_var.ismetric
     assert ci_var.is_CI
@@ -314,15 +330,12 @@ def test_ci_var(ci_attributes):
 
 
 def test_class_attributes(basic_attributes, ci_attributes):
-    basic_var = QA4SMVariable(
-        "R_between_6-ISMN_and_4-SMAP",
-        basic_attributes
-    ).initialize()
+    basic_var = QA4SMVariable("R_between_6-ISMN_and_4-SMAP",
+                              basic_attributes).initialize()
 
     ci_var = QA4SMVariable(
         "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined",
-        ci_attributes
-    ).initialize()
+        ci_attributes).initialize()
 
     #metadata_var = QA4SMVariable(
     #    "lc_2010",

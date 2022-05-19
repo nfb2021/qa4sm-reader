@@ -1622,3 +1622,41 @@ def output_dpi(res,
     dpi = dpi_min + (dpi_max - dpi_min) * dpi_fraction
 
     return float(dpi)
+
+
+def average_non_additive(values: pd.Series, nobs: pd.Series) -> float:
+    """
+    Calculate the average of non-additive values, such as correlation
+    scores, as recommended in:
+
+    R. Alexander. A note on averaging correlations. Bulletin of the Psychonomic Society volume,
+    1990.
+    """
+    # Try to get an array, unless already specified as np.array
+    try:
+        values = values.values
+
+    except AttributeError:
+        pass
+    # Same for the nobs values
+    try:
+        nobs = nobs.values
+
+    except AttributeError:
+        pass
+
+    # Transform to Fisher's z-scores
+    z_scores = 0.5 * np.log((1 + values) / (1 - values))
+
+    # Remove the entries where there are NaNs
+    invalid_ids = np.argwhere(np.isnan(z_scores))
+    z_scores = np.delete(z_scores, invalid_ids)
+    nobs = np.delete(nobs, invalid_ids)
+
+    # Get the number of points after droppin invalid
+    k = len(z_scores)
+    # Average taking the sample size into account
+    mean = np.sum((nobs - 3) * z_scores) / (np.sum(nobs) - 3 * k)
+
+    # Back transform the result
+    return np.tanh(mean)

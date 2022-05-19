@@ -74,7 +74,10 @@ def test_iter_vars(img):
     for Var in img._iter_vars(type="metric"):
         assert Var.g in [0, 2, 3]
     for Var in img._iter_vars(type="metric", filter_parms={'metric': 'R'}):
-        assert Var.varname in ['R_between_3-ERA5_LAND_and_2-SMOS', 'R_between_3-ERA5_LAND_and_1-C3S']
+        assert Var.varname in [
+            'R_between_3-ERA5_LAND_and_2-SMOS',
+            'R_between_3-ERA5_LAND_and_1-C3S'
+        ]
 
 
 def test_iter_metrics(img):
@@ -85,7 +88,9 @@ def test_iter_metrics(img):
 def test_group_vars(img):
     Vars = img.group_vars(filter_parms={'metric': 'R'})
     names = [Var.varname for Var in Vars]
-    assert names == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
+    assert names == [
+        'R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS'
+    ]
 
 
 def test_group_metrics(img):
@@ -96,7 +101,8 @@ def test_group_metrics(img):
 
 
 def test_load_metrics(img):
-    assert len(img.metrics.keys()) == len(globals.metric_groups[0]) + len(globals.metric_groups[2])
+    assert len(img.metrics.keys()) == len(globals.metric_groups[0]) + len(
+        globals.metric_groups[2])
 
 
 def test_ds2df(img):
@@ -106,7 +112,9 @@ def test_ds2df(img):
 
 def test_metric_df(img):
     df = img.metric_df(['R'])
-    assert list(df.columns) == ['R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS']
+    assert list(df.columns) == [
+        'R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS'
+    ]
 
 
 def test_metrics_in_file(img):
@@ -175,7 +183,9 @@ def test_ref_meta(img):
 
 def test_var_meta(img):
     """Test datasets associated with a specific variable"""
-    for Var in img._iter_vars(type="metric", filter_parms={'varname': 'R_between_3-ERA5_LAND_and_1-C3S'}):
+    for Var in img._iter_vars(
+            type="metric",
+            filter_parms={'varname': 'R_between_3-ERA5_LAND_and_1-C3S'}):
         ref_id, ref_meta = Var.ref_ds
         assert ref_id == 3
         assert ref_meta['short_name'] == 'ERA5_LAND'
@@ -213,8 +223,12 @@ def test_stats_df(img):
             elif Metric.g == 2:  # stats table has an entry for metric, for sat dataset (in common and triple metrics)
                 empty_metrics += 2
 
-    tot_stats = len(img.common.keys()) + 2 * len(img.double.keys()) - empty_metrics
+    tot_stats = len(
+        img.common.keys()) + 2 * len(img.double.keys()) - empty_metrics
     assert tot_stats == 25
+
+    # We drop the corr. significance statistics
+    assert len(df.index) == tot_stats - 4
 
 
 def test_res_info(img):
@@ -238,12 +252,16 @@ def test_cis(ci_img):
 
 def test_ci_in_vars(ci_img):
     """Test that CI Variables are correctly assigned to a metric"""
-    for CI_varname in ci_img._iter_vars(type="metric", filter_parms={
-        "metric": "RMSD",
-        "metric_ds": "2-ESA_CCI_SM_combined"}):
+    for CI_varname in ci_img._iter_vars(type="metric",
+                                        filter_parms={
+                                            "metric": "RMSD",
+                                            "metric_ds":
+                                            "2-ESA_CCI_SM_combined"
+                                        }):
         assert CI_varname in [
             "RMSD_ci_lower_between_0-ERA5_and_2-ESA_CCI_SM_combined",
             "RMSD_ci_upper_between_0-ERA5_and_2-ESA_CCI_SM_combined"
         ]
+
 
 # todo: test for img.metadata property (with updated file)
