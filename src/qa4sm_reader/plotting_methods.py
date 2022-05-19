@@ -1574,10 +1574,12 @@ def plot_spatial_extent(
     grid_intervals = [1, 5, 10, 30]
     style_map(ax, plot_extent, grid_intervals=grid_intervals)
     # create legend
-    plt.legend(loc="lower left",
-               fontsize='small',
-               framealpha=0.4,
-               edgecolor='black')
+    plt.legend(loc='lower center',
+               bbox_to_anchor=(0.5, -0.15),
+               fontsize='x-small',
+               framealpha=0.95,
+               facecolor="white",
+               edgecolor="white")
 
 
 def _res2dpi_fraction(res, units):
