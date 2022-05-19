@@ -8,7 +8,6 @@ import warnings as warn
 
 class MixinVarmeta:
     """Mixin class to provide functions that are common to the MetricVariable and ConfidenceInterval subclasses"""
-
     @property
     def pretty_name(self):
         """Create a nice name for the variable"""
@@ -23,11 +22,14 @@ class MixinVarmeta:
             name = template.format(self.metric)
 
         elif self.g == 2:
-            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
-                               self.ref_ds[1]['pretty_title'])
+            name = template.format(self.Metric.pretty_name,
+                                   self.metric_ds[1]['pretty_title'],
+                                   self.ref_ds[1]['pretty_title'])
         elif self.g == 3:
-            name = template.format(self.Metric.pretty_name, self.metric_ds[1]['pretty_title'],
-                               self.ref_ds[1]['pretty_title'], self.other_ds[1]['pretty_title'])
+            name = template.format(self.Metric.pretty_name,
+                                   self.metric_ds[1]['pretty_title'],
+                                   self.ref_ds[1]['pretty_title'],
+                                   self.other_ds[1]['pretty_title'])
 
         return name
 
@@ -82,7 +84,6 @@ class QA4SMDatasets():
     1-based and 0-based index number of the datasets, respectively. For newer validations, these are always
     the same
     """
-
     def __init__(self, global_attrs):
         """
         Parameters
@@ -107,7 +108,8 @@ class QA4SMDatasets():
             val_ref = self.meta[globals._ref_ds_attr]
             ref_dc = parse(globals._ds_short_name_attr, val_ref)[0]
         except KeyError as e:
-            warn("The netCDF file does not contain the attribute {}".format(globals._ref_ds_attr))
+            warn("The netCDF file does not contain the attribute {}".format(
+                globals._ref_ds_attr))
             raise e
 
         return ref_dc
@@ -166,9 +168,7 @@ class QA4SMDatasets():
         """
         # try to get from self.meta
         try:
-            meta = self.meta[
-                globals.__dict__[template].format(dc)
-            ]
+            meta = self.meta[globals.__dict__[template].format(dc)]
         # try to get from globals
         except KeyError:
             # if there is an option to use
@@ -176,29 +176,24 @@ class QA4SMDatasets():
                 try:
                     backup_var = globals._backups[template]
                     # use the version short name (should be always in netCDF)
-                    meta = globals.__dict__[backup_var][
-                        self.meta[globals._version_short_name_attr.format(dc)]
-                    ]
+                    meta = globals.__dict__[backup_var][self.meta[
+                        globals._version_short_name_attr.format(dc)]]
                 # globals fallback has failed. Raise an exception
                 except KeyError or AttributeError:
                     raise Exception(
                         "Either the attribute {} is missing from the netCDF template, or the dictionaries"
-                        "in globals are not updated for the datasets used".format(
-                            globals._version_short_name_attr.format(dc)
-                        )
-                    )
+                        "in globals are not updated for the datasets used".
+                        format(globals._version_short_name_attr.format(dc)))
             # give warning and return an empty value
             else:
                 warnings.warn(
-                    "There is no attribute {} in the netCDF dataset. An empty string is returned".format(
-                        globals.__dict__[template].format(dc)
-                    )
-                )
+                    "There is no attribute {} in the netCDF dataset. An empty string is returned"
+                    .format(globals.__dict__[template].format(dc)))
                 meta = ""
 
         return meta
 
-    def _dc_names(self, dc:int) -> dict:
+    def _dc_names(self, dc: int) -> dict:
         """
         Get dataset meta values for the passed dc
 
@@ -213,19 +208,26 @@ class QA4SMDatasets():
             short name, pretty_name and short_version and pretty_version of the
             dc dataset.
         """
-        names = {'short_name': self._fetch_attribute("_ds_short_name_attr", dc),
-                 'pretty_name': self._fetch_attribute("_ds_pretty_name_attr", dc),
-                 'short_version': self._fetch_attribute("_version_short_name_attr", dc),
-                 'pretty_version': self._fetch_attribute("_version_pretty_name_attr", dc),
-                 'pretty_variable': self._fetch_attribute("_val_dc_variable_pretty_name", dc)}
+        names = {
+            'short_name':
+            self._fetch_attribute("_ds_short_name_attr", dc),
+            'pretty_name':
+            self._fetch_attribute("_ds_pretty_name_attr", dc),
+            'short_version':
+            self._fetch_attribute("_version_short_name_attr", dc),
+            'pretty_version':
+            self._fetch_attribute("_version_pretty_name_attr", dc),
+            'pretty_variable':
+            self._fetch_attribute("_val_dc_variable_pretty_name", dc)
+        }
 
         # not from dataset.
-        names['mu'] = "{}".format(
-                globals.get_metric_units(names['short_name'])
-            )
+        names['mu'] = "{}".format(globals.get_metric_units(
+            names['short_name']))
 
         # combined name for plots:
-        names['pretty_title'] = '{} ({})'.format(names['pretty_name'], names['pretty_version'])
+        names['pretty_title'] = '{} ({})'.format(names['pretty_name'],
+                                                 names['pretty_version'])
 
         return names
 
@@ -239,7 +241,7 @@ class QA4SMDatasets():
         """Id of the other datasets as in the variable names"""
         return [dc - self.offset for dc in self._dcs().keys()]
 
-    def _id2dc(self, id:int) -> int:
+    def _id2dc(self, id: int) -> int:
         """
         Offset ids according to the self.offset value
 
@@ -273,7 +275,7 @@ class QA4SMDatasets():
 
         return others_meta
 
-    def dataset_metadata(self, id:int, element:str or list=None) -> tuple:
+    def dataset_metadata(self, id: int, element: str or list = None) -> tuple:
         """
         Get the metadata for the dataset specified by the id. This function is used by the QA4SMMetricVariable class
 
@@ -295,7 +297,8 @@ class QA4SMDatasets():
 
         elif isinstance(element, str):
             if not element in names.keys():
-                raise ValueError("Elements must be one of '{}'".format(', '.join(names.keys())))
+                raise ValueError("Elements must be one of '{}'".format(
+                    ', '.join(names.keys())))
 
             meta = names[element]
 
@@ -307,7 +310,6 @@ class QA4SMDatasets():
 
 class QA4SMVariable():
     """Super class for all variable types in the validations (MetricVariable, CI and Metadata)"""
-
     def __init__(self, varname, global_attrs, values=None):
         """
         Validation results for a validation metric and a combination of datasets.
@@ -393,13 +395,15 @@ class QA4SMVariable():
             # parse infromation from pattern and name
             parts = parse(pattern, self.varname)
 
-            if parts is not None and parts['metric'] in globals.metric_groups[g]:
+            if parts is not None and parts['metric'] in globals.metric_groups[
+                    g]:
                 return parts['metric'], g, parts.named
             # perhaps it's a CI variable
             else:
                 pattern = '{}{}'.format(globals.var_name_CI[g], template)
                 parts = parse(pattern, self.varname)
-                if parts is not None and parts['metric'] in globals.metric_groups[g]:
+                if parts is not None and parts[
+                        'metric'] in globals.metric_groups[g]:
                     return parts['metric'], g, parts.named
 
         return None, None, None
@@ -407,7 +411,6 @@ class QA4SMVariable():
 
 class MetricVariable(QA4SMVariable, MixinVarmeta):
     """Class that describes a metric variable, i.e. the metric for a specific set of Datasets"""
-
     def __init__(self, varname, global_attrs, values=None):
         super().__init__(varname, global_attrs, values)
 
@@ -417,7 +420,6 @@ class MetricVariable(QA4SMVariable, MixinVarmeta):
 
 class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
     """Class for a MetricVariable representing confidence intervals"""
-
     def __init__(self, varname, global_attrs, values=None):
         super().__init__(varname, global_attrs, values)
 
@@ -429,14 +431,14 @@ class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
 
 class Metadata(QA4SMVariable):
     """Class for a MetricVariable representing metadata (only with ISMN as reference)"""
-
     def __init__(self, varname, global_attrs, values=None):
         super().__init__(varname, global_attrs, values)
 
     @property
     def key_meta(self) -> bool:
         """Filter out variables such as idx, lat, lon, gpi, time, _row_size etc."""
-        return self.varname in globals.metadata.keys()  # todo: retrieve without globals?
+        return self.varname in globals.metadata.keys(
+        )  # todo: retrieve without globals?
 
     @property
     def pretty_name(self) -> str:
@@ -459,7 +461,7 @@ class QA4SMMetric():
             self.g = self._get_attribute('g')
             self.attrs = self._get_attribute('attrs')
 
-    def _get_attribute(self, attr:str):
+    def _get_attribute(self, attr: str):
         """
         Absorb Var attribute when is equal for all variables (e.g. group, reference dataset)
 
@@ -475,7 +477,8 @@ class QA4SMMetric():
         for n, Var in enumerate(self.variables):
             value = getattr(Var, attr)
             if n != 0:
-                assert value == previous, "The attribute {} is not equal in all variables".format(attr)
+                assert value == previous, "The attribute {} is not equal in all variables".format(
+                    attr)
             previous = value
 
         return value
@@ -489,4 +492,4 @@ class QA4SMMetric():
                 it_does = True
                 break
 
-        return  it_does
+        return it_does
