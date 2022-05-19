@@ -374,6 +374,10 @@ class QA4SMComparison:
                     col_name = "Val{}: {} ".format(
                         id, QA4SMPlotter._box_caption(Var, tc=Var.g == 3, short_caption=True)
                     )
+
+                    # Remove substrings in TC column names
+                    col_name = col_name.replace("Other Data:", "").replace("\n", "")
+
                     data = data.rename(col_name)
                     varnames["varlist"].append(data)
                     n += 1
