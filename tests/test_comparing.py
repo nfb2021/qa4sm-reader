@@ -11,7 +11,6 @@ from qa4sm_reader.img import QA4SMImg
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
 # if sys.platform.startswith("win"):
 #     pytestmark = pytest.mark.skip(
 #         "Failing on Windows."
@@ -31,13 +30,8 @@ def double_img_paths():
     first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
     second = '0-ISMN.soil moisture_with_1-C3S.sm-overlap.nc'
     testfile_paths = [
-        os.path.join(
-            os.path.dirname(__file__),
-            '..', 'tests', 'test_data', 'comparing',
-            i
-        ) for i in [
-            first,
-            second]
+        os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data',
+                     'comparing', i) for i in [first, second]
     ]
     # initialized with intersection
     return testfile_paths
@@ -91,11 +85,9 @@ def test_checks(single_img, double_img_overlap):
     """No assertion, but will throw error if any of the checks are not passed"""
     assert single_img.perform_checks()
 
-    double_img_overlap.perform_checks(
-        overlapping=True,
-        union=True,
-        pairwise=True
-    )
+    double_img_overlap.perform_checks(overlapping=True,
+                                      union=True,
+                                      pairwise=True)
 
 
 def test_wrapper(single_img, double_img_overlap):
@@ -103,10 +95,7 @@ def test_wrapper(single_img, double_img_overlap):
     This tests the wrapper function but more in general also the
     plotting functions/table
     """
-    methods = [
-        'boxplot',
-        'mapplot'
-    ]
+    methods = ['boxplot', 'mapplot']
     for method in methods:
         out = single_img.wrapper(method, "R")
         plt.close("all")
@@ -129,20 +118,13 @@ def test_init_union(double_img_overlap):
 
 def test_pairwise_methods(double_img_paths):
     comp = QA4SMComparison(
-        double_img_paths,
-        get_intersection=False
+        double_img_paths, get_intersection=False
     )  # todo: solve unexpected behavior on perform_checks
     works = False
-    methods = [
-        'boxplot',
-        'mapplot'
-    ]
+    methods = ['boxplot', 'mapplot']
     for method in methods:
         try:  # they all have same behavior
-            comp.wrapper(
-                method,
-                metric="R"
-            )
+            comp.wrapper(method, metric="R")
         except SpatialExtentError:
             works = True
 
@@ -154,19 +136,11 @@ def double_paths_nonoverlap():
     first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
     second = '0-ISMN.soil moisture_with_1-C3S.sm-nonoverlap.nc'
     testfile_paths = [
-        os.path.join(
-            os.path.dirname(__file__),
-            '..', 'tests', 'test_data', 'comparing',
-            i
-        ) for i in [
-            first,
-            second]
+        os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data',
+                     'comparing', i) for i in [first, second]
     ]
     # initialize the comparison with intersection and check that no error is raised
-    QA4SMComparison(
-        testfile_paths,
-        get_intersection=False
-    )
+    QA4SMComparison(testfile_paths, get_intersection=False)
 
     return testfile_paths
 
@@ -176,9 +150,16 @@ def test_common_metrics(double_img_paths, double_img_overlap):
     metrics_list = []
     for path in double_img_paths:
         im = QA4SMImg(path)
-        format_dict = {short: metric_obj.pretty_name for short, metric_obj in im.metrics.items()}
+        format_dict = {
+            short: metric_obj.pretty_name
+            for short, metric_obj in im.metrics.items()
+        }
         metrics_list.append(format_dict)
-    metrics_should = {key: val for key, val in metrics_list[0].items() if key in metrics_list[1].keys()}
+    metrics_should = {
+        key: val
+        for key, val in metrics_list[0].items()
+        if key in metrics_list[1].keys()
+    }
     metrics_should_hardcoded = {
         'R': "Pearson's r",
         'rho': "Spearman's ρ",
@@ -206,20 +187,14 @@ def test_common_metrics(double_img_paths, double_img_overlap):
 
 def test_get_reference_points(double_img_overlap):
     """Check get_reference_points function for first 10 points"""
-    points_should = np.array([
-        [0.3361, 43.9744],
-        [0.3361, 43.9744],
-        [-0.0469, 43.9936],
-        [-0.0469, 43.9936],
-        [-0.0469, 43.9936],
-        [-0.0469, 43.9936],
-        [0.8878, 43.5472],
-        [0.8878, 43.5472],
-        [2.7283, 43.1733],
-        [2.7283, 43.1733]
-    ])
+    points_should = np.array([[0.3361, 43.9744], [0.3361, 43.9744],
+                              [-0.0469, 43.9936], [-0.0469, 43.9936],
+                              [-0.0469, 43.9936], [-0.0469, 43.9936],
+                              [0.8878, 43.5472], [0.8878, 43.5472],
+                              [2.7283, 43.1733], [2.7283, 43.1733]])
     assert double_img_overlap.get_reference_points().shape == (61, 2)
-    np.testing.assert_array_equal(double_img_overlap.get_reference_points()[:10], points_should)
+    np.testing.assert_array_equal(
+        double_img_overlap.get_reference_points()[:10], points_should)
 
 
 def test_get_data(double_img_overlap):
@@ -230,20 +205,18 @@ def test_get_data(double_img_overlap):
     name_should = 'Val0: 1-C3S (v202012) '
     assert data.name == name_should
     data_should = [
-        0.679918, 0.707091, 0.713081, 0.808353,
-        0.700307, 0.852756, 0.714132, 0.621769,
-        0.741732, 0.691499
+        0.679918, 0.707091, 0.713081, 0.808353, 0.700307, 0.852756, 0.714132,
+        0.621769, 0.741732, 0.691499
     ]
     # slightly different due to array transformation from Dataframe
-    numpy.testing.assert_array_almost_equal(np.array(data_should), data.iloc[:10].to_numpy(), 6)
+    numpy.testing.assert_array_almost_equal(np.array(data_should),
+                                            data.iloc[:10].to_numpy(), 6)
 
 
 def test_init_error(double_paths_nonoverlap):
     works = False
     try:
-        QA4SMComparison(
-            double_paths_nonoverlap
-        )
+        QA4SMComparison(double_paths_nonoverlap)
     except SpatialExtentError:
         works = True
 
@@ -252,12 +225,10 @@ def test_init_error(double_paths_nonoverlap):
 
 # --- reload all imahs to reproduce test_simultaneous_netcdf_loading test ----
 
+
 def load_extent_image(paths):
     comp = QA4SMComparison(paths)
-    comp.visualize_extent(
-        intersection=True,
-        plot_points=True
-    )
+    comp.visualize_extent(intersection=True, plot_points=True)
 
 
 def load_table(paths):
@@ -272,15 +243,9 @@ def load_plots(paths):
     metrics = comp.common_metrics
     first_called = list(metrics.keys())[0]
     comp = QA4SMComparison(paths)
-    comp.wrapper(
-        method="boxplot",
-        metric=first_called
-    )
+    comp.wrapper(method="boxplot", metric=first_called)
     comp = QA4SMComparison(paths)
-    comp.wrapper(
-        method="mapplot",
-        metric=first_called
-    )
+    comp.wrapper(method="mapplot", metric=first_called)
 
 
 def test_simultaneous_netcdf_loading(double_img_paths):

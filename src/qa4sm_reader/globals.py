@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 Settings and global variables used in the reading and plotting procedures
 """
@@ -12,7 +11,8 @@ import matplotlib.pyplot as plt
 # PLOT DEFAULT SETTINGS
 # =====================================================
 matplotlib_ppi = 72  # Don't change this, it's a matplotlib convention.
-index_names = ['lat', 'lon', 'gpi']  # Names used for 'latitude' and 'longitude' coordinate.
+index_names = ['lat', 'lon',
+               'gpi']  # Names used for 'latitude' and 'longitude' coordinate.
 time_name = 'time'  # not used at the moment, dropped on load
 period_name = 'period'  # not used at the moment, dropped on load
 
@@ -22,14 +22,18 @@ title_pad = 12.0  # Padding below the title in points. default padding is matplo
 data_crs = ccrs.PlateCarree()  # Default map projection. use one of
 
 # === map plot defaults ===
-scattered_datasets = ['ISMN']  # dataset names which require scatterplots (values is scattered in lat/lon)
+scattered_datasets = [
+    'ISMN'
+]  # dataset names which require scatterplots (values is scattered in lat/lon)
 map_figsize = [11.32, 6.10]  # size of the output figure in inches.
 naturalearth_resolution = '110m'  # One of '10m', '50m' and '110m'. Finer resolution slows down plotting. see https://www.naturalearthdata.com/
-crs = ccrs.PlateCarree()  # projection. Must be a class from cartopy.crs. Note, that plotting labels does not work for most projections.
+crs = ccrs.PlateCarree(
+)  # projection. Must be a class from cartopy.crs. Note, that plotting labels does not work for most projections.
 markersize = 4  # diameter of Marker in points.
 map_pad = 0.15  # padding relative to map height.
-grid_intervals = [2, 5, 10,
-                  30]  # grid spacing in degree to choose from (plotter will try to make 5 gridlines in the smaller dimension)
+grid_intervals = [
+    2, 5, 10, 30
+]  # grid spacing in degree to choose from (plotter will try to make 5 gridlines in the smaller dimension)
 max_title_len = 8 * map_figsize[
     0]  # maximum length of plot title in chars. if longer, it will be broken in multiple lines.
 
@@ -63,11 +67,19 @@ out_metadata_plots = {
 # more on colormaps: https://matplotlib.org/users/colormaps.html | https://morphocode.com/the-use-of-color-in-maps/
 
 _cclasses = {
-    'div_better': plt.cm.get_cmap('RdYlBu'),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
-    'div_worse': plt.cm.get_cmap('RdYlBu_r'),  # diverging: 1 bad, 0 special, -1 good (difference of bias)
-    'div_neutr': plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
-    'seq_worse': plt.cm.get_cmap('YlGn_r'),  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
-    'seq_better': plt.cm.get_cmap('YlGn'),  # sequential: increasing value good (n_obs, STDerr)
+    'div_better': plt.cm.get_cmap(
+        'RdYlBu'
+    ),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
+    'div_worse': plt.cm.get_cmap(
+        'RdYlBu_r'
+    ),  # diverging: 1 bad, 0 special, -1 good (difference of bias)
+    'div_neutr':
+    plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
+    'seq_worse': plt.cm.get_cmap(
+        'YlGn_r'
+    ),  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
+    'seq_better': plt.cm.get_cmap(
+        'YlGn'),  # sequential: increasing value good (n_obs, STDerr)
 }
 
 _colormaps = {  # from /qa4sm/validator/validation/graphics.py
@@ -117,10 +129,10 @@ _diff_colormaps = {  # from /qa4sm/validator/validation/graphics.py
 # 0=common metrics, 2=paired metrics (2 datasets), 3=triple metrics (TC, 3 datasets)
 metric_groups = {
     0: ['n_obs'],
-    2: ['R', 'p_R', 'rho', 'p_rho', 'RMSD', 'BIAS',
-        'urmsd', 'mse', 'mse_corr', 'mse_bias', 'mse_var',
-        'RSS', 'tau', 'p_tau'
-        ],
+    2: [
+        'R', 'p_R', 'rho', 'p_rho', 'RMSD', 'BIAS', 'urmsd', 'mse', 'mse_corr',
+        'mse_bias', 'mse_var', 'RSS', 'tau', 'p_tau'
+    ],
     3: ['snr', 'err_std', 'beta']
 }
 
@@ -138,8 +150,10 @@ var_name_CI = {
 }
 # how two datasets are separated, ids must be marked as numbers with :d!
 var_name_ds_sep = {
-    0: None, 2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",
-    3: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"
+    0: None,
+    2: "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}",
+    3:
+    "{ref_id:d}-{ref_ds}_and_{sat_id0:d}-{sat_ds0}_and_{sat_id1:d}-{sat_ds1}"
 }
 
 # === metadata templates ===
@@ -152,7 +166,8 @@ _val_dc_variable_pretty_name = 'val_dc_variable_pretty_name{:d}'  # attribute co
 
 # format should have (metric, ds, ref, other ds)
 _variable_pretty_name = {
-    0: "{}", 2: "{}\nof {}\nwith {} as reference",
+    0: "{}",
+    2: "{}\nof {}\nwith {} as reference",
     3: "{} of {} \n against {}, {}"
 }
 
@@ -242,8 +257,7 @@ def get_metric_units(dataset, raise_error=False):
     except KeyError:
         if raise_error:
             raise KeyError(
-                f"The dataset {dataset} has not been specified in {__name__}"
-            )
+                f"The dataset {dataset} has not been specified in {__name__}")
 
         else:
             warnings.warn(
@@ -437,8 +451,7 @@ def get_resolution_info(dataset, raise_error=False):
     except KeyError:
         if raise_error:
             raise KeyError(
-                f"The dataset {dataset} has not been specified in {__name__}"
-            )
+                f"The dataset {dataset} has not been specified in {__name__}")
 
         else:
             warnings.warn(
@@ -535,16 +548,20 @@ climate_classes = {
 
 metadata = {
     "clay_fraction": ("clay fraction", None, "continuous", "[% weight]"),
-    "climate_KG": ("Koeppen-Geiger climate class", climate_classes, "classes", None),
+    "climate_KG":
+    ("Koeppen-Geiger climate class", climate_classes, "classes", None),
     "climate_insitu": ("climate in-situ", climate_classes, "classes", None),
     "elevation": ("elevation", None, "continuous", "[m]"),
-    "instrument": ("instrument type", None, "discrete", None),  # todo: improve labels (too packed)
+    "instrument": ("instrument type", None, "discrete",
+                   None),  # todo: improve labels (too packed)
     "lc_2000": ("land cover class (2000)", lc_classes, "classes", None),
     "lc_2005": ("land cover class (2005)", lc_classes, "classes", None),
     "lc_2010": ("land cover class (2010)", lc_classes, "classes", None),
-    "lc_insitu": ("land cover class in-situ", lc_classes, "classes", None),  # todo: handle custom names
+    "lc_insitu": ("land cover class in-situ", lc_classes, "classes",
+                  None),  # todo: handle custom names
     "network": ("network", None, "discrete", None),
-    "organic_carbon": ("concentration of organic carbon", None, "continuous", "[% weight]"),
+    "organic_carbon":
+    ("concentration of organic carbon", None, "continuous", "[% weight]"),
     "sand_fraction": ("sand fraction", None, "continuous", "[% weight]"),
     "saturation": ("saturation", None, "continuous", "[m³/m³]"),
     "silt_fraction": ("silt fraction", None, "continuous", "[% weight]"),

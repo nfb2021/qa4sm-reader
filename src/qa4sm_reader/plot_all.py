@@ -8,18 +8,16 @@ from qa4sm_reader.img import QA4SMImg, extract_periods
 from qa4sm_reader.exceptions import PlotterError
 
 
-def plot_all(
-        filepath: str,
-        metrics: list = None,
-        extent: tuple = None,
-        out_dir: str = None,
-        out_type: str = 'png',
-        save_all: bool = True,
-        save_metadata: bool = False,
-        save_csv: bool = True,
-        engine: str = 'h5netcdf',
-        **plotting_kwargs
-) -> tuple:
+def plot_all(filepath: str,
+             metrics: list = None,
+             extent: tuple = None,
+             out_dir: str = None,
+             out_type: str = 'png',
+             save_all: bool = True,
+             save_metadata: bool = False,
+             save_csv: bool = True,
+             engine: str = 'h5netcdf',
+             **plotting_kwargs) -> tuple:
     """
     Creates boxplots for all metrics and map plots for all variables.
     Saves the output in a folder-structure.
@@ -67,8 +65,7 @@ def plot_all(
         )
         plotter = QA4SMPlotter(
             image=img,
-            out_dir=os.path.join(out_dir, str(period)) if period else out_dir
-        )
+            out_dir=os.path.join(out_dir, str(period)) if period else out_dir)
 
         if metrics is None:
             metrics = img.metrics
@@ -79,8 +76,7 @@ def plot_all(
                 metric=metric,
                 out_types=out_type,
                 save_all=save_all,
-                **plotting_kwargs
-            )
+                **plotting_kwargs)
             # there can be boxplots with no mapplots
             if metric_bplots:
                 fnames_bplot.extend(metric_bplots)
@@ -89,8 +85,10 @@ def plot_all(
             if img.metadata and save_metadata:
                 try:
                     fnames_bplot.extend(
-                        plotter.plot_save_metadata(metric, out_types=out_type,)
-                    )
+                        plotter.plot_save_metadata(
+                            metric,
+                            out_types=out_type,
+                        ))
                 except PlotterError:
                     warnings.warn(
                         "Too few points are available to generate metadata-based plots"
@@ -99,13 +97,13 @@ def plot_all(
         if save_csv:
             out_csv = plotter.save_stats()
             fnames_csv.append(out_csv)
-        
+
     return fnames_bplot, fnames_mapplot, fnames_csv
 
 
 def get_img_stats(
-        filepath: str,
-        extent: tuple = None,
+    filepath: str,
+    extent: tuple = None,
 ) -> pd.DataFrame:
     """
     Creates a dataframe containing summary statistics for each metric
@@ -124,5 +122,5 @@ def get_img_stats(
     """
     img = QA4SMImg(filepath, extent=extent, ignore_empty=True)
     table = img.stats_df()
-    
+
     return table

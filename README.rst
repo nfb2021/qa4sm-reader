@@ -49,6 +49,16 @@ To remove the environment again, run:
     conda deactivate
     conda env remove -n qa4sm_reader
 
+Code Formatting
+---------------
+To apply pep8 conform styling to any changed files [we use `yapf`](https://github.com/google/yapf). The correct
+settings are already set in `setup.cfg`. Therefore the following command
+should be enough:
+
+.. code::
+
+    yapf file.py --in-place
+
 Testing
 -------
 

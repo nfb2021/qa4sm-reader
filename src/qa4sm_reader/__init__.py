@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 # __author__ = "Lukas Racbhauer"
 # __copyright__ = "2019, TU Wien, Department of Geodesy and Geoinformation"
 # __license__ = "mit"

@@ -19,7 +19,6 @@ class QA4SMPlotter():
     """
     Class to create image files of plots from the validation results in a QA4SMImage
     """
-
     def __init__(self, image: QA4SMImg, out_dir: str = None):
         """
         Create box plots from results in a qa4sm output file.
@@ -41,8 +40,7 @@ class QA4SMPlotter():
         except AttributeError:
             raise PlotterError(
                 "The initialized QA4SMImg object has not been loaded. 'load_data' needs "
-                "to be set to 'True' in the initialization of the Image."
-            )
+                "to be set to 'True' in the initialization of the Image.")
 
     def get_dir(self, out_dir: str) -> Path:
         """Use output path if specified, otherwise same directory as the one storing the netCDF file"""
@@ -85,7 +83,9 @@ class QA4SMPlotter():
         return out_path
 
     @staticmethod
-    def _box_caption(Var, tc: bool = False, short_caption: bool = False) -> str:
+    def _box_caption(Var,
+                     tc: bool = False,
+                     short_caption: bool = False) -> str:
         """
         Create the dataset part of the box (axis) caption
 
@@ -109,15 +109,12 @@ class QA4SMPlotter():
         if tc:
             id, meta = other_meta
         if short_caption:
-            ds_parts.append(f"{id}-{meta['pretty_name']} ({meta['pretty_version']})")
+            ds_parts.append(
+                f"{id}-{meta['pretty_name']} ({meta['pretty_version']})")
         else:
             ds_parts.append('{}-{}\n({})\nVariable: {} [{}]'.format(
-                id,
-                meta['pretty_name'],
-                meta['pretty_version'],
-                meta['pretty_variable'],
-                meta['mu'])
-            )
+                id, meta['pretty_name'], meta['pretty_version'],
+                meta['pretty_variable'], meta['mu']))
         capt = '\n and \n'.join(ds_parts)
 
         if tc:
@@ -155,7 +152,8 @@ class QA4SMPlotter():
 
             if type == 'mapplot_tc':
                 parts.append(other[0])
-                parts.extend([other[1]['pretty_name'], other[1]['pretty_version']])
+                parts.extend(
+                    [other[1]['pretty_name'], other[1]['pretty_version']])
 
         return parts
 
@@ -170,10 +168,14 @@ class QA4SMPlotter():
             type of plot
         """
         titles = {
-            'boxplot_basic': 'Intercomparison of {} \nwith {}-{} ({}) as the reference\n ',
-            'boxplot_tc': 'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as the reference\n ',
-            'mapplot_basic': '{} for {}-{} ({}) with {}-{} ({}) as the reference',
-            'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
+            'boxplot_basic':
+            'Intercomparison of {} \nwith {}-{} ({}) as the reference\n ',
+            'boxplot_tc':
+            'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as the reference\n ',
+            'mapplot_basic':
+            '{} for {}-{} ({}) with {}-{} ({}) as the reference',
+            'mapplot_tc':
+            '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
             'metadata': 'Intercomparison of {} by {}\nwith reference: {}',
         }
 
@@ -181,9 +183,7 @@ class QA4SMPlotter():
             return titles[type]
 
         except KeyError:
-            raise PlotterError(
-                f"type '{type}' is not in the lookup table"
-            )
+            raise PlotterError(f"type '{type}' is not in the lookup table")
 
     @staticmethod
     def _filenames_lut(type: str) -> str:
@@ -210,9 +210,7 @@ class QA4SMPlotter():
             return names[type]
 
         except KeyError:
-            raise PlotterError(
-                f"type '{type}' is not in the lookup table"
-            )
+            raise PlotterError(f"type '{type}' is not in the lookup table")
 
     def create_title(self, Var, type: str) -> str:
         """
@@ -255,7 +253,8 @@ class QA4SMPlotter():
                 # necessary to respect old naming convention
                 for dss in Var.other_dss:
                     parts.extend([dss[0], dss[1]['short_name']])
-                parts.extend([Var.metric, mds_meta[0], mds_meta[1]['short_name']])
+                parts.extend(
+                    [Var.metric, mds_meta[0], mds_meta[1]['short_name']])
             parts.extend([mds_meta[0], mds_meta[1]['short_name'], Var.metric])
 
         name = name.format(*parts)
@@ -263,11 +262,11 @@ class QA4SMPlotter():
         return name
 
     def _yield_values(
-            self,
-            metric: str,
-            tc: bool = False,
-            stats: bool = True,
-            mean_ci: bool = True,
+        self,
+        metric: str,
+        tc: bool = False,
+        stats: bool = True,
+        mean_ci: bool = True,
     ) -> tuple:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
@@ -290,7 +289,8 @@ class QA4SMPlotter():
             variable corresponding to the dataframe
         ci: pd.DataFrame with "upper" and "lower" CI
         """
-        Vars = self.img._iter_vars(type="metric", filter_parms={"metric": metric})
+        Vars = self.img._iter_vars(type="metric",
+                                   filter_parms={"metric": metric})
 
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
@@ -318,9 +318,7 @@ class QA4SMPlotter():
                     diff = ci["upper"] - ci["lower"]
                     ci_range = float(diff.mean())
                     label = "\nMean CI range: {:.3g}".format(ci_range)
-                df.columns = [
-                    df.columns[0] + label
-                ]
+                df.columns = [df.columns[0] + label]
             else:
                 ci = None
             # values are all Nan or NaNf - not plotted
@@ -330,16 +328,14 @@ class QA4SMPlotter():
 
             yield df, Var, ci
 
-    def _boxplot_definition(
-            self,
-            metric: str,
-            df: pd.DataFrame,
-            type: str,
-            ci=None,
-            offset=0.07,
-            Var=None,
-            **kwargs
-    ) -> tuple:
+    def _boxplot_definition(self,
+                            metric: str,
+                            df: pd.DataFrame,
+                            type: str,
+                            ci=None,
+                            offset=0.07,
+                            Var=None,
+                            **kwargs) -> tuple:
         """
         Define parameters of plot
 
@@ -358,10 +354,8 @@ class QA4SMPlotter():
         """
         # plot label
         parts = [globals._metric_name[metric]]
-        parts.append(
-            globals._metric_description[metric].format(
-                globals.get_metric_units(self.ref['short_name'])
-            ))
+        parts.append(globals._metric_description[metric].format(
+            globals.get_metric_units(self.ref['short_name'])))
         label = "{}{}".format(*parts)
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
@@ -377,7 +371,8 @@ class QA4SMPlotter():
         )
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
-            for Var in self.img._iter_vars(type="metric", filter_parms={"metric": metric}):
+            for Var in self.img._iter_vars(type="metric",
+                                           filter_parms={"metric": metric}):
                 Var = Var
                 break
         if not type == "metadata":
@@ -423,13 +418,12 @@ class QA4SMPlotter():
 
         return fnames
 
-    def boxplot_basic(
-            self, metric: str,
-            out_name: str = None,
-            out_types: str = 'png',
-            save_files: bool = False,
-            **plotting_kwargs
-    ) -> Union[list, None]:
+    def boxplot_basic(self,
+                      metric: str,
+                      out_name: str = None,
+                      out_types: str = 'png',
+                      save_files: bool = False,
+                      **plotting_kwargs) -> Union[list, None]:
         """
         Creates a boxplot for common and double metrics. Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
@@ -465,13 +459,11 @@ class QA4SMPlotter():
         # put all Variables in the same dataframe
         values = pd.concat(values)
         # create plot
-        fig, ax = self._boxplot_definition(
-            metric=metric,
-            df=values,
-            type='boxplot_basic',
-            ci=ci,
-            **plotting_kwargs
-        )
+        fig, ax = self._boxplot_definition(metric=metric,
+                                           df=values,
+                                           type='boxplot_basic',
+                                           ci=ci,
+                                           **plotting_kwargs)
         if not out_name:
             out_name = self.create_filename(Var, type='boxplot_basic')
         # save or return plotting objects
@@ -484,13 +476,12 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def boxplot_tc(
-            self, metric: str,
-            out_name: str = None,
-            out_types: str = 'png',
-            save_files: bool = False,
-            **plotting_kwargs
-    ) -> list:
+    def boxplot_tc(self,
+                   metric: str,
+                   out_name: str = None,
+                   out_types: str = 'png',
+                   save_files: bool = False,
+                   **plotting_kwargs) -> list:
         """
         Creates a boxplot for TC metrics. Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
@@ -539,14 +530,12 @@ class QA4SMPlotter():
             else:
                 ci_id = None
             # create plot
-            fig, ax = self._boxplot_definition(
-                metric=metric,
-                df=df,
-                ci=ci_id,
-                type='boxplot_tc',
-                Var=Var,
-                **plotting_kwargs
-            )
+            fig, ax = self._boxplot_definition(metric=metric,
+                                               df=df,
+                                               ci=ci_id,
+                                               type='boxplot_tc',
+                                               Var=Var,
+                                               **plotting_kwargs)
             # save. Below workaround to avoid same names
             if not out_name:
                 save_name = self.create_filename(Var, type='boxplot_tc')
@@ -562,12 +551,13 @@ class QA4SMPlotter():
             return fnames
 
     def mapplot_var(
-            self, Var,
-            out_name: str = None,
-            out_types: str = 'png',
-            save_files: bool = False,
-            compute_dpi: bool = True,
-            **style_kwargs,
+        self,
+        Var,
+        out_name: str = None,
+        out_types: str = 'png',
+        save_files: bool = False,
+        compute_dpi: bool = True,
+        **style_kwargs,
     ) -> Union[list, tuple]:
         """
         Plots values to a map, using the values as color. Plots a scatterplot for
@@ -617,16 +607,19 @@ class QA4SMPlotter():
                 style_kwargs["dpi"] = globals.dpi_max
 
         # create mapplot
-        fig, ax = plm.mapplot(df=Var.values[Var.varname],
-                              metric=metric,
-                              ref_short=ref_meta[1]['short_name'],
-                              ref_grid_stepsize=ref_grid_stepsize,
-                              plot_extent=None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
-                              **style_kwargs)
+        fig, ax = plm.mapplot(
+            df=Var.values[Var.varname],
+            metric=metric,
+            ref_short=ref_meta[1]['short_name'],
+            ref_grid_stepsize=ref_grid_stepsize,
+            plot_extent=
+            None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
+            **style_kwargs)
 
         # title and plot settings depend on the metric group
         if Var.g == 0:
-            title = "{} between all datasets".format(globals._metric_name[metric])
+            title = "{} between all datasets".format(
+                globals._metric_name[metric])
             save_name = self.create_filename(Var, type='mapplot_common')
         elif Var.g == 2:
             title = self.create_title(Var=Var, type='mapplot_basic')
@@ -642,7 +635,10 @@ class QA4SMPlotter():
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
         if globals.watermark_pos not in [None, False]:
-            plm.make_watermark(fig, globals.watermark_pos, for_map=True, offset=0.04)
+            plm.make_watermark(fig,
+                               globals.watermark_pos,
+                               for_map=True,
+                               offset=0.04)
 
         # save file or just return the image
         if save_files:
@@ -653,12 +649,11 @@ class QA4SMPlotter():
         else:
             return fig, ax
 
-    def mapplot_metric(
-            self, metric: str,
-            out_types: str = 'png',
-            save_files: bool = False,
-            **plotting_kwargs
-    ) -> list:
+    def mapplot_metric(self,
+                       metric: str,
+                       out_types: str = 'png',
+                       save_files: bool = False,
+                       **plotting_kwargs) -> list:
         """
         Mapplot for all variables for a given metric in the loaded file.
 
@@ -678,7 +673,8 @@ class QA4SMPlotter():
             List of files that were created
         """
         fnames = []
-        for Var in self.img._iter_vars(type="metric", filter_parms={"metric": metric}):
+        for Var in self.img._iter_vars(type="metric",
+                                       filter_parms={"metric": metric}):
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
@@ -695,12 +691,11 @@ class QA4SMPlotter():
         if fnames:
             return fnames
 
-    def plot_metric(
-            self, metric: str,
-            out_types: str = 'png',
-            save_all: bool = True,
-            **plotting_kwargs
-    ) -> tuple:
+    def plot_metric(self,
+                    metric: str,
+                    out_types: str = 'png',
+                    save_all: bool = True,
+                    **plotting_kwargs) -> tuple:
         """
         Plot and save boxplot and mapplot for a certain metric
 
@@ -732,15 +727,13 @@ class QA4SMPlotter():
 
         return fnames_bplot, fnames_mapplot
 
-    def meta_single(
-            self,
-            metric: str,
-            metadata: str,
-            df: pd.DataFrame = None,
-            axis=None,
-            plot_type: str = "catplot",
-            **plotting_kwargs
-    ) -> Union[tuple, None]:
+    def meta_single(self,
+                    metric: str,
+                    metadata: str,
+                    df: pd.DataFrame = None,
+                    axis=None,
+                    plot_type: str = "catplot",
+                    **plotting_kwargs) -> Union[tuple, None]:
         """
         Boxplot of a metric grouped by the given metadata.
 
@@ -766,7 +759,9 @@ class QA4SMPlotter():
         ax : matplotlib.axes.Axes
         """
         values = []
-        for data, Var, var_ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
+        for data, Var, var_ci in self._yield_values(metric=metric,
+                                                    stats=False,
+                                                    mean_ci=False):
             values.append(data)
 
         values = pd.concat(values, axis=1)
@@ -776,16 +771,15 @@ class QA4SMPlotter():
         # get meta and select only metric values with metadata available
         meta_values = self.img.metadata[metadata].values.dropna()
         values = values.reindex(index=meta_values.index)
-        mu = globals._metric_description[metric].format(globals.get_metric_units(self.ref['short_name']))
+        mu = globals._metric_description[metric].format(
+            globals.get_metric_units(self.ref['short_name']))
 
-        out = plm.boxplot_metadata(
-            df=values,
-            metadata_values=meta_values,
-            ax_label=Var.Metric.pretty_name + mu,
-            axis=axis,
-            plot_type=plot_type,
-            **plotting_kwargs
-        )
+        out = plm.boxplot_metadata(df=values,
+                                   metadata_values=meta_values,
+                                   ax_label=Var.Metric.pretty_name + mu,
+                                   axis=axis,
+                                   plot_type=plot_type,
+                                   **plotting_kwargs)
 
         if axis is None:
             fig, ax = out
@@ -793,10 +787,10 @@ class QA4SMPlotter():
             return fig, ax
 
     def meta_combo(
-            self,
-            metric: str,
-            metadata: str,
-            metadata_discrete: str,
+        self,
+        metric: str,
+        metadata: str,
+        metadata_discrete: str,
     ):
         """
         Cross-boxplot between two given metadata types
@@ -817,14 +811,15 @@ class QA4SMPlotter():
         ax : matplotlib.axes.Axes
         """
         values = []
-        for df, Var, ci in self._yield_values(metric=metric, stats=False, mean_ci=False):
+        for df, Var, ci in self._yield_values(metric=metric,
+                                              stats=False,
+                                              mean_ci=False):
             values.append(df)
         values = pd.concat(values, axis=1)
 
         metric_name = globals._metric_name[metric]
         metric_units = globals._metric_description[metric].format(
-            globals.get_metric_units(self.ref['short_name'])
-        )
+            globals.get_metric_units(self.ref['short_name']))
 
         Meta_cont = self.img.metadata[metadata]
         meta_values = Meta_cont.values.dropna()
@@ -837,7 +832,8 @@ class QA4SMPlotter():
         )
         # dictionary with subset values
         values_subset = {
-            a_bin: values.reindex(index=binned_values[a_bin].index) for a_bin in binned_values.keys()
+            a_bin: values.reindex(index=binned_values[a_bin].index)
+            for a_bin in binned_values.keys()
         }
         kwargs = {
             "metric": metric,
@@ -845,23 +841,20 @@ class QA4SMPlotter():
             "common_y": metric_name + metric_units
         }
         n_datasets = len(self.img.datasets.others)
-        fig, axes = plm.aggregate_subplots(
-            to_plot=values_subset,
-            funct=self.meta_single,
-            n_bars=n_datasets,
-            **kwargs
-        )
+        fig, axes = plm.aggregate_subplots(to_plot=values_subset,
+                                           funct=self.meta_single,
+                                           n_bars=n_datasets,
+                                           **kwargs)
 
         return fig, axes
 
-    def plot_metadata(
-            self, metric: str,
-            metadata: str,
-            metadata_discrete: str = None,
-            save_file: bool = False,
-            out_types: str = 'png',
-            **plotting_kwargs
-    ):
+    def plot_metadata(self,
+                      metric: str,
+                      metadata: str,
+                      metadata_discrete: str = None,
+                      save_file: bool = False,
+                      out_types: str = 'png',
+                      **plotting_kwargs):
         """
         Wrapper built around the 'meta_single' or 'meta_combo' functions to produce a metadata-based boxplot of a
         metric.
@@ -882,40 +875,38 @@ class QA4SMPlotter():
         ax : matplotlib.axes.Axes
         """
         if metadata_discrete is None:
-            fig, ax = self.meta_single(
-                metric=metric, metadata=metadata, **plotting_kwargs
-            )
+            fig, ax = self.meta_single(metric=metric,
+                                       metadata=metadata,
+                                       **plotting_kwargs)
             metadata_tuple = [metadata]
 
         else:
             metadata_tuple = [metadata, metadata_discrete]
-            if not any(globals.metadata[i][2] == "discrete" for i in metadata_tuple):
+            if not any(globals.metadata[i][2] == "discrete"
+                       for i in metadata_tuple):
                 raise ValueError(
                     "One of the provided metadata names should correspond to the 'discrete' type, see globals.py"
                 )
-            if all(globals.metadata[i][2] == "discrete" for i in metadata_tuple):
+            if all(globals.metadata[i][2] == "discrete"
+                   for i in metadata_tuple):
                 raise ValueError(
                     "At least one of the provided metadata should not be of the 'continuous' type"
                 )
-            fig, ax = self.meta_combo(
-                metric=metric, metadata=metadata,
-                metadata_discrete=metadata_discrete, **plotting_kwargs
-            )
+            fig, ax = self.meta_combo(metric=metric,
+                                      metadata=metadata,
+                                      metadata_discrete=metadata_discrete,
+                                      **plotting_kwargs)
         meta_names = [globals.metadata[i][0] for i in metadata_tuple]
         title = self._titles_lut("metadata").format(
-            globals._metric_name[metric],
-            ", ".join(meta_names),
-            self.img.datasets.ref["pretty_title"]
-        )
+            globals._metric_name[metric], ", ".join(meta_names),
+            self.img.datasets.ref["pretty_title"])
         fig.suptitle(title)
 
         plm.make_watermark(fig=fig, offset=0)
 
         if save_file:
             out_name = self._filenames_lut("metadata").format(
-                metric,
-                "_and_".join(metadata_tuple)
-            )
+                metric, "_and_".join(metadata_tuple))
             out_name = self._save_plot(out_name, out_types=out_types)
 
             return out_name
@@ -924,9 +915,9 @@ class QA4SMPlotter():
             return fig, ax
 
     def plot_save_metadata(
-            self,
-            metric,
-            out_types: str = 'png',
+        self,
+        metric,
+        out_types: str = 'png',
     ):
         """
         Plots and saves three metadata boxplots per metric (defined in globals.py):
@@ -956,14 +947,17 @@ class QA4SMPlotter():
         for meta_type, meta_keys in globals.out_metadata_plots.items():
 
             # the presence of instrument_depth in the out file depends on the ismn release version
-            if all(meta_key in self.img.metadata.keys() for meta_key in meta_keys):
-                outfiles = self.plot_metadata(metric, *meta_keys, save_file=True, out_types=out_types)
+            if all(meta_key in self.img.metadata.keys()
+                   for meta_key in meta_keys):
+                outfiles = self.plot_metadata(metric,
+                                              *meta_keys,
+                                              save_file=True,
+                                              out_types=out_types)
                 filenames.extend(outfiles)
 
             else:
-                warnings.warn(
-                    "Not all: " + ", ".join(meta_keys) + " are present in the netCDF variables"
-                )
+                warnings.warn("Not all: " + ", ".join(meta_keys) +
+                              " are present in the netCDF variables")
 
         return filenames
 
