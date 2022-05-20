@@ -1624,7 +1624,8 @@ def output_dpi(res,
     return float(dpi)
 
 
-def average_non_additive(values: Union[pd.Series, np.array], nobs: pd.Series) -> float:
+def average_non_additive(values: Union[pd.Series, np.array],
+                         nobs: pd.Series) -> float:
     """
     Calculate the average of non-additive values, such as correlation
     scores, as recommended in:
@@ -1647,7 +1648,6 @@ def average_non_additive(values: Union[pd.Series, np.array], nobs: pd.Series) ->
 
     # Transform to Fisher's z-scores
     z_scores = np.arctanh(values)
-
     # Remove the entries where there are NaNs
     mask = np.isfinite(values) & np.isfinite(nobs)
     z_scores = z_scores[mask]

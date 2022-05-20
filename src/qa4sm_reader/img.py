@@ -463,7 +463,7 @@ class QA4SMImg(object):
         # The number of observations are needed for the averaging of correlation values
         for Var in self._iter_vars(type="metric",
                                    filter_parms={'metric': 'n_obs'}):
-            nobs = Var.values
+            nobs = Var.values[Var.varname]
 
         # get stats by metric
         for Var in self._iter_vars(type="metric", filter_parms=filters):
