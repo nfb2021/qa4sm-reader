@@ -371,13 +371,7 @@ class QA4SMComparison:
                     col_name = "Val{}: {} ".format(
                         id,
                         QA4SMPlotter._box_caption(Var,
-                                                  tc=Var.g == 3,
                                                   short_caption=True))
-
-                    # Remove substrings in TC column names
-                    col_name = col_name.replace("Other Data:",
-                                                "").replace("\n", "")
-
                     data = data.rename(col_name)
                     varnames["varlist"].append(data)
                     n += 1
@@ -493,7 +487,6 @@ class QA4SMComparison:
                 "More than two non-reference datasets are not supported at the moment"
             )
         var_data = self._get_data(metric)
-
         subset = self.subset_with_extent(var_data["varlist"])
         pair_df = self._handle_multiindex(subset)
 
@@ -554,6 +547,12 @@ class QA4SMComparison:
         self.perform_checks(pairwise=True)
         table = {}
         for metric in metrics:
+
+            # Pointless to compute difference statistics for the
+            # significance scores
+            if metric in ["p_R", "p_rho"]:
+                continue
+
             ref = self._check_ref()["short_name"]
             units = glob._metric_description[metric].format(
                 glob.get_metric_units(ref))

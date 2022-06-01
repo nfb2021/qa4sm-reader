@@ -524,6 +524,8 @@ class QA4SMImg(object):
         # find stats for all the metrics
         for metric in self.metrics.keys():
 
+            # Pointless to compute the summary statistics for the
+            # significance scores
             if metric in ["p_R", "p_rho"]:
                 continue
 
