@@ -15,7 +15,7 @@ from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
 
 
-class QA4SMPlotter():
+class QA4SMPlotter:
     """
     Class to create image files of plots from the validation results in a QA4SMImage
     """

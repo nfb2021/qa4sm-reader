@@ -59,6 +59,7 @@ out_metadata_plots = {
     "lc": ["lc_2010"],
     "climate": ["climate_KG"],
     "soil": ["instrument_depth", "soil_type"],
+    "frm_class": ['frm_class'],
 }
 
 # === colormaps used for plotting metrics ===
@@ -509,6 +510,7 @@ lc_classes = {
 
 climate_classes = {
     "unknown": "Not provided",
+    "masked": "Not provided",
     "Af": "Tropical",
     "Am": "Tropical",
     "As": "Tropical",
@@ -571,6 +573,8 @@ metadata = {
     # --- generated during the image initialization:
     "soil_type": ("soil granulometry", None, "discrete", None),
     "instrument_depth": ("instrument depth", None, "continuous", "[m]"),
+    # --- FRM4SM QI, not always present
+    "frm_class": ("FRM Classification", None, "discrete", None)
 }
 
 soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
