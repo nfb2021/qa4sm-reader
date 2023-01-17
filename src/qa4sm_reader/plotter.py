@@ -169,14 +169,14 @@ class QA4SMPlotter:
         """
         titles = {
             'boxplot_basic':
-            'Intercomparison of {} \nwith {}-{} ({}) as the reference\n ',
+            'Intercomparison of {} \nwith {}-{} ({}) as spatial reference\n ',
             'boxplot_tc':
-            'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as the reference\n ',
+            'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as spatial reference\n ',
             'mapplot_basic':
-            '{} for {}-{} ({}) with {}-{} ({}) as the reference',
+            '{} for {}-{} ({}) with {}-{} ({}) as spatial reference',
             'mapplot_tc':
-            '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as the references',
-            'metadata': 'Intercomparison of {} by {}\nwith reference: {}',
+            '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as spatial references',
+            'metadata': 'Intercomparison of {} by {}\nwith spatial reference: {}',
         }
 
         try:
