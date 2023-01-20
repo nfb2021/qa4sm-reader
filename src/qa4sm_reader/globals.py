@@ -250,6 +250,8 @@ def get_metric_units(dataset, raise_error=False):
         'CGLS_CSAR_SSM1km': '% saturation',
         'CGLS_SCATSAR_SWI1km': '% saturation',
         'SMOS_L3': 'm³/m³',
+        'SMOS_L2': 'm³/m³',
+        'SMAP_L2': 'm³/m³',
     }
 
     try:
@@ -316,6 +318,8 @@ _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'CGLS_CSAR_SSM1km': 'CGLS S1 SSM',
     'CGLS_SCATSAR_SWI1km': 'CGLS SCATSAR SWI',
     'SMOS_L3': 'SMOS L3',
+    'SMOS_L2': 'SMOS L2',
+    'SMAP_L2': 'SMAP L3',
 }
 
 # available backups
@@ -338,6 +342,7 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "ISMN_V20190222_GLOBAL": "20190222 global",
     "ISMN_V20191211_GLOBAL": "20191211 global",
     "ISMN_V20210131": "20210131 global",
+    "ISMN_V20230110": "20230110 global",
     "GLDAS_NOAH025_3H_2_1": "NOAH025 3H.2.1",
     "GLDAS_TEST": "TEST",
     "ESA_CCI_SM_C_V04_4": "v04.4",
@@ -356,6 +361,8 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "CGLS_SCATSAR_SWI1km_V1_0": "v1_0",
     "SMOSL3_v339_ASC": "version 339 Ascending",
     "SMOSL3_v339_DESC": "version 339 Descending",
+    "SMAPL2_V8": 'V8',
+    "SMOSL2_700": 'v700',
 }
 
 # fallback for dataset val_dc_variable in case they are not in the metadata
@@ -373,6 +380,7 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "ISMN_V20190222_GLOBAL": "soil moisture",
     "ISMN_V20191211_GLOBAL": "soil moisture",
     "ISMN_V20210131": "soil moisture",
+    "ISMN_V20230110": "soil moisture",
     "GLDAS_NOAH025_3H_2_1": "soil moisture depth unknown",
     "GLDAS_TEST": "soil moisture depth unknown",
     "ESA_CCI_SM_C_V04_4": "soil moisture",
@@ -390,7 +398,9 @@ _dataset_variable_names = {  # from qa4sm\validator\fixtures\versions.json
     "CGLS_CSAR_SSM1km_V1_1": "soil moisture",
     "CGLS_SCATSAR_SWI1km_V1_0": "SWI",
     "SMOSL3_v339_ASC": "soil moisture",
-    "SMOSL3_v339_DESC": "soil moisture"
+    "SMOSL3_v339_DESC": "soil moisture",
+    "SMOSL2_sm": 'soil moisture',
+    "SMAPL2_soil_moisture": 'soil moisture',
 }
 
 
@@ -420,6 +430,8 @@ def get_resolution_info(dataset, raise_error=False):
         'CGLS_CSAR_SSM1km': 1,
         'CGLS_SCATSAR_SWI1km': 1,
         'SMOS_L3': 25,
+        'SMOS_L2': 15,
+        'SMAP_L2': 35,
     }
 
     # fallback for resolution unit information
@@ -441,6 +453,8 @@ def get_resolution_info(dataset, raise_error=False):
         'CGLS_CSAR_SSM1km': 'km',
         'CGLS_SCATSAR_SWI1km': 'km',
         'SMOS_L3': 'km',
+        'SMOS_L2': 'km',
+        'SMAP_L2': 'km',
     }
 
     try:
