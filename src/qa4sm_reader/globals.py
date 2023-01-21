@@ -64,17 +64,18 @@ out_metadata_plots = {
 }
 
 # === calculation errors (pytesmo) === #TODO: import from pytesmo
-status = {-1: 'Uncaught Errors',
-          0: 'OK',
-          1: 'Not enough data',
-          2: 'Metrics calc. error',
-          3: 'Temp. matching error',
-          4: 'No overlap for temp. matching',
-          5: 'Scaling error',
-          6: 'Validation error',
-          7: 'Missing GPI data',
-          8: 'Data manager error'
-          }
+status = {
+    -1: 'Uncaught Errors',
+    0: 'OK',
+    1: 'Not enough data',
+    2: 'Metrics calc. error',
+    3: 'Temp. matching error',
+    4: 'No overlap for temp. matching',
+    5: 'Scaling error',
+    6: 'Validation error',
+    7: 'Missing GPI data',
+    8: 'Data manager error'
+}
 
 # === colormaps used for plotting metrics ===
 # Colormaps can be set for classes of similar metrics or individually for metrics.
@@ -85,7 +86,7 @@ status = {-1: 'Uncaught Errors',
 def get_status_colors():
     # function to get custom cmap for calculation errors
     # limited to 14 different error entries to produce distinct colors
-    cmap = plt.cm.get_cmap('Set3', len(status)-2)
+    cmap = plt.cm.get_cmap('Set3', len(status) - 2)
     colors = [cmap(i) for i in range(cmap.N)]
     colors.insert(0, (0, 0.66666667, 0.89019608, 1.0))
     colors.insert(0, (1, 0.5254902, 0.5254902, 1.0))
@@ -107,8 +108,8 @@ _cclasses = {
     ),  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
     'seq_better': plt.cm.get_cmap(
         'YlGn'),  # sequential: increasing value good (n_obs, STDerr)
-    'qua_neutr': get_status_colors(),  # qualitative category with 2 forced colors
-
+    'qua_neutr':
+    get_status_colors(),  # qualitative category with 2 forced colors
 }
 
 _colormaps = {  # from /qa4sm/validator/validation/graphics.py
@@ -324,8 +325,6 @@ _metric_name = {  # from /qa4sm/validator/validation/globals.py
     'beta': 'TC scaling coefficient',
     'status': 'Validation errors'
 }
-
-
 
 # BACKUPS
 # =====================================================

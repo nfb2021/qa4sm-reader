@@ -8,6 +8,7 @@ import warnings as warn
 
 class MixinVarmeta:
     """Mixin class to provide functions that are common to the MetricVariable and ConfidenceInterval subclasses"""
+
     @property
     def pretty_name(self):
         """Create a nice name for the variable"""
@@ -65,7 +66,7 @@ class MixinVarmeta:
             dss = None
 
             # if metric is status and globals.metric_groups is 3, add third dataset
-            if self.g == 3 and self.metric =='status':
+            if self.g == 3 and self.metric == 'status':
                 dss = self.Datasets.dataset_metadata(self.parts['sat_id1'])
 
             # if metric is TC, add third dataset
@@ -89,6 +90,7 @@ class QA4SMDatasets():
     1-based and 0-based index number of the datasets, respectively. For newer validations, these are always
     the same
     """
+
     def __init__(self, global_attrs):
         """
         Parameters
@@ -315,6 +317,7 @@ class QA4SMDatasets():
 
 class QA4SMVariable():
     """Super class for all variable types in the validations (MetricVariable, CI and Metadata)"""
+
     def __init__(self, varname, global_attrs, values=None):
         """
         Validation results for a validation metric and a combination of datasets.
@@ -381,12 +384,16 @@ class QA4SMVariable():
         """Wrapper function that handles case of metric 'status' that occurs in two globals.metric_groups (2,3).
         This is because a status array can be the result of a validation between two or three datasets (tc)"""
         # ignore this case - (status is also in globals.metric_groups 2 but should be treated as group 3)
-        if self.varname.startswith('status') and (self.varname.count('_and_') == 2) and g == 2:
+        if self.varname.startswith('status') and (self.varname.count('_and_')
+                                                  == 2) and g == 2:
             return None
         # parse self.varname when three datasets
-        elif self.varname.startswith('status') and (self.varname.count('_and_') == 2) and g == 3:
+        elif self.varname.startswith('status') and (self.varname.count('_and_')
+                                                    == 2) and g == 3:
             template = globals.var_name_ds_sep[3]
-            return parse('{}{}'.format(globals.var_name_metric_sep[2], template), self.varname)
+            return parse(
+                '{}{}'.format(globals.var_name_metric_sep[2], template),
+                self.varname)
         return parse(pattern, self.varname)
 
     def _parse_varname(self) -> (str, int, dict):
@@ -429,6 +436,7 @@ class QA4SMVariable():
 
 class MetricVariable(QA4SMVariable, MixinVarmeta):
     """Class that describes a metric variable, i.e. the metric for a specific set of Datasets"""
+
     def __init__(self, varname, global_attrs, values=None):
         super().__init__(varname, global_attrs, values)
 
@@ -438,6 +446,7 @@ class MetricVariable(QA4SMVariable, MixinVarmeta):
 
 class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
     """Class for a MetricVariable representing confidence intervals"""
+
     def __init__(self, varname, global_attrs, values=None):
         super().__init__(varname, global_attrs, values)
 
@@ -449,6 +458,7 @@ class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
 
 class Metadata(QA4SMVariable):
     """Class for a MetricVariable representing metadata (only with ISMN as reference)"""
+
     def __init__(self, varname, global_attrs, values=None):
         super().__init__(varname, global_attrs, values)
 
@@ -469,6 +479,7 @@ class Metadata(QA4SMVariable):
 
 class QA4SMMetric():
     """Class for validation metric"""
+
     def __init__(self, name, variables_list=None):
 
         self.name = name

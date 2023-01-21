@@ -783,8 +783,9 @@ def barplot(
 
     vals = sorted(list(set(values[values.keys()[0]])))
     tick_labels = [status_dict[x] for x in vals]
-    color = [globals.get_status_colors().colors[int(x)+1] for x in vals]
-    values[values.keys()[0]].value_counts().sort_index().plot.bar(ax=ax, color=color)
+    color = [globals.get_status_colors().colors[int(x) + 1] for x in vals]
+    values[values.keys()[0]].value_counts().sort_index().plot.bar(ax=ax,
+                                                                  color=color)
 
     ax.tick_params(labelsize=globals.tick_size)
     ax.grid(axis='y')
@@ -795,6 +796,7 @@ def barplot(
     plt.ylabel(label, weight='normal')
 
     return fig, ax
+
 
 # TODO: test?
 def resize_bins(sorted, nbins):
@@ -1464,7 +1466,11 @@ def mapplot(df,
                         zorder=2,
                         transform=globals.data_crs)
         if metric == 'status':
-            ax.legend(handles=[Patch(facecolor=cls[x], label=labs[x]) for x in range(len(globals.status)) if (x-1) in vals], loc='right')
+            ax.legend(handles=[
+                Patch(facecolor=cls[x], label=labs[x])
+                for x in range(len(globals.status)) if (x - 1) in vals
+            ],
+                      loc='right')
 
     else:  # mapplot
         if not plot_extent:
@@ -1486,7 +1492,11 @@ def mapplot(df,
                        zorder=2)
 
         if metric == 'status':
-            ax.legend(handles=[Patch(facecolor=cls[x], label=labs[x]) for x in range(len(globals.status)) if (x-1) in vals], loc='right')
+            ax.legend(handles=[
+                Patch(facecolor=cls[x], label=labs[x])
+                for x in range(len(globals.status)) if (x - 1) in vals
+            ],
+                      loc='right')
 
     if add_cbar:  # colorbar
         _make_cbar(fig,

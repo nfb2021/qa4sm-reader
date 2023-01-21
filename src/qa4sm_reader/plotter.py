@@ -19,6 +19,7 @@ class QA4SMPlotter:
     """
     Class to create image files of plots from the validation results in a QA4SMImage
     """
+
     def __init__(self, image: QA4SMImg, out_dir: str = None):
         """
         Create box plots from results in a qa4sm output file.
@@ -144,7 +145,7 @@ class QA4SMPlotter:
             parts.append(ref[0])
             parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
 
-        elif type in ['barplot_basic_3ds','mapplot_basic_3ds']:
+        elif type in ['barplot_basic_3ds', 'mapplot_basic_3ds']:
             parts.append(ref[0])
             parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
             parts.append(mds[0])
@@ -152,9 +153,9 @@ class QA4SMPlotter:
             parts.append(other[0])
             parts.extend([other[1]['pretty_name'], other[1]['pretty_version']])
 
-
-
-        elif type in ['boxplot_tc', 'mapplot_basic', 'mapplot_tc', 'barplot_basic']:
+        elif type in [
+                'boxplot_tc', 'mapplot_basic', 'mapplot_tc', 'barplot_basic'
+        ]:
             parts.append(mds[0])
             parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
             parts.append(ref[0])
@@ -192,7 +193,8 @@ class QA4SMPlotter:
             '{} for {}-{} ({}) with {}-{}({}) \nand {}-{}({}) as spatial references\n',
             'mapplot_tc':
             '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as spatial references',
-            'metadata': 'Intercomparison of {} by {}\nwith spatial reference: {}',
+            'metadata':
+            'Intercomparison of {} by {}\nwith spatial reference: {}',
         }
 
         try:
@@ -263,12 +265,23 @@ class QA4SMPlotter:
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         # fetch parts of the name for the variable
         if type in ["barplot_basic", "barplot_basic_3ds"]:
-            parts = [Var.metric, ref_meta[0], ref_meta[1]['short_name'], mds_meta[0], mds_meta[1]['short_name']]
+            parts = [
+                Var.metric, ref_meta[0], ref_meta[1]['short_name'],
+                mds_meta[0], mds_meta[1]['short_name']
+            ]
             if Var.g == 3:
-                parts = [Var.metric, ref_meta[0], ref_meta[1]['short_name'], mds_meta[0], mds_meta[1]['short_name'], other_meta[0], other_meta[1]['short_name']]
+                parts = [
+                    Var.metric, ref_meta[0], ref_meta[1]['short_name'],
+                    mds_meta[0], mds_meta[1]['short_name'], other_meta[0],
+                    other_meta[1]['short_name']
+                ]
 
         elif type == "mapplot_double_3ds":
-            parts = [ref_meta[0], ref_meta[1]['short_name'], mds_meta[0], mds_meta[1]['short_name'], other_meta[0], other_meta[1]['short_name'], Var.metric]
+            parts = [
+                ref_meta[0], ref_meta[1]['short_name'], mds_meta[0],
+                mds_meta[1]['short_name'], other_meta[0],
+                other_meta[1]['short_name'], Var.metric
+            ]
 
         elif type not in ["mapplot_tc", "mapplot_double", "barplot_basic"]:
             parts = [Var.metric]
@@ -440,11 +453,7 @@ class QA4SMPlotter:
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
         # otherwise it's too narrow
         figsize = [figwidth, globals.boxplot_height]
-        fig, ax = plm.barplot(
-            df=df,
-            figsize=figsize,
-            label=label
-        )
+        fig, ax = plm.barplot(df=df, figsize=figsize, label=label)
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
             for Var in self.img._iter_vars(type="metric",
@@ -459,7 +468,6 @@ class QA4SMPlotter:
         offset = 0.03  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
             plm.make_watermark(fig, offset=offset)
-
 
     def _save_plot(self, out_name: str, out_types: str = 'png') -> list:
         """
@@ -623,11 +631,12 @@ class QA4SMPlotter:
         if save_files:
             return fnames
 
-    def barplot(self,
-                  metric: str,
-                  out_types: str = 'png',
-                  save_files: bool = False,
-                  ) -> Union[list, None]:
+    def barplot(
+        self,
+        metric: str,
+        out_types: str = 'png',
+        save_files: bool = False,
+    ) -> Union[list, None]:
         """
         Creates a barplot of validation errors betweeen two or three datasets. Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
@@ -657,16 +666,14 @@ class QA4SMPlotter:
 
             if other_meta:
                 self._barplot_definition(metric=metric,
-                                                   df=values,
-                                                   type='barplot_basic_3ds',
-                                                   Var=Var
-                                         )
+                                         df=values,
+                                         type='barplot_basic_3ds',
+                                         Var=Var)
             else:
                 self._barplot_definition(metric=metric,
-                                                   df=values,
-                                                   type='barplot_basic',
-                                                   Var=Var
-                                                   )
+                                         df=values,
+                                         type='barplot_basic',
+                                         Var=Var)
             if other_meta:
                 out_name = self.create_filename(Var, type='barplot_basic_3ds')
             else:
