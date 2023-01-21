@@ -144,7 +144,17 @@ class QA4SMPlotter:
             parts.append(ref[0])
             parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
 
-        elif type in ['boxplot_tc', 'mapplot_basic', 'mapplot_tc']:
+        elif type in ['barplot_basic_3ds','mapplot_basic_3ds']:
+            parts.append(ref[0])
+            parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
+            parts.append(mds[0])
+            parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
+            parts.append(other[0])
+            parts.extend([other[1]['pretty_name'], other[1]['pretty_version']])
+
+
+
+        elif type in ['boxplot_tc', 'mapplot_basic', 'mapplot_tc', 'barplot_basic']:
             parts.append(mds[0])
             parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
             parts.append(ref[0])
@@ -170,10 +180,16 @@ class QA4SMPlotter:
         titles = {
             'boxplot_basic':
             'Intercomparison of {} \nwith {}-{} ({}) as spatial reference\n ',
+            'barplot_basic':
+            '{} between {}-{} ({}) \nand {}-{}({}) as spatial reference\n ',
+            'barplot_basic_3ds':
+            '{} for {}-{} ({}) \nwith {}-{}({}) and \n{}-{}({}) as spatial references\n',
             'boxplot_tc':
             'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as spatial reference\n ',
             'mapplot_basic':
             '{} for {}-{} ({}) with {}-{} ({}) as spatial reference',
+            'mapplot_basic_3ds':
+            '{} for {}-{} ({}) with {}-{}({}) \nand {}-{}({}) as spatial references\n',
             'mapplot_tc':
             '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as spatial references',
             'metadata': 'Intercomparison of {} by {}\nwith spatial reference: {}',
@@ -198,9 +214,12 @@ class QA4SMPlotter:
         # we stick to old naming convention
         names = {
             'boxplot_basic': 'boxplot_{}',
+            'barplot_basic': 'barplot_{}_{}-{}_and_{}-{}',
+            'barplot_basic_3ds': 'barplot_{}_{}-{}_and_{}-{}_and_{}-{}',
             'mapplot_common': 'overview_{}',
             'boxplot_tc': 'boxplot_{}_for_{}-{}',
             'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
+            'mapplot_double_3ds': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}',
             'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}',
             'metadata': 'boxplot_{}_metadata_{}',
             'table': 'statistics_table',
@@ -243,7 +262,15 @@ class QA4SMPlotter:
         name = self._filenames_lut(type=type)
         ref_meta, mds_meta, other_meta = Var.get_varmeta()
         # fetch parts of the name for the variable
-        if type not in ["mapplot_tc", "mapplot_double"]:
+        if type in ["barplot_basic", "barplot_basic_3ds"]:
+            parts = [Var.metric, ref_meta[0], ref_meta[1]['short_name'], mds_meta[0], mds_meta[1]['short_name']]
+            if Var.g == 3:
+                parts = [Var.metric, ref_meta[0], ref_meta[1]['short_name'], mds_meta[0], mds_meta[1]['short_name'], other_meta[0], other_meta[1]['short_name']]
+
+        elif type == "mapplot_double_3ds":
+            parts = [ref_meta[0], ref_meta[1]['short_name'], mds_meta[0], mds_meta[1]['short_name'], other_meta[0], other_meta[1]['short_name'], Var.metric]
+
+        elif type not in ["mapplot_tc", "mapplot_double", "barplot_basic"]:
             parts = [Var.metric]
             if mds_meta:
                 parts.extend([mds_meta[0], mds_meta[1]['short_name']])
@@ -387,6 +414,52 @@ class QA4SMPlotter:
             plm.make_watermark(fig, offset=offset)
 
         return fig, ax
+
+    def _barplot_definition(self,
+                            metric: str,
+                            df: pd.DataFrame,
+                            type: str,
+                            Var=None) -> tuple:
+        """
+        Define parameters of plot
+
+        Parameters
+        ----------
+        df: pd.DataFrame to plot
+        type: str
+            one of _titles_lut
+        metric : str
+            metric that is collected from the file for all variables.
+        Var: QA4SMMetricVariable, optional. Default is None
+            Specified in case mds meta is needed
+        """
+        # plot label
+        parts = [globals._metric_name[metric]]
+        label = "{}".format(*parts)
+        # generate plot
+        figwidth = globals.boxplot_width * (len(df.columns) + 1)
+        # otherwise it's too narrow
+        figsize = [figwidth, globals.boxplot_height]
+        fig, ax = plm.barplot(
+            df=df,
+            figsize=figsize,
+            label=label
+        )
+        if not Var:
+            # when we only need reference dataset from variables (i.e. is the same):
+            for Var in self.img._iter_vars(type="metric",
+                                           filter_parms={"metric": metric}):
+                Var = Var
+                break
+
+        title = self.create_title(Var, type=type)
+        ax.set_title(title, pad=globals.title_pad)
+
+        # add watermark
+        offset = 0.03  # offset larger as common metrics have a shorter caption
+        if globals.watermark_pos not in [None, False]:
+            plm.make_watermark(fig, offset=offset)
+
 
     def _save_plot(self, out_name: str, out_types: str = 'png') -> list:
         """
@@ -550,6 +623,63 @@ class QA4SMPlotter:
         if save_files:
             return fnames
 
+    def barplot(self,
+                  metric: str,
+                  out_types: str = 'png',
+                  save_files: bool = False,
+                  ) -> Union[list, None]:
+        """
+        Creates a barplot of validation errors betweeen two or three datasets. Saves a figure and returns Matplotlib fig and ax objects for
+        further processing.
+
+        Parameters
+        ----------
+        metric : str
+            metric that is collected from the file for all datasets.
+        out_types: str or list
+            extensions which the files should be saved in
+        save_files: bool, optional. Default is False
+            wether to save the file in the output directory
+
+        Returns
+        -------
+        fnames: list of file names with all the extensions
+        """
+        fnames, values = [], []
+        # we take the last iterated value for Var and use it for the file name
+        for values, Var, _ in self._yield_values(metric=metric):
+            # handle empty results
+
+            if values.empty:
+                return None
+
+            ref_meta, mds_meta, other_meta = Var.get_varmeta()
+
+            if other_meta:
+                self._barplot_definition(metric=metric,
+                                                   df=values,
+                                                   type='barplot_basic_3ds',
+                                                   Var=Var
+                                         )
+            else:
+                self._barplot_definition(metric=metric,
+                                                   df=values,
+                                                   type='barplot_basic',
+                                                   Var=Var
+                                                   )
+            if other_meta:
+                out_name = self.create_filename(Var, type='barplot_basic_3ds')
+            else:
+                out_name = self.create_filename(Var, type='barplot_basic')
+
+            # save or return plotting objects
+            if save_files:
+                fnames.extend(self._save_plot(out_name, out_types=out_types))
+            plt.close('all')
+
+        if fnames:
+            return fnames
+
     def mapplot_var(
         self,
         Var,
@@ -621,7 +751,10 @@ class QA4SMPlotter:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
             save_name = self.create_filename(Var, type='mapplot_common')
-        elif Var.g == 2:
+        elif Var.g == 3 and Var.varname.startswith('status'):
+            title = self.create_title(Var=Var, type='mapplot_basic_3ds')
+            save_name = self.create_filename(Var, type='mapplot_double_3ds')
+        elif Var.g == 2 or Var.varname.startswith('status'):
             title = self.create_title(Var=Var, type='mapplot_basic')
             save_name = self.create_filename(Var, type='mapplot_double')
         else:

@@ -745,6 +745,57 @@ def boxplot(
         return fig, ax
 
 
+def barplot(
+    df,
+    label=None,
+    figsize=None,
+    dpi=100,
+) -> tuple:
+    """
+    Create a barplot from the validation errors in df.
+    The bars show the numbers of errors that occured during
+    the validation between two or three (in case of triple
+    collocation) datasets.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame containing 'lat', 'lon' and (multiple) 'var' Series.
+    label : str, optional
+        Label of the y axis, describing the metric. The default is None.
+    figsize : tuple, optional
+        Figure size in inches. The default is globals.map_figsize.
+    dpi : int, optional
+        Resolution for raster graphic output. The default is globals.dpi.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        the boxplot
+    ax : matplotlib.axes.Axes
+    """
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+
+    values = df.copy()
+    values = values[[values.keys()[0]]]
+    values.dropna(inplace=True)
+    status_dict = globals.status
+
+    vals = sorted(list(set(values[values.keys()[0]])))
+    tick_labels = [status_dict[x] for x in vals]
+    color = [globals.get_status_colors().colors[int(x)+1] for x in vals]
+    values[values.keys()[0]].value_counts().sort_index().plot.bar(ax=ax, color=color)
+
+    ax.tick_params(labelsize=globals.tick_size)
+    ax.grid(axis='y')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.set_xticklabels(tick_labels)
+
+    plt.ylabel(label, weight='normal')
+
+    return fig, ax
+
 # TODO: test?
 def resize_bins(sorted, nbins):
     """Resize the bins for "continuous" metadata types"""
@@ -1371,6 +1422,12 @@ def mapplot(df,
         v_min, v_max = get_value_range(df, metric=None, diff_map=True)
         cmap = globals._diff_colormaps[metric]
 
+    if metric == 'status':
+        labs = list(globals.status.values())
+        cls = globals.get_status_colors().colors
+        vals = sorted(list(set(df.values)))
+        add_cbar = False
+
     # No need to mask ranged in the comparison plots
     else:
         # mask values outside range (e.g. for negative STDerr from TCA)
@@ -1406,6 +1463,9 @@ def mapplot(df,
                         linewidths=0.1,
                         zorder=2,
                         transform=globals.data_crs)
+        if metric == 'status':
+            ax.legend(handles=[Patch(facecolor=cls[x], label=labs[x]) for x in range(len(globals.status)) if (x-1) in vals], loc='right')
+
     else:  # mapplot
         if not plot_extent:
             plot_extent = get_plot_extent(df,
@@ -1424,6 +1484,9 @@ def mapplot(df,
                        extent=zz_extent,
                        transform=globals.data_crs,
                        zorder=2)
+
+        if metric == 'status':
+            ax.legend(handles=[Patch(facecolor=cls[x], label=labs[x]) for x in range(len(globals.status)) if (x-1) in vals], loc='right')
 
     if add_cbar:  # colorbar
         _make_cbar(fig,

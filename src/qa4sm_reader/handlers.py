@@ -63,8 +63,13 @@ class MixinVarmeta:
             ref_ds = self.Datasets.dataset_metadata(self.parts['ref_id'])
             mds = self.Datasets.dataset_metadata(self.parts['sat_id0'])
             dss = None
+
+            # if metric is status and globals.metric_groups is 3, add third dataset
+            if self.g == 3 and self.metric =='status':
+                dss = self.Datasets.dataset_metadata(self.parts['sat_id1'])
+
             # if metric is TC, add third dataset
-            if self.g == 3:
+            elif self.g == 3:
                 mds = self.Datasets.dataset_metadata(self.parts['mds_id'])
                 dss = self.Datasets.dataset_metadata(self.parts['sat_id1'])
                 if dss == mds:
@@ -372,6 +377,18 @@ class QA4SMVariable():
     def ismetric(self) -> bool:
         return self.g is not None
 
+    def _parse_wrap(self, pattern, g):
+        """Wrapper function that handles case of metric 'status' that occurs in two globals.metric_groups (2,3).
+        This is because a status array can be the result of a validation between two or three datasets (tc)"""
+        # ignore this case - (status is also in globals.metric_groups 2 but should be treated as group 3)
+        if self.varname.startswith('status') and (self.varname.count('_and_') == 2) and g == 2:
+            return None
+        # parse self.varname when three datasets
+        elif self.varname.startswith('status') and (self.varname.count('_and_') == 2) and g == 3:
+            template = globals.var_name_ds_sep[3]
+            return parse('{}{}'.format(globals.var_name_metric_sep[2], template), self.varname)
+        return parse(pattern, self.varname)
+
     def _parse_varname(self) -> (str, int, dict):
         """
         Parse the name to get the metric, group and variable data
@@ -393,7 +410,8 @@ class QA4SMVariable():
                 template = ''
             pattern = '{}{}'.format(globals.var_name_metric_sep[g], template)
             # parse infromation from pattern and name
-            parts = parse(pattern, self.varname)
+
+            parts = self._parse_wrap(pattern, g)
 
             if parts is not None and parts['metric'] in globals.metric_groups[
                     g]:
@@ -476,7 +494,8 @@ class QA4SMMetric():
         """
         for n, Var in enumerate(self.variables):
             value = getattr(Var, attr)
-            if n != 0:
+            # special case for "status" attribute (self.g can be 2 or 3)
+            if n != 0 and not Var.varname.startswith('status'):
                 assert value == previous, "The attribute {} is not equal in all variables".format(
                     attr)
             previous = value
