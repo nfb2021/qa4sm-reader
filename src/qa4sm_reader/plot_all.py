@@ -93,6 +93,10 @@ def plot_all(filepath: str,
                     warnings.warn(
                         "Too few points are available to generate metadata-based plots"
                     )
+                except AttributeError:
+                    warnings.warn(
+                        "values[ds] in function _dict2df is DataFrame not Series. fix this."
+                    )
 
         if save_csv:
             out_csv = plotter.save_stats()

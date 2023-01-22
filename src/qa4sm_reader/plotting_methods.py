@@ -450,7 +450,8 @@ def style_map(
 def make_watermark(fig,
                    placement=globals.watermark_pos,
                    for_map=False,
-                   offset=0.03):
+                   offset=0.03,
+                   metric=None):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.
@@ -485,6 +486,21 @@ def make_watermark(fig,
                      textcoords='offset points')
         top = fig.subplotpars.top
         fig.subplots_adjust(top=top - offset)
+    # annotation for larger maps were not horizontally centered, using 'axes fraction' instead of 'figure fraction'
+    # seems to solve this but then vertical position is difficult
+    elif placement == 'bottom' and for_map and metric in globals.watermark_vertical_adjustment.keys(
+    ):
+        vertical_align = globals.watermark_vertical_adjustment[metric]
+        plt.annotate(globals.watermark,
+                     xy=[0.5, vertical_align],
+                     xytext=[pad, pad],
+                     fontsize=fontsize,
+                     color='grey',
+                     horizontalalignment='center',
+                     verticalalignment='bottom',
+                     xycoords='axes fraction',
+                     textcoords='offset points')
+
     elif placement == 'bottom':
         plt.annotate(globals.watermark,
                      xy=[0.5, 0],

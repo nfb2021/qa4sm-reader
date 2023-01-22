@@ -778,7 +778,8 @@ class QA4SMPlotter:
             plm.make_watermark(fig,
                                globals.watermark_pos,
                                for_map=True,
-                               offset=0.04)
+                               offset=0.04,
+                               metric=metric)
 
         # save file or just return the image
         if save_files:
@@ -850,7 +851,13 @@ class QA4SMPlotter:
         plotting_kwargs: arguments for mapplot function.
         """
         Metric = self.img.metrics[metric]
-        if Metric.g == 0 or Metric.g == 2:
+
+        if Metric.name == 'status':
+            fnames_bplot = self.barplot(metric='status',
+                                        out_types='png',
+                                        save_files=save_all)
+
+        elif Metric.g == 0 or Metric.g == 2:
             fnames_bplot = self.boxplot_basic(metric=metric,
                                               out_types=out_types,
                                               save_files=save_all,
