@@ -761,6 +761,30 @@ def boxplot(
         return fig, ax
 
 
+def _replace_status_values(ser):
+    """
+    Replace values in series to plot less categories in the error plots,
+    according to globals.status_replace dict.
+
+    Parameters
+    ----------
+    ser : pandas.Series
+        Series containing 'lat', 'lon' and status values.
+
+    Returns
+    -------
+    ser : pandas.Series
+    """
+    assert type(ser) == pd.Series
+    for val in set(ser.values):
+        # all new error codes replaced with -1
+        if val not in globals.status.keys():
+            ser = ser.replace(to_replace=val, value=-1)
+        if val in globals.status_replace.keys():
+            ser = ser.replace(to_replace=val, value=globals.status_replace[val])
+    return ser
+
+
 def barplot(
     df,
     label=None,
@@ -796,9 +820,14 @@ def barplot(
     values = values[[values.keys()[0]]]
     values.dropna(inplace=True)
     status_dict = globals.status
-
+    values[values.keys()[0]] = _replace_status_values(values[values.keys()[0]])
     vals = sorted(list(set(values[values.keys()[0]])))
-    tick_labels = [status_dict[x] for x in vals]
+
+    tick_entries = [status_dict[x] for x in vals]
+    tick_labels = [
+        "-\n".join([entry[i:i + 18] for i in range(0, len(entry), 18)])
+        for entry in tick_entries
+    ]
     color = [globals.get_status_colors().colors[int(x) + 1] for x in vals]
     values[values.keys()[0]].value_counts().sort_index().plot.bar(ax=ax,
                                                                   color=color)
@@ -807,7 +836,7 @@ def barplot(
     ax.grid(axis='y')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
-    ax.set_xticklabels(tick_labels)
+    ax.set_xticklabels(tick_labels, rotation=45)
 
     plt.ylabel(label, weight='normal')
 
@@ -1441,6 +1470,7 @@ def mapplot(df,
         cmap = globals._diff_colormaps[metric]
 
     if metric == 'status':
+        df = _replace_status_values(df)
         labs = list(globals.status.values())
         cls = globals.get_status_colors().colors
         vals = sorted(list(set(df.values)))

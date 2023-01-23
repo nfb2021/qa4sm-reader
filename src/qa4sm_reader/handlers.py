@@ -381,9 +381,12 @@ class QA4SMVariable():
         return self.g is not None
 
     def _parse_wrap(self, pattern, g):
-        """Wrapper function that handles case of metric 'status' that occurs in two globals.metric_groups (2,3).
-        This is because a status array can be the result of a validation between two or three datasets (tc)"""
-        # ignore this case - (status is also in globals.metric_groups 2 but should be treated as group 3)
+        """Wrapper function that handles case of metric 'status' that occurs
+        in two globals.metric_groups (2,3). This is because a status array
+        can be the result of a validation between two or three datasets (tc)
+        """
+        # ignore this case - (status is also in globals.metric_groups 2 but
+        # should be treated as group 3)
         if self.varname.startswith('status') and (self.varname.count('_and_')
                                                   == 2) and g == 2:
             return None

@@ -184,15 +184,14 @@ class QA4SMPlotter:
             'barplot_basic':
             '{} between {}-{} ({}) \nand {}-{}({}) as spatial reference\n ',
             'barplot_basic_3ds':
-            '{} for {}-{} ({}) \nwith {}-{}({}) and \n{}-{}({}) as spatial references\n',
+            '{} for {}-{} ({}) \nwith {}-{}({}) and \n{}-{}({})\n',
             'boxplot_tc':
-            'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({}) as spatial reference\n ',
+            'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({})\n ',
             'mapplot_basic':
             '{} for {}-{} ({}) with {}-{} ({}) as spatial reference',
             'mapplot_basic_3ds':
-            '{} for {}-{} ({}) with {}-{}({}) \nand {}-{}({}) as spatial references\n',
-            'mapplot_tc':
-            '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({}) as spatial references',
+            '{} for {}-{} ({}) with {}-{}({}) \nand {}-{}({})\n',
+            'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({})',
             'metadata':
             'Intercomparison of {} by {}\nwith spatial reference: {}',
         }
@@ -506,8 +505,8 @@ class QA4SMPlotter:
                       save_files: bool = False,
                       **plotting_kwargs) -> Union[list, None]:
         """
-        Creates a boxplot for common and double metrics. Saves a figure and returns Matplotlib fig and ax objects for
-        further processing.
+        Creates a boxplot for common and double metrics. Saves a figure and
+        returns Matplotlib fig and ax objects for further processing.
 
         Parameters
         ----------
@@ -638,7 +637,8 @@ class QA4SMPlotter:
         save_files: bool = False,
     ) -> Union[list, None]:
         """
-        Creates a barplot of validation errors betweeen two or three datasets. Saves a figure and returns Matplotlib fig and ax objects for
+        Creates a barplot of validation errors betweeen two or three datasets.
+        Saves a figure and returns Matplotlib fig and ax objects for
         further processing.
 
         Parameters

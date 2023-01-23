@@ -97,6 +97,17 @@ def meta_plotter(plotdir):
     return plotter
 
 
+@pytest.fixture
+def barplot_plotter(plotdir):
+    testfile = '0-ASCAT.sm_with_1-GLDAS.SoilMoi0_10cm_inst.nc'
+    testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
+                                 'test_data', 'basic', testfile)
+    img = QA4SMImg(testfile_path)
+    plotter = QA4SMPlotter(img, plotdir)
+
+    return plotter
+
+
 def test_mapplot(basic_plotter, plotdir):
     n_obs_files = basic_plotter.mapplot_metric('n_obs',
                                                out_types='png',
@@ -157,6 +168,16 @@ def test_boxplot(basic_plotter, plotdir):
                                              save_files=True)  # should be 1
     assert len(os.listdir(plotdir)) == 1 + 1 + 1
     assert len(list(bias_files)) == 1
+
+    shutil.rmtree(plotdir)
+
+
+def test_barplot(barplot_plotter, plotdir):
+    status_files = barplot_plotter.barplot('status',
+                                           out_types='png',
+                                           save_files=True)  # should be 1
+    assert len(list(status_files)) == 1
+    assert len(os.listdir(plotdir)) == 1
 
     shutil.rmtree(plotdir)
 

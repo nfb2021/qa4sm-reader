@@ -101,11 +101,6 @@ def test_group_vars(img):
     ]
 
 
-# [
-#         'R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS'
-#     ]
-
-
 def test_group_metrics(img):
     common, double, triple = img.group_metrics(['R'])
     assert common == {}
@@ -260,9 +255,13 @@ def test_stats_df(img):
     tot_stats = len(
         img.common.keys()) + 2 * len(img.double.keys()) - empty_metrics
     assert tot_stats == 27
+    glob_stats = len(globals.metric_groups[0]) + 2 * len(
+        globals.metric_groups[2]) - empty_metrics
+    assert glob_stats == 31
 
     # We drop the corr. significance statistics
     assert len(df.index) == tot_stats - 4
+    assert len(df.index) == glob_stats - 8
 
 
 def test_res_info(img):

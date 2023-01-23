@@ -82,16 +82,23 @@ out_metadata_plots = {
 
 # === calculation errors (pytesmo) === #TODO: import from pytesmo
 status = {
-    -1: 'Uncaught Errors',
-    0: 'OK',
+    -1: 'Other error',
+    0: 'Success',
     1: 'Not enough data',
-    2: 'Metrics calc. error',
-    3: 'Temp. matching error',
-    4: 'No overlap for temp. matching',
-    5: 'Scaling error',
-    6: 'Validation error',
+    2: 'Metric calculation failed',
+    3: 'Temporal matching failed',
+    4: 'No overlap for temporal match',
+    5: 'Scaling failed',
+    6: 'Unexpected validation error',
     7: 'Missing GPI data',
-    8: 'Data manager error'
+    8: 'Data reading failed'
+}
+
+# helper dict to replace some error codes and have merged categories
+# (e.g.: No overlap for temporal match -> Temporal matching failed)
+status_replace = {
+    4: 3,
+    7: 1,
 }
 
 # === colormaps used for plotting metrics ===
@@ -106,7 +113,7 @@ def get_status_colors():
     cmap = plt.cm.get_cmap('Set3', len(status) - 2)
     colors = [cmap(i) for i in range(cmap.N)]
     colors.insert(0, (0, 0.66666667, 0.89019608, 1.0))
-    colors.insert(0, (1, 0.5254902, 0.5254902, 1.0))
+    colors.insert(0, (0.45882353, 0.08235294, 0.11764706, 1.0))
     cmap = cl.ListedColormap(colors=colors)
     return cmap
 

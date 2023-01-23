@@ -93,9 +93,9 @@ def plot_all(filepath: str,
                     warnings.warn(
                         "Too few points are available to generate metadata-based plots"
                     )
-                except AttributeError:
+                except AttributeError as e:
                     warnings.warn(
-                        "values[ds] in function _dict2df is DataFrame not Series. fix this."
+                        f"Error when trying to plot_all for triple collocation nc files. \nIssue: #59 {e}"
                     )
 
         if save_csv:
