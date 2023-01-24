@@ -93,6 +93,10 @@ def plot_all(filepath: str,
                     warnings.warn(
                         "Too few points are available to generate metadata-based plots"
                     )
+                except AttributeError as e:
+                    warnings.warn(
+                        f"Error when trying to plot_all for triple collocation nc files. \nIssue: #59 {e}"
+                    )
 
         if save_csv:
             out_csv = plotter.save_stats()

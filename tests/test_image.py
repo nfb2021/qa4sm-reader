@@ -10,7 +10,7 @@ from qa4sm_reader import globals
 
 @pytest.fixture
 def testfile_path():
-    testfile = '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-SMOS.Soil_Moisture.nc'
+    testfile = '0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
                                  'test_data', 'basic', testfile)
 
@@ -51,9 +51,12 @@ def test_load_data(testfile_path):
 
 
 def test_extent(testfile_path, img):
-    extent = QA4SMImg(testfile_path, extent=(113.7, 123.7, -19.8, -9.8))
+    extent = QA4SMImg(testfile_path,
+                      extent=(48.300000000000004, 123.60000000000002,
+                              -43.49999999999241, -9.799999999994327))
     assert img.extent != extent.extent
-    assert img.extent == (113.7, 153.5, -43.1, -9.8)
+    assert img.extent == (48.300000000000004, 153.60000000000002,
+                          -43.49999999999241, -9.799999999994327)
 
 
 def test_metrics(testfile_path, img):
@@ -67,7 +70,7 @@ def test_load_vars(img):
     Vars = img._load_vars()
     assert len(Vars) == len(img.varnames)
     Metr_Vars = img._load_vars(only_metrics=True)
-    assert len(Metr_Vars) == len(Vars) - 3
+    assert len(Metr_Vars) == len(Vars) - 21
 
 
 def test_iter_vars(img):
@@ -75,8 +78,8 @@ def test_iter_vars(img):
         assert Var.g in [0, 2, 3]
     for Var in img._iter_vars(type="metric", filter_parms={'metric': 'R'}):
         assert Var.varname in [
-            'R_between_3-ERA5_LAND_and_2-SMOS',
-            'R_between_3-ERA5_LAND_and_1-C3S'
+            'R_between_0-ERA5_LAND_and_2-SMOS_IC',
+            'R_between_0-ERA5_LAND_and_1-C3S_combined'
         ]
 
 
@@ -89,7 +92,12 @@ def test_group_vars(img):
     Vars = img.group_vars(filter_parms={'metric': 'R'})
     names = [Var.varname for Var in Vars]
     assert names == [
-        'R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS'
+        'R_between_0-ERA5_LAND_and_1-C3S_combined',
+        'R_ci_lower_between_0-ERA5_LAND_and_1-C3S_combined',
+        'R_ci_upper_between_0-ERA5_LAND_and_1-C3S_combined',
+        'R_between_0-ERA5_LAND_and_2-SMOS_IC',
+        'R_ci_lower_between_0-ERA5_LAND_and_2-SMOS_IC',
+        'R_ci_upper_between_0-ERA5_LAND_and_2-SMOS_IC'
     ]
 
 
@@ -102,7 +110,7 @@ def test_group_metrics(img):
 
 def test_load_metrics(img):
     assert len(img.metrics.keys()) == len(globals.metric_groups[0]) + len(
-        globals.metric_groups[2])
+        globals.metric_groups[2]) - 2
 
 
 def test_ds2df(img):
@@ -113,7 +121,12 @@ def test_ds2df(img):
 def test_metric_df(img):
     df = img.metric_df(['R'])
     assert list(df.columns) == [
-        'R_between_3-ERA5_LAND_and_1-C3S', 'R_between_3-ERA5_LAND_and_2-SMOS'
+        'R_between_0-ERA5_LAND_and_1-C3S_combined',
+        'R_ci_lower_between_0-ERA5_LAND_and_1-C3S_combined',
+        'R_ci_upper_between_0-ERA5_LAND_and_1-C3S_combined',
+        'R_between_0-ERA5_LAND_and_2-SMOS_IC',
+        'R_ci_lower_between_0-ERA5_LAND_and_2-SMOS_IC',
+        'R_ci_upper_between_0-ERA5_LAND_and_2-SMOS_IC', 'idx'
     ]
 
 
@@ -138,11 +151,18 @@ def test_vars_in_file(img):
     vars_should = ['n_obs']
     # since the valination is non-TC
     for metric in globals.metric_groups[2]:
-        vars_should.append('{}_between_3-ERA5_LAND_and_1-C3S'.format(metric))
-        vars_should.append('{}_between_3-ERA5_LAND_and_2-SMOS'.format(metric))
+        vars_should.append(
+            '{}_between_0-ERA5_LAND_and_1-C3S_combined'.format(metric))
+        vars_should.append(
+            '{}_between_0-ERA5_LAND_and_2-SMOS_IC'.format(metric))
     vars_should = np.sort(np.array(vars_should))
-    vars = np.sort(np.array(vars))
-
+    vars = np.sort(
+        np.array(vars + [
+            'p_tau_between_0-ERA5_LAND_and_1-C3S_combined',
+            'p_tau_between_0-ERA5_LAND_and_2-SMOS_IC',
+            'tau_between_0-ERA5_LAND_and_1-C3S_combined',
+            'tau_between_0-ERA5_LAND_and_2-SMOS_IC'
+        ]))
     assert all(vars == vars_should)
 
 
@@ -155,8 +175,15 @@ def test_find_groups(img):
         common_group.append(name)
     double_group = []
     for name, Metric in img.double.items():
+
         assert Metric.name in globals.metric_groups[2]
-        assert len(Metric.variables) == 2
+        if name in [
+                'p_R', 'p_rho', 'RMSD', 'mse', 'mse_corr', 'mse_bias',
+                'mse_var', 'RSS', 'status'
+        ]:
+            assert len(Metric.variables) == 2
+        else:
+            assert len(Metric.variables) == 6
         double_group.append(name)
 
     assert img.triple == {}
@@ -183,20 +210,22 @@ def test_ref_meta(img):
 
 def test_var_meta(img):
     """Test datasets associated with a specific variable"""
-    for Var in img._iter_vars(
-            type="metric",
-            filter_parms={'varname': 'R_between_3-ERA5_LAND_and_1-C3S'}):
+    for Var in img._iter_vars(type="metric",
+                              filter_parms={
+                                  'varname':
+                                  'R_between_0-ERA5_LAND_and_1-C3S_combined'
+                              }):
         ref_id, ref_meta = Var.ref_ds
-        assert ref_id == 3
+        assert ref_id == 0
         assert ref_meta['short_name'] == 'ERA5_LAND'
         assert ref_meta['pretty_name'] == 'ERA5-Land'
         assert ref_meta['pretty_version'] == 'v20190904'
 
         metric_id, metric_meta = Var.metric_ds
         assert metric_id == 1
-        assert metric_meta['short_name'] == 'C3S'
-        assert metric_meta['pretty_name'] == 'C3S'
-        assert metric_meta['pretty_version'] == 'v201812'
+        assert metric_meta['short_name'] == 'C3S_combined'
+        assert metric_meta['pretty_name'] == 'C3S SM combined'
+        assert metric_meta['pretty_version'] == 'v202012'
 
 
 def test_metric_stats(img):
@@ -225,10 +254,14 @@ def test_stats_df(img):
 
     tot_stats = len(
         img.common.keys()) + 2 * len(img.double.keys()) - empty_metrics
-    assert tot_stats == 25
+    assert tot_stats == 27
+    glob_stats = len(globals.metric_groups[0]) + 2 * len(
+        globals.metric_groups[2]) - empty_metrics
+    assert glob_stats == 31
 
     # We drop the corr. significance statistics
     assert len(df.index) == tot_stats - 4
+    assert len(df.index) == glob_stats - 8
 
 
 def test_res_info(img):

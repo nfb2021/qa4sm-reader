@@ -450,7 +450,8 @@ def style_map(
 def make_watermark(fig,
                    placement=globals.watermark_pos,
                    for_map=False,
-                   offset=0.03):
+                   offset=0.03,
+                   for_barplot=False):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.
@@ -458,13 +459,16 @@ def make_watermark(fig,
     Fontsize can be adjusted in globals.watermark_fontsize.
     plt.tight_layout needs to be called prior to make_watermark,
     because tight_layout does not take into account annotations.
-
     Parameters
     ----------
     fig : matplotlib.figure.Figure
     placement : str
         'top' : places watermark in top right corner
         'bottom' : places watermark in bottom left corner
+    for_map : bool
+        True if watermark is for mapplot
+    for_barplot : bool
+        True if watermark is for barplot
     """
     # ax = fig.gca()
     # pos1 = ax.get_position() #fraction of figure
@@ -485,6 +489,23 @@ def make_watermark(fig,
                      textcoords='offset points')
         top = fig.subplotpars.top
         fig.subplots_adjust(top=top - offset)
+
+    elif for_map or for_barplot:
+        if for_barplot:
+            plt.suptitle(globals.watermark,
+                         color='grey',
+                         fontsize=fontsize,
+                         x=-0.07,
+                         y=0.5,
+                         va='center',
+                         rotation=90)
+        else:
+            plt.suptitle(globals.watermark,
+                         color='grey',
+                         fontsize=fontsize,
+                         y=0,
+                         ha='center')
+
     elif placement == 'bottom':
         plt.annotate(globals.watermark,
                      xy=[0.5, 0],
@@ -743,6 +764,89 @@ def boxplot(
 
     if axis is None:
         return fig, ax
+
+
+def _replace_status_values(ser):
+    """
+    Replace values in series to plot less categories in the error plots,
+    according to globals.status_replace dict.
+
+    Parameters
+    ----------
+    ser : pandas.Series
+        Series containing 'lat', 'lon' and status values.
+
+    Returns
+    -------
+    ser : pandas.Series
+    """
+    assert type(ser) == pd.Series
+    for val in set(ser.values):
+        # all new error codes replaced with -1
+        if val not in globals.status.keys():
+            ser = ser.replace(to_replace=val, value=-1)
+        if val in globals.status_replace.keys():
+            ser = ser.replace(to_replace=val,
+                              value=globals.status_replace[val])
+    return ser
+
+
+def barplot(
+    df,
+    label=None,
+    figsize=None,
+    dpi=100,
+) -> tuple:
+    """
+    Create a barplot from the validation errors in df.
+    The bars show the numbers of errors that occured during
+    the validation between two or three (in case of triple
+    collocation) datasets.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame containing 'lat', 'lon' and (multiple) 'var' Series.
+    label : str, optional
+        Label of the y axis, describing the metric. The default is None.
+    figsize : tuple, optional
+        Figure size in inches. The default is globals.map_figsize.
+    dpi : int, optional
+        Resolution for raster graphic output. The default is globals.dpi.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        the boxplot
+    ax : matplotlib.axes.Axes
+    """
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+
+    values = df.copy()
+    values = values[[values.keys()[0]]]
+    values.dropna(inplace=True)
+    status_dict = globals.status
+    values[values.keys()[0]] = _replace_status_values(values[values.keys()[0]])
+    vals = sorted(list(set(values[values.keys()[0]])))
+
+    tick_entries = [status_dict[x] for x in vals]
+    tick_labels = [
+        "-\n".join([entry[i:i + 18] for i in range(0, len(entry), 18)])
+        for entry in tick_entries
+    ]
+    color = [globals.get_status_colors().colors[int(x) + 1] for x in vals]
+    values[values.keys()[0]].value_counts().sort_index().plot.bar(ax=ax,
+                                                                  color=color)
+
+    ax.tick_params(labelsize=globals.tick_size)
+    ax.grid(axis='y')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.set_xticklabels(tick_labels, rotation=45)
+
+    plt.ylabel(label, weight='normal')
+
+    return fig, ax
 
 
 # TODO: test?
@@ -1371,6 +1475,13 @@ def mapplot(df,
         v_min, v_max = get_value_range(df, metric=None, diff_map=True)
         cmap = globals._diff_colormaps[metric]
 
+    if metric == 'status':
+        df = _replace_status_values(df)
+        labs = list(globals.status.values())
+        cls = globals.get_status_colors().colors
+        vals = sorted(list(set(df.values)))
+        add_cbar = False
+
     # No need to mask ranged in the comparison plots
     else:
         # mask values outside range (e.g. for negative STDerr from TCA)
@@ -1406,6 +1517,13 @@ def mapplot(df,
                         linewidths=0.1,
                         zorder=2,
                         transform=globals.data_crs)
+        if metric == 'status':
+            ax.legend(handles=[
+                Patch(facecolor=cls[x], label=labs[x])
+                for x in range(len(globals.status)) if (x - 1) in vals
+            ],
+                      loc='right')
+
     else:  # mapplot
         if not plot_extent:
             plot_extent = get_plot_extent(df,
@@ -1424,6 +1542,13 @@ def mapplot(df,
                        extent=zz_extent,
                        transform=globals.data_crs,
                        zorder=2)
+
+        if metric == 'status':
+            ax.legend(handles=[
+                Patch(facecolor=cls[x], label=labs[x])
+                for x in range(len(globals.status)) if (x - 1) in vals
+            ],
+                      loc='right')
 
     if add_cbar:  # colorbar
         _make_cbar(fig,
