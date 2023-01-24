@@ -51,23 +51,6 @@ watermark_pos = 'bottom'  # Default position ('top' or 'bottom' or None)
 watermark_fontsize = 8  # fontsize in points (matplotlib uses 72ppi)
 watermark_pad = 5  # padding above/below watermark in points (matplotlib uses 72ppi)
 
-watermark_vertical_adjustment = {
-    'status': -0.3,
-    'R': -4,
-    'RSS': -4,
-    'urmsd': -4,
-    'RMSD': -4,
-    'mse': -4,
-    'mse_var': -4,
-    'mse_corr': -4,
-    'mse_bias': -4,
-    'BIAS': -4,
-    'n_obs': -4,
-    'rho': -4,
-    'p_rho': -4,
-    'p_R': -4,
-}
-
 # === filename template ===
 ds_fn_templ = "{i}-{ds}.{var}"
 ds_fn_sep = "_with_"

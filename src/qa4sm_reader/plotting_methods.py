@@ -451,7 +451,7 @@ def make_watermark(fig,
                    placement=globals.watermark_pos,
                    for_map=False,
                    offset=0.03,
-                   metric=None):
+                   for_barplot=False):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.
@@ -459,13 +459,16 @@ def make_watermark(fig,
     Fontsize can be adjusted in globals.watermark_fontsize.
     plt.tight_layout needs to be called prior to make_watermark,
     because tight_layout does not take into account annotations.
-
     Parameters
     ----------
     fig : matplotlib.figure.Figure
     placement : str
         'top' : places watermark in top right corner
         'bottom' : places watermark in bottom left corner
+    for_map : bool
+        True if watermark is for mapplot
+    for_barplot : bool
+        True if watermark is for barplot
     """
     # ax = fig.gca()
     # pos1 = ax.get_position() #fraction of figure
@@ -486,20 +489,12 @@ def make_watermark(fig,
                      textcoords='offset points')
         top = fig.subplotpars.top
         fig.subplots_adjust(top=top - offset)
-    # annotation for larger maps were not horizontally centered, using 'axes fraction' instead of 'figure fraction'
-    # seems to solve this but then vertical position is difficult
-    elif placement == 'bottom' and for_map and metric in globals.watermark_vertical_adjustment.keys(
-    ):
-        vertical_align = globals.watermark_vertical_adjustment[metric]
-        plt.annotate(globals.watermark,
-                     xy=[0.5, vertical_align],
-                     xytext=[pad, pad],
-                     fontsize=fontsize,
-                     color='grey',
-                     horizontalalignment='center',
-                     verticalalignment='bottom',
-                     xycoords='axes fraction',
-                     textcoords='offset points')
+
+    elif for_map or for_barplot:
+        if for_barplot:
+            plt.suptitle(globals.watermark, color='grey', fontsize=fontsize, x=-0.07, y=0.5, va='center', rotation=90)
+        else:
+            plt.suptitle(globals.watermark, color='grey', fontsize=fontsize, y=0, ha='center')
 
     elif placement == 'bottom':
         plt.annotate(globals.watermark,

@@ -464,9 +464,8 @@ class QA4SMPlotter:
         ax.set_title(title, pad=globals.title_pad)
 
         # add watermark
-        offset = 0.03  # offset larger as common metrics have a shorter caption
         if globals.watermark_pos not in [None, False]:
-            plm.make_watermark(fig, offset=offset)
+            plm.make_watermark(fig, for_barplot=True)
 
     def _save_plot(self, out_name: str, out_types: str = 'png') -> list:
         """
@@ -778,8 +777,7 @@ class QA4SMPlotter:
             plm.make_watermark(fig,
                                globals.watermark_pos,
                                for_map=True,
-                               offset=0.04,
-                               metric=metric)
+                               offset=0.04)
 
         # save file or just return the image
         if save_files:
