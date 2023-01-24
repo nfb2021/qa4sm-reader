@@ -492,9 +492,19 @@ def make_watermark(fig,
 
     elif for_map or for_barplot:
         if for_barplot:
-            plt.suptitle(globals.watermark, color='grey', fontsize=fontsize, x=-0.07, y=0.5, va='center', rotation=90)
+            plt.suptitle(globals.watermark,
+                         color='grey',
+                         fontsize=fontsize,
+                         x=-0.07,
+                         y=0.5,
+                         va='center',
+                         rotation=90)
         else:
-            plt.suptitle(globals.watermark, color='grey', fontsize=fontsize, y=0, ha='center')
+            plt.suptitle(globals.watermark,
+                         color='grey',
+                         fontsize=fontsize,
+                         y=0,
+                         ha='center')
 
     elif placement == 'bottom':
         plt.annotate(globals.watermark,
@@ -776,7 +786,8 @@ def _replace_status_values(ser):
         if val not in globals.status.keys():
             ser = ser.replace(to_replace=val, value=-1)
         if val in globals.status_replace.keys():
-            ser = ser.replace(to_replace=val, value=globals.status_replace[val])
+            ser = ser.replace(to_replace=val,
+                              value=globals.status_replace[val])
     return ser
 
 
