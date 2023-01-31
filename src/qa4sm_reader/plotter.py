@@ -909,6 +909,9 @@ class QA4SMPlotter:
                                                     mean_ci=False):
             values.append(data)
 
+        if not values:
+            raise PlotterError(f"No valid values for {metric}")
+            
         values = pd.concat(values, axis=1)
         # override values from metric
         if df is not None:
@@ -960,6 +963,8 @@ class QA4SMPlotter:
                                               stats=False,
                                               mean_ci=False):
             values.append(df)
+        if not values:
+            raise PlotterError(f"No valid values for {metric}")
         values = pd.concat(values, axis=1)
 
         metric_name = globals._metric_name[metric]
