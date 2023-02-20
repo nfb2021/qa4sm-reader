@@ -13,6 +13,7 @@ from qa4sm_reader import plotting_methods as plm
 
 from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
+import glob
 
 
 class QA4SMPlotter:
@@ -452,7 +453,9 @@ class QA4SMPlotter:
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
         # otherwise it's too narrow
         figsize = [figwidth, globals.boxplot_height]
-        fig, ax = plm.barplot(df=df, figsize=figsize, label=label)
+        fig, ax = plm.barplot(df=df,
+                              figsize=figsize,
+                              label='# of validation errors')
         if not Var:
             # when we only need reference dataset from variables (i.e. is the same):
             for Var in self.img._iter_vars(type="metric",
@@ -460,7 +463,9 @@ class QA4SMPlotter:
                 Var = Var
                 break
 
-        title = self.create_title(Var, type=type)
+        title = globals.status_title
+        if type == 'barplot_basic_3ds':
+            title += ' - including triple collocation'
         ax.set_title(title, pad=globals.title_pad)
 
         # add watermark
@@ -654,8 +659,20 @@ class QA4SMPlotter:
         fnames: list of file names with all the extensions
         """
         fnames, values = [], []
+        barplot_produced = False
+        barplot_produced_tc = False
+
         # we take the last iterated value for Var and use it for the file name
         for values, Var, _ in self._yield_values(metric=metric):
+            if (Var.g == 3 and barplot_produced_tc) or (Var.g == 2
+                                                        and barplot_produced):
+                continue
+
+            if Var.g == 2:
+                barplot_produced = True
+            else:
+                barplot_produced_tc = True
+
             # handle empty results
 
             if values.empty:
@@ -673,10 +690,9 @@ class QA4SMPlotter:
                                          df=values,
                                          type='barplot_basic',
                                          Var=Var)
+            out_name = globals.barplot_fn
             if other_meta:
-                out_name = self.create_filename(Var, type='barplot_basic_3ds')
-            else:
-                out_name = self.create_filename(Var, type='barplot_basic')
+                out_name += '_tc'
 
             # save or return plotting objects
             if save_files:
@@ -701,7 +717,7 @@ class QA4SMPlotter:
 
         Parameters
         ----------
-        Var : QA4SMMetricVariab;e
+        Var : QA4SMMetricVariable
             Var in the image to make the map for.
         out_name: str
             name of output file
@@ -749,18 +765,24 @@ class QA4SMPlotter:
             ref_short=ref_meta[1]['short_name'],
             ref_grid_stepsize=ref_grid_stepsize,
             plot_extent=
-            None,  # if None, extent is sutomatically adjusted (as opposed to img.extent)
+            None,  # if None, extent is automatically adjusted (as opposed to img.extent)
             **style_kwargs)
 
         # title and plot settings depend on the metric group
-        if Var.g == 0:
+        if Var.varname.startswith('status'):
+            title = globals.status_title
+            save_name = globals.status_fn
+            if Var.g == 3:
+                title += ' - including triple collocation calculation'
+                save_name += '_tc'
+        elif Var.g == 0:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
             save_name = self.create_filename(Var, type='mapplot_common')
-        elif Var.g == 3 and Var.varname.startswith('status'):
+        elif Var.g == 3:
             title = self.create_title(Var=Var, type='mapplot_basic_3ds')
             save_name = self.create_filename(Var, type='mapplot_double_3ds')
-        elif Var.g == 2 or Var.varname.startswith('status'):
+        elif Var.g == 2:
             title = self.create_title(Var=Var, type='mapplot_basic')
             save_name = self.create_filename(Var, type='mapplot_double')
         else:
@@ -911,7 +933,7 @@ class QA4SMPlotter:
 
         if not values:
             raise PlotterError(f"No valid values for {metric}")
-            
+
         values = pd.concat(values, axis=1)
         # override values from metric
         if df is not None:

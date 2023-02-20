@@ -12,8 +12,9 @@ from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg
 from qa4sm_reader.plotting_methods import geotraj_to_geo2d, _dict2df, bin_continuous, bin_classes, \
     bin_discrete, combine_soils, combine_depths, output_dpi, average_non_additive
-from qa4sm_reader.handlers import Metadata
+from qa4sm_reader.handlers import Metadata, QA4SMVariable
 from qa4sm_reader.globals import dpi_min, dpi_max, get_resolution_info
+from qa4sm_reader import globals
 
 
 @pytest.fixture
