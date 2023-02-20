@@ -13,7 +13,6 @@ from qa4sm_reader import plotting_methods as plm
 
 from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
-import glob
 
 
 class QA4SMPlotter:
@@ -933,7 +932,6 @@ class QA4SMPlotter:
 
         if not values:
             raise PlotterError(f"No valid values for {metric}")
-
         values = pd.concat(values, axis=1)
         # override values from metric
         if df is not None:
