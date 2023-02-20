@@ -658,22 +658,10 @@ class QA4SMPlotter:
         fnames: list of file names with all the extensions
         """
         fnames, values = [], []
-        barplot_produced = False
-        barplot_produced_tc = False
 
         # we take the last iterated value for Var and use it for the file name
         for values, Var, _ in self._yield_values(metric=metric):
-            if (Var.g == 3 and barplot_produced_tc) or (Var.g == 2
-                                                        and barplot_produced):
-                continue
-
-            if Var.g == 2:
-                barplot_produced = True
-            else:
-                barplot_produced_tc = True
-
             # handle empty results
-
             if values.empty:
                 return None
 
