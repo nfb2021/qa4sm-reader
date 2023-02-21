@@ -832,7 +832,7 @@ class QA4SMPlotter:
 
         for Var in self.img._iter_vars(type="metric",
                                        filter_parms={"metric": metric}):
-            if Var.g == 2 and tc:
+            if Var.g == 2 and tc and metric == 'status':
                 continue
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
