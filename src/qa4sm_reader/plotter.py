@@ -463,8 +463,6 @@ class QA4SMPlotter:
                 break
 
         title = globals.status_title
-        if type == 'barplot_basic_3ds':
-            title += ' - including triple collocation'
         ax.set_title(title, pad=globals.title_pad)
 
         # add watermark
@@ -658,12 +656,19 @@ class QA4SMPlotter:
         fnames: list of file names with all the extensions
         """
         fnames, values = [], []
+        tc = False
 
+        # check if triple collocation results in Variables
+        if max([x[1].g for x in self._yield_values(metric=metric)]) > 2:
+            tc = True
         # we take the last iterated value for Var and use it for the file name
         for values, Var, _ in self._yield_values(metric=metric):
             # handle empty results
             if values.empty:
                 return None
+
+            if tc and Var.g == 2:
+                continue
 
             ref_meta, mds_meta, other_meta = Var.get_varmeta()
 
@@ -678,7 +683,7 @@ class QA4SMPlotter:
                                          type='barplot_basic',
                                          Var=Var)
             out_name = globals.barplot_fn
-            if other_meta:
+            if tc:
                 out_name += '_tc'
 
             # save or return plotting objects
@@ -760,7 +765,6 @@ class QA4SMPlotter:
             title = globals.status_title
             save_name = globals.status_fn
             if Var.g == 3:
-                title += ' - including triple collocation calculation'
                 save_name += '_tc'
         elif Var.g == 0:
             title = "{} between all datasets".format(
@@ -821,8 +825,15 @@ class QA4SMPlotter:
             List of files that were created
         """
         fnames = []
+        tc = False
+        # check if triple collocation results in Variables
+        if max([x.g for x in self.img._iter_vars(type="metric")]) > 2:
+            tc = True
+
         for Var in self.img._iter_vars(type="metric",
                                        filter_parms={"metric": metric}):
+            if Var.g == 2 and tc:
+                continue
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
                                        out_name=None,
