@@ -84,11 +84,6 @@ status_replace = {
     7: 1,
 }
 
-# status title and filename
-status_title = 'Validation errors'
-status_fn = 'overview_status'
-barplot_fn = 'barplot_status'
-
 # === colormaps used for plotting metrics ===
 # Colormaps can be set for classes of similar metrics or individually for metrics.
 # Any colormap name can be used, that works with matplotlib.pyplot.cm.get_cmap('colormap')
