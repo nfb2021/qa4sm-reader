@@ -16,6 +16,7 @@ from qa4sm_reader.handlers import Metadata
 from qa4sm_reader.globals import dpi_min, dpi_max, get_resolution_info
 
 
+
 @pytest.fixture
 def plotdir():
     plotdir = tempfile.mkdtemp()

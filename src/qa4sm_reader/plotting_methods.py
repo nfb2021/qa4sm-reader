@@ -1522,7 +1522,8 @@ def mapplot(df,
                 Patch(facecolor=cls[x], label=labs[x])
                 for x in range(len(globals.status)) if (x - 1) in vals
             ],
-                      loc='right')
+                      loc='lower center',
+                      ncol=4)
 
     else:  # mapplot
         if not plot_extent:
@@ -1548,7 +1549,8 @@ def mapplot(df,
                 Patch(facecolor=cls[x], label=labs[x])
                 for x in range(len(globals.status)) if (x - 1) in vals
             ],
-                      loc='right')
+                      loc='lower center',
+                      ncol=4)
 
     if add_cbar:  # colorbar
         _make_cbar(fig,

@@ -640,4 +640,5 @@ _metadata_exclude = [
     'p_rho',
     'tau',
     'p_tau',
+    'status',
 ]
