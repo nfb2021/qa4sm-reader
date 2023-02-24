@@ -68,6 +68,12 @@ def plot_all(filepath: str,
             save_metadata = 'threshold'
     save_metadata = save_metadata.lower()
 
+    _options = ['never', 'always', 'threshold']
+    if save_metadata not in _options:
+        raise ValueError(f"save_metadata must be one of: "
+                         f"{', '.join(_options)} "
+                         f"but `{save_metadata}` was passed.")
+
     # initialise image and plotter
     fnames_bplot, fnames_mapplot, fnames_csv = [], [], []
     periods = extract_periods(filepath)
