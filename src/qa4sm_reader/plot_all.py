@@ -41,7 +41,8 @@ def plot_all(filepath: str,
         for each metric, metadata plots are provided
         (see plotter.QA4SMPlotter.plot_save_metadata)
         - 'never' or False: No metadata plots are created
-        - 'always': Metadata plots are always for all metrics
+        - 'always': Metadata plots are always created for all metrics
+                   (set the meta_boxplot_min_size to 0)
         - 'threshold' or True: Metadata plots are only created if the number
                                of points is above the `meta_boxplot_min_size`
                                threshold from globals.py. Otherwise a warning
