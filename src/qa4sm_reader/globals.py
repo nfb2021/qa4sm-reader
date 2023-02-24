@@ -521,6 +521,9 @@ def get_resolution_info(dataset, raise_error=False):
 # =====================================================
 # information needed for plotting the metadata-boxplots
 
+# Min number of samples per bin to create a boxplot:
+meta_boxplot_min_samples = 5
+
 lc_classes = {
     "unknown": "Not provided",
     0: 'Other',
@@ -630,6 +633,7 @@ metadata = {
     # --- FRM4SM QI, not always present
     "frm_class": ("FRM Classification", None, "discrete", None)
 }
+
 
 soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
 instrument_depths = ["instrument_depthfrom", "instrument_depthto"]
