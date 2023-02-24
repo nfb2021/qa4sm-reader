@@ -151,9 +151,3 @@ def get_img_stats(
     return table
 
 
-if __name__ == '__main__':
-    import tempfile
-    with tempfile.TemporaryDirectory() as path_out:
-        path_in = "/tmp/0-ISMN.soil_moisture_with_1-C3S_combined.sm.nc"
-        plot_all(path_in, out_dir='/tmp/plots', save_metadata=True)
-
