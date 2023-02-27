@@ -903,7 +903,8 @@ def bin_continuous(
     sorted = np.sort(meta_range)
     if len(meta_range) < min_size:
         raise ValueError(
-            "There are too few points per metadata to generate the boxplots. You can set 'min_size'"
+            "There are too few points per metadata to generate the boxplots. "
+            f"You can set 'min_size' (now at {min_size})"
             "to a lower value to allow for smaller samples.")
     bin_values, unique_values, bin_size = resize_bins(sorted, nbins)
     # adjust bins to have the specified number of bins if possible, otherwise enough valoues per bin
@@ -1334,6 +1335,7 @@ def boxplot_metadata(
     nbins=4,
     axis=None,
     plot_type: str = "catplot",
+    meta_boxplot_min_samples=5,
     **bplot_kwargs,
 ) -> tuple:
     """
@@ -1360,6 +1362,9 @@ def boxplot_metadata(
     plot_type : str, default is 'catplot'
         one of 'catplot' or 'multiplot', defines the type of plots for the 'classes' and 'continuous'
         metadata types
+    meta_boxplot_min_samples: int, optional (default: 5)
+        Minimum number of points in a bin to be plotted.
+        If not enough points are available, the plot is not created.
 
     Returns
     -------
@@ -1379,6 +1384,7 @@ def boxplot_metadata(
         metadata_values=metadata_values,
         meta_key=meta_key,
         nbins=nbins,
+        min_size=meta_boxplot_min_samples,
     )
     if to_plot is None:
         raise PlotterError(
