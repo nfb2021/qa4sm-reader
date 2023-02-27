@@ -894,6 +894,9 @@ class QA4SMPlotter:
         plot_type : str, default is 'catplot'
             one of 'catplot' or 'multiplot', defines the type of plots for the 'classes' and 'continuous'
             metadata types
+        plotting_kwargs:
+            Keyword arguments for the plotting function
+
 
         Returns
         -------
@@ -936,6 +939,7 @@ class QA4SMPlotter:
         metric: str,
         metadata: str,
         metadata_discrete: str,
+        **plotting_kwargs,
     ):
         """
         Cross-boxplot between two given metadata types
@@ -985,13 +989,14 @@ class QA4SMPlotter:
         kwargs = {
             "metric": metric,
             "metadata": metadata_discrete,
-            "common_y": metric_name + metric_units
+            "common_y": metric_name + metric_units,
         }
+        plotting_kwargs.update(kwargs)
         n_datasets = len(self.img.datasets.others)
         fig, axes = plm.aggregate_subplots(to_plot=values_subset,
                                            funct=self.meta_single,
                                            n_bars=n_datasets,
-                                           **kwargs)
+                                           **plotting_kwargs)
 
         return fig, axes
 
@@ -1065,6 +1070,7 @@ class QA4SMPlotter:
         self,
         metric,
         out_types: str = 'png',
+        meta_boxplot_min_samples: int = 5,
     ):
         """
         Plots and saves three metadata boxplots per metric (defined in globals.py):
@@ -1077,8 +1083,10 @@ class QA4SMPlotter:
         ----------
         metric : str
             name of metric
-        out_types: str or list
+        out_types: str or list, optional
             extensions which the files should be saved in
+        meta_boxplot_min_samples: int, optional
+            minimum number of samples per bin required to plot a metadata boxplot
 
         Return
         ------
@@ -1092,19 +1100,27 @@ class QA4SMPlotter:
             return filenames
 
         for meta_type, meta_keys in globals.out_metadata_plots.items():
+            try:
+                # the presence of instrument_depth in the out file depends on the ismn release version
+                if all(meta_key in self.img.metadata.keys()
+                       for meta_key in meta_keys):
+                    outfiles = self.plot_metadata(
+                        metric,
+                        *meta_keys,
+                        save_file=True,
+                        out_types=out_types,
+                        meta_boxplot_min_samples=meta_boxplot_min_samples
+                    )
+                    filenames.extend(outfiles)
 
-            # the presence of instrument_depth in the out file depends on the ismn release version
-            if all(meta_key in self.img.metadata.keys()
-                   for meta_key in meta_keys):
-                outfiles = self.plot_metadata(metric,
-                                              *meta_keys,
-                                              save_file=True,
-                                              out_types=out_types)
-                filenames.extend(outfiles)
-
-            else:
-                warnings.warn("Not all: " + ", ".join(meta_keys) +
-                              " are present in the netCDF variables")
+                else:
+                    warnings.warn("Not all: " + ", ".join(meta_keys) +
+                                  " are present in the netCDF variables")
+            except PlotterError as e:
+                warnings.warn(
+                    f"Too few points are available to generate '{meta_type}` "
+                    f"metadata-based `{metric}` plots."
+                )
 
         return filenames
 

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import warnings
+from typing import Union
 
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg, extract_periods
-from qa4sm_reader.exceptions import PlotterError
+import qa4sm_reader.globals as globals
 
 
 def plot_all(filepath: str,
@@ -14,7 +15,7 @@ def plot_all(filepath: str,
              out_dir: str = None,
              out_type: str = 'png',
              save_all: bool = True,
-             save_metadata: bool = False,
+             save_metadata: Union[str, bool] = 'never',
              save_csv: bool = True,
              engine: str = 'h5netcdf',
              **plotting_kwargs) -> tuple:
@@ -34,10 +35,18 @@ def plot_all(filepath: str,
         Path to output generated plot. If None, defaults to the current working directory.
     out_type: str or list
         extensions which the files should be saved in
-    save_all: bool, optional. Default is True.
+    save_all: bool, optional (default: True)
         all plotted images are saved to the output directory
-    save_metadata: bool, optional. Default is False.
-        for each metric, 3 metadata plots are provided (see plotter.QA4SMPlotter.plot_save_metadata)
+    save_metadata: str or bool, optional (default: 'never')
+        for each metric, metadata plots are provided
+        (see plotter.QA4SMPlotter.plot_save_metadata)
+        - 'never' or False: No metadata plots are created
+        - 'always': Metadata plots are always created for all metrics
+                   (set the meta_boxplot_min_size to 0)
+        - 'threshold' or True: Metadata plots are only created if the number
+                               of points is above the `meta_boxplot_min_size`
+                               threshold from globals.py. Otherwise a warning
+                               is printed.
     save_csv: bool, optional. Default is True.
         save a .csv file with the validation statistics
     engine: str, optional (default: h5netcdf)
@@ -52,6 +61,19 @@ def plot_all(filepath: str,
         lists of filenames for created mapplots and boxplots
     fnames_csv: list
     """
+    if isinstance(save_metadata, bool):
+        if not save_metadata:
+            save_metadata = 'never'
+        else:
+            save_metadata = 'threshold'
+    save_metadata = save_metadata.lower()
+
+    _options = ['never', 'always', 'threshold']
+    if save_metadata not in _options:
+        raise ValueError(f"save_metadata must be one of: "
+                         f"{', '.join(_options)} "
+                         f"but `{save_metadata}` was passed.")
+
     # initialise image and plotter
     fnames_bplot, fnames_mapplot, fnames_csv = [], [], []
     periods = extract_periods(filepath)
@@ -82,17 +104,23 @@ def plot_all(filepath: str,
                 fnames_bplot.extend(metric_bplots)
             if metric_mapplots:
                 fnames_mapplot.extend(metric_mapplots)
-            if img.metadata and save_metadata:
+            if img.metadata and (save_metadata != 'never'):
                 try:
+                    if save_metadata == 'always':
+                        kwargs = {
+                            'meta_boxplot_min_samples': 0
+                        }
+                    else:
+                        kwargs = {
+                            'meta_boxplot_min_samples': globals.meta_boxplot_min_samples
+                        }
+
                     fnames_bplot.extend(
                         plotter.plot_save_metadata(
                             metric,
                             out_types=out_type,
+                            **kwargs
                         ))
-                except PlotterError:
-                    warnings.warn(
-                        "Too few points are available to generate metadata-based plots"
-                    )
                 except AttributeError as e:
                     warnings.warn(
                         f"Error when trying to plot_all for triple collocation nc files. \nIssue: #59 {e}"
@@ -128,3 +156,5 @@ def get_img_stats(
     table = img.stats_df()
 
     return table
+
+
