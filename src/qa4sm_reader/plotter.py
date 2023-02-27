@@ -850,7 +850,7 @@ class QA4SMPlotter:
 
         if Metric.name == 'status':
             fnames_bplot = self.barplot(metric='status',
-                                        out_types='png',
+                                        out_types=out_types,
                                         save_files=save_all)
 
         elif Metric.g == 0 or Metric.g == 2:
