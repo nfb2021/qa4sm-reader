@@ -16,5 +16,6 @@ dependencies:
     - colorcet
     - seaborn
     - pygeogrids
+    - pyproj
     - pytest
     - pytest-cov
