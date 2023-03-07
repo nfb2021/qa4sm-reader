@@ -105,26 +105,22 @@ def plot_all(filepath: str,
             if metric_mapplots:
                 fnames_mapplot.extend(metric_mapplots)
             if img.metadata and (save_metadata != 'never'):
-                try:
-                    if save_metadata == 'always':
-                        kwargs = {
-                            'meta_boxplot_min_samples': 0
-                        }
-                    else:
-                        kwargs = {
-                            'meta_boxplot_min_samples': globals.meta_boxplot_min_samples
-                        }
+                if save_metadata == 'always':
+                    kwargs = {
+                        'meta_boxplot_min_samples': 0
+                    }
+                else:
+                    kwargs = {
+                        'meta_boxplot_min_samples': globals.meta_boxplot_min_samples
+                    }
 
-                    fnames_bplot.extend(
-                        plotter.plot_save_metadata(
-                            metric,
-                            out_types=out_type,
-                            **kwargs
-                        ))
-                except AttributeError as e:
-                    warnings.warn(
-                        f"Error when trying to plot_all for triple collocation nc files. \nIssue: #59 {e}"
-                    )
+                fnames_bplot.extend(
+                    plotter.plot_save_metadata(
+                        metric,
+                        out_types=out_type,
+                        **kwargs
+                    ))
+
 
         if save_csv:
             out_csv = plotter.save_stats()
@@ -156,5 +152,3 @@ def get_img_stats(
     table = img.stats_df()
 
     return table
-
-
