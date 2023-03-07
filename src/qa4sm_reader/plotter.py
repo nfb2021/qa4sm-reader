@@ -976,11 +976,20 @@ class QA4SMPlotter:
         meta_values = Meta_cont.values.dropna()
 
         bin_funct = plm.bin_function_lut(globals.metadata[metadata][2])
+        kwargs = dict()
+        if 'meta_boxplot_min_samples' in plotting_kwargs:
+            kwargs['min_size'] = plotting_kwargs['meta_boxplot_min_samples']
+
         binned_values = bin_funct(
             df=values,
             metadata_values=meta_values,
             meta_key=metadata,
+            **kwargs
         )
+        if binned_values is None:
+            raise PlotterError(
+                f"Could not bin metadata {metadata} with function {bin_funct}"
+            )
         # dictionary with subset values
         values_subset = {
             a_bin: values.reindex(index=binned_values[a_bin].index)
