@@ -501,8 +501,12 @@ class QA4SMImg(object):
                             ds_name['pretty_version'], o,
                             other_ds['short_name'],
                             other_ds['pretty_version']))
+                unit_ref = self.datasets.ref['short_name']
+                _, _, _, scl_meta = Var.get_varmeta()
+                if scl_meta:
+                    unit_ref = scl_meta[1]['short_name']
                 um = globals._metric_description[metric].format(
-                    globals.get_metric_units(self.datasets.ref['short_name']))
+                    globals.get_metric_units(unit_ref))
                 metric_def = f"{globals._metric_name[metric]} {um}"
 
                 var_stats.extend([metric_def, Var.g])
