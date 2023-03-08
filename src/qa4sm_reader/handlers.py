@@ -42,7 +42,7 @@ class MixinVarmeta:
         else:
             return self.ref_ds[0]
 
-    def get_varmeta(self) -> (tuple, tuple, tuple):
+    def get_varmeta(self) -> (tuple, tuple, tuple, tuple):
         """
         Get the datasets from the current variable. Each dataset is provided with shape
         (id, dict{names})
@@ -55,12 +55,18 @@ class MixinVarmeta:
             this is the dataset for which the metric is calculated
         dss : id, dict
             this is the additional dataset in TC variables
+        scale_ds: id, dict
+            this is the scaling dataset
         """
         if self.g == 0:
             ref_ds = self.Datasets.dataset_metadata(self.Datasets._ref_id())
-            mds, dss = None, None
+            mds, dss, scale_ds = None, None, None
 
         else:
+            scale_ds = None
+            if 'val_scaling_ref' in self.Datasets.meta.keys():
+                scale_ref_id = int(self.Datasets.meta['val_scaling_ref'][-1:])
+                scale_ds = self.Datasets.dataset_metadata(scale_ref_id)
             ref_ds = self.Datasets.dataset_metadata(self.parts['ref_id'])
             mds = self.Datasets.dataset_metadata(self.parts['sat_id0'])
             dss = None
@@ -81,7 +87,7 @@ class MixinVarmeta:
                     self.Datasets.dataset_metadata(self.parts['sat_id1'])
                 ]
 
-        return ref_ds, mds, dss
+        return ref_ds, mds, dss, scale_ds
 
 
 class QA4SMDatasets():
@@ -444,7 +450,7 @@ class MetricVariable(QA4SMVariable, MixinVarmeta):
         super().__init__(varname, global_attrs, values)
 
         self.Metric = QA4SMMetric(self.metric)
-        self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
+        self.ref_ds, self.metric_ds, self.other_ds, _ = self.get_varmeta()
 
 
 class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
@@ -454,7 +460,7 @@ class ConfidenceInterval(QA4SMVariable, MixinVarmeta):
         super().__init__(varname, global_attrs, values)
 
         self.Metric = QA4SMMetric(self.metric)
-        self.ref_ds, self.metric_ds, self.other_ds = self.get_varmeta()
+        self.ref_ds, self.metric_ds, self.other_ds, _ = self.get_varmeta()
 
         self.bound = self.parts["bound"]
 

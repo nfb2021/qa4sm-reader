@@ -192,7 +192,7 @@ def test_find_groups(img):
 def test_variable_datasets(img):
     """Test the metadata associated with the ref dataset of the double group variables"""
     for Var in img._iter_vars(type="metric", filter_parms={'g': 2}):
-        ref_ds, metric_ds, other_ds = Var.get_varmeta()
+        ref_ds, metric_ds, other_ds, _ = Var.get_varmeta()
         assert ref_ds[1]['short_name'] == 'ERA5_LAND'
         assert ref_ds[1]['pretty_name'] == 'ERA5-Land'
         assert other_ds is None
