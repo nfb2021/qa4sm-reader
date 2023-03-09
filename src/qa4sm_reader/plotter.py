@@ -104,7 +104,7 @@ class QA4SMPlotter:
         capt: str
             box caption
         """
-        ref_meta, mds_meta, other_meta = Var.get_varmeta()
+        ref_meta, mds_meta, other_meta, _ = Var.get_varmeta()
         ds_parts = []
         id, meta = mds_meta
         if tc:
@@ -140,7 +140,7 @@ class QA4SMPlotter:
         parts: list of parts for title
         """
         parts = []
-        ref, mds, other = [meta for meta in Var.get_varmeta()]
+        ref, mds, other, _ = Var.get_varmeta()
         if type == 'boxplot_basic':
             parts.append(ref[0])
             parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
@@ -153,9 +153,7 @@ class QA4SMPlotter:
             parts.append(other[0])
             parts.extend([other[1]['pretty_name'], other[1]['pretty_version']])
 
-        elif type in [
-                'boxplot_tc', 'mapplot_basic', 'mapplot_tc'
-        ]:
+        elif type in ['boxplot_tc', 'mapplot_basic', 'mapplot_tc']:
             parts.append(mds[0])
             parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
             parts.append(ref[0])
@@ -181,10 +179,8 @@ class QA4SMPlotter:
         titles = {
             'boxplot_basic':
             'Intercomparison of {} \nwith {}-{} ({}) as spatial reference\n ',
-            'barplot_basic':
-            'Validation Errors',
-            'mapplot_status':
-            'Validation Errors',
+            'barplot_basic': 'Validation Errors',
+            'mapplot_status': 'Validation Errors',
             'boxplot_tc':
             'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({})\n ',
             'mapplot_basic':
@@ -261,11 +257,10 @@ class QA4SMPlotter:
             type of plot
         """
         name = self._filenames_lut(type=type)
-        ref_meta, mds_meta, other_meta = Var.get_varmeta()
+        ref_meta, mds_meta, other_meta, _ = Var.get_varmeta()
         # fetch parts of the name for the variable
         if type in ["barplot_basic", "mapplot_status"]:
-            parts = [
-            ]
+            parts = []
 
         elif type == "mapplot_double_3ds":
             parts = [
@@ -384,9 +379,14 @@ class QA4SMPlotter:
             Specified in case mds meta is needed
         """
         # plot label
+        unit_ref = self.ref['short_name']
+
+        _, _, _, scl_meta = Var.get_varmeta()
+        if scl_meta:
+            unit_ref = scl_meta[1]['short_name']
         parts = [globals._metric_name[metric]]
         parts.append(globals._metric_description[metric].format(
-            globals.get_metric_units(self.ref['short_name'])))
+            globals.get_metric_units(unit_ref)))
         label = "{}{}".format(*parts)
         # generate plot
         figwidth = globals.boxplot_width * (len(df.columns) + 1)
@@ -537,6 +537,7 @@ class QA4SMPlotter:
                                            df=values,
                                            type='boxplot_basic',
                                            ci=ci,
+                                           Var=Var,
                                            **plotting_kwargs)
         if not out_name:
             out_name = self.create_filename(Var, type='boxplot_basic')
@@ -658,12 +659,12 @@ class QA4SMPlotter:
             if len(self.img.triple) and Var.g == 2:
                 continue
 
-            ref_meta, mds_meta, other_meta = Var.get_varmeta()
+            ref_meta, mds_meta, other_meta, _ = Var.get_varmeta()
 
             self._barplot_definition(metric=metric,
-                                         df=values,
-                                         type='barplot_basic',
-                                         Var=Var)
+                                     df=values,
+                                     type='barplot_basic',
+                                     Var=Var)
 
             out_name = self.create_filename(Var, type='barplot_basic')
             if other_meta:
@@ -714,7 +715,7 @@ class QA4SMPlotter:
         -------
         fnames: list of file names with all the extensions
         """
-        ref_meta, mds_meta, other_meta = Var.get_varmeta()
+        ref_meta, mds_meta, other_meta, scl_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
         res, unit = self.img.res_info.values()
@@ -733,6 +734,11 @@ class QA4SMPlotter:
             elif not compute_dpi and unit == "km" and res <= 1:
                 style_kwargs["dpi"] = globals.dpi_max
 
+        # get the short_name of the scaling reference
+        scl_short = None
+        if scl_meta:
+            scl_short = scl_meta[1]['short_name']
+
         # create mapplot
         fig, ax = plm.mapplot(
             df=Var.values[Var.varname],
@@ -741,6 +747,7 @@ class QA4SMPlotter:
             ref_grid_stepsize=ref_grid_stepsize,
             plot_extent=
             None,  # if None, extent is automatically adjusted (as opposed to img.extent)
+            scl_short=scl_short,
             **style_kwargs)
 
         # title and plot settings depend on the metric group
@@ -919,8 +926,13 @@ class QA4SMPlotter:
         # get meta and select only metric values with metadata available
         meta_values = self.img.metadata[metadata].values.dropna()
         values = values.reindex(index=meta_values.index)
+
+        unit_ref = self.ref['short_name']
+        _, _, _, scl_meta = Var.get_varmeta()
+        if scl_meta:
+            unit_ref = scl_meta[1]['short_name']
         mu = globals._metric_description[metric].format(
-            globals.get_metric_units(self.ref['short_name']))
+            globals.get_metric_units(unit_ref))
 
         out = plm.boxplot_metadata(df=values,
                                    metadata_values=meta_values,
@@ -969,8 +981,14 @@ class QA4SMPlotter:
         values = pd.concat(values, axis=1)
 
         metric_name = globals._metric_name[metric]
+
+        unit_ref = self.ref['short_name']
+        _, _, _, scl_meta = Var.get_varmeta()
+        if scl_meta:
+            unit_ref = scl_meta[1]['short_name']
+
         metric_units = globals._metric_description[metric].format(
-            globals.get_metric_units(self.ref['short_name']))
+            globals.get_metric_units(unit_ref))
 
         Meta_cont = self.img.metadata[metadata]
         meta_values = Meta_cont.values.dropna()
@@ -980,16 +998,13 @@ class QA4SMPlotter:
         if 'meta_boxplot_min_samples' in plotting_kwargs:
             kwargs['min_size'] = plotting_kwargs['meta_boxplot_min_samples']
 
-        binned_values = bin_funct(
-            df=values,
-            metadata_values=meta_values,
-            meta_key=metadata,
-            **kwargs
-        )
+        binned_values = bin_funct(df=values,
+                                  metadata_values=meta_values,
+                                  meta_key=metadata,
+                                  **kwargs)
         if binned_values is None:
             raise PlotterError(
-                f"Could not bin metadata {metadata} with function {bin_funct}"
-            )
+                f"Could not bin metadata {metadata} with function {bin_funct}")
         # dictionary with subset values
         values_subset = {
             a_bin: values.reindex(index=binned_values[a_bin].index)
@@ -1118,8 +1133,7 @@ class QA4SMPlotter:
                         *meta_keys,
                         save_file=True,
                         out_types=out_types,
-                        meta_boxplot_min_samples=meta_boxplot_min_samples
-                    )
+                        meta_boxplot_min_samples=meta_boxplot_min_samples)
                     filenames.extend(outfiles)
 
                 else:
@@ -1128,8 +1142,7 @@ class QA4SMPlotter:
             except PlotterError as e:
                 warnings.warn(
                     f"Too few points are available to generate '{meta_type}` "
-                    f"metadata-based `{metric}` plots."
-                )
+                    f"metadata-based `{metric}` plots.")
 
         return filenames
 

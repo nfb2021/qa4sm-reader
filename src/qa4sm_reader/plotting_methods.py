@@ -529,7 +529,8 @@ def _make_cbar(fig,
                ref_short: str,
                metric: str,
                label=None,
-               diff_map=False):
+               diff_map=False,
+               scl_short=None):
     """
     Make colorbar to use in plots
 
@@ -543,18 +544,26 @@ def _make_cbar(fig,
         from fig.add_subplot
     ref_short: str
         name of ref dataset
+    scl_short : str, default is None
+        name of scaling dataset
     metric: str
         name of metric
     label: str
         label to describe the colorbar
     diff_map : bool, default is False
         Whether the colorbar is for a difference plot
+
     """
     if label is None:
         label = globals._metric_name[metric] + \
                 globals._metric_description[metric].format(
                     globals.get_metric_units(ref_short)
                 )
+        if scl_short:
+            label = globals._metric_name[metric] + \
+                    globals._metric_description[metric].format(
+                        globals.get_metric_units(scl_short)
+                    )
 
     extend = get_extend_cbar(metric)
     if diff_map:
@@ -1419,6 +1428,7 @@ def boxplot_metadata(
 def mapplot(df,
             metric,
             ref_short,
+            scl_short=None,
             ref_grid_stepsize=None,
             plot_extent=None,
             colormap=None,
@@ -1441,6 +1451,9 @@ def mapplot(df,
             name of the metric for the plot
         ref_short : str
                 short_name of the reference dataset (read from netCDF file)
+        scl_short : str, default is None
+            short_name of the scaling dataset (read from netCDF file).
+            None if no scaling method is selected in validation.
         ref_grid_stepsize : float or None, optional (None by default)
                 angular grid stepsize, needed only when ref_is_angular == False,
         plot_extent : tuple or None
@@ -1565,7 +1578,8 @@ def mapplot(df,
                    ref_short,
                    metric,
                    label=label,
-                   diff_map=diff_map)
+                   diff_map=diff_map,
+                   scl_short=scl_short)
     style_map(ax, plot_extent, **style_kwargs)
 
     return fig, ax

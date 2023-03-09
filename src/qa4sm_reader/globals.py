@@ -196,6 +196,7 @@ var_name_ds_sep = {
 
 # === metadata templates ===
 _ref_ds_attr = 'val_ref'  # global meta values variable that links to the reference dc
+_scale_ref_ds = 'val_scaling_ref'  # global meta values variable that links to the scaling reference dc
 _ds_short_name_attr = 'val_dc_dataset{:d}'  # attribute convention for other datasets
 _ds_pretty_name_attr = 'val_dc_dataset_pretty_name{:d}'  # attribute convention for other datasets
 _version_short_name_attr = 'val_dc_version{:d}'  # attribute convention for other datasets
@@ -633,7 +634,6 @@ metadata = {
     # --- FRM4SM QI, not always present
     "frm_class": ("FRM Classification", None, "discrete", None)
 }
-
 
 soil_types = ["clay_fraction", "silt_fraction", "sand_fraction"]
 instrument_depths = ["instrument_depthfrom", "instrument_depthto"]
