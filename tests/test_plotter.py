@@ -16,7 +16,6 @@ from qa4sm_reader.handlers import Metadata
 from qa4sm_reader.globals import dpi_min, dpi_max, get_resolution_info
 
 
-
 @pytest.fixture
 def plotdir():
     plotdir = tempfile.mkdtemp()
@@ -49,6 +48,28 @@ def basic_plotter_double(plotdir):
 @pytest.fixture
 def irrgrid_plotter(plotdir):
     testfile = '0-SMAP.soil_moisture_with_1-C3S.sm.nc'
+    testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
+                                 'test_data', 'basic', testfile)
+    img = QA4SMImg(testfile_path)
+    plotter = QA4SMPlotter(img, plotdir)
+
+    return plotter
+
+
+@pytest.fixture
+def barplot_plotter(plotdir):
+    testfile = '0-ASCAT.sm_with_1-GLDAS.SoilMoi0_10cm_inst.nc'
+    testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
+                                 'test_data', 'basic', testfile)
+    img = QA4SMImg(testfile_path)
+    plotter = QA4SMPlotter(img, plotdir)
+
+    return plotter
+
+
+@pytest.fixture
+def ref_scaling_ds_plotter(plotdir):
+    testfile = '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
                                  'test_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
@@ -92,17 +113,6 @@ def meta_plotter(plotdir):
     testfile = '0-ISMN.soil_moisture_with_1-C3S.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
                                  'test_data', 'metadata', testfile)
-    img = QA4SMImg(testfile_path)
-    plotter = QA4SMPlotter(img, plotdir)
-
-    return plotter
-
-
-@pytest.fixture
-def barplot_plotter(plotdir):
-    testfile = '0-ASCAT.sm_with_1-GLDAS.SoilMoi0_10cm_inst.nc'
-    testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -365,6 +375,7 @@ def test_boxplot_basic_ci(tc_ci_plotter, plotdir):
     shutil.rmtree(plotdir)
 
 
+
 def test_boxplot_tc_ci(tc_ci_plotter, plotdir):
     snr_files = tc_ci_plotter.boxplot_tc('snr',
                                          out_types='svg',
@@ -373,6 +384,22 @@ def test_boxplot_tc_ci(tc_ci_plotter, plotdir):
     assert len(list(snr_files)) == 4
 
     shutil.rmtree(plotdir)
+
+
+def test_scaling_reference_unit(ref_scaling_ds_plotter, plotdir):
+    img = ref_scaling_ds_plotter.img
+    g = img._iter_vars(filter_parms={'metric': 'RMSD'})
+    Var = next(g)
+    ref_meta, mds_meta, other_meta, scl_meta = Var.get_varmeta()
+    mds_unit = mds_meta[1]['mu']
+    ref_unit = ref_meta[1]['mu']
+    scl_unit = scl_meta[1]['mu']
+    assert mds_unit == 'm³/m³'
+    assert ref_unit == 'm³/m³'
+    assert scl_unit == '% saturation'
+
+    shutil.rmtree(plotdir)
+
 
 
 def test_bin_continuous():

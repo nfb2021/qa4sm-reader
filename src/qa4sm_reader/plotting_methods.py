@@ -1451,8 +1451,9 @@ def mapplot(df,
             name of the metric for the plot
         ref_short : str
                 short_name of the reference dataset (read from netCDF file)
-        scl_short : str, default is None (no scaling method selected in validation)
-                short_name of the scaling dataset (read from netCDF file)
+        scl_short : str, default is None
+            short_name of the scaling dataset (read from netCDF file).
+            None if no scaling method is selected in validation.
         ref_grid_stepsize : float or None, optional (None by default)
                 angular grid stepsize, needed only when ref_is_angular == False,
         plot_extent : tuple or None

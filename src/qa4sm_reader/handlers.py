@@ -4,6 +4,7 @@ import warnings
 from qa4sm_reader import globals
 from parse import *
 import warnings as warn
+import re
 
 
 class MixinVarmeta:
@@ -64,9 +65,18 @@ class MixinVarmeta:
 
         else:
             scale_ds = None
-            if 'val_scaling_ref' in self.Datasets.meta.keys():
-                scale_ref_id = int(self.Datasets.meta['val_scaling_ref'][-1:])
-                scale_ds = self.Datasets.dataset_metadata(scale_ref_id)
+            if globals._scale_ref_ds in self.Datasets.meta.keys():
+                try:
+                    scale_ref_id = int(
+                        re.findall(
+                            r'\d+',
+                            self.Datasets.meta[globals._scale_ref_ds])[-1])
+                    scale_ds = self.Datasets.dataset_metadata(scale_ref_id)
+                except IndexError:
+                    warnings.warn(
+                        f"ID of scaling reference dataset could not be parsed, "
+                        f"units of spatial reference are used.")
+
             ref_ds = self.Datasets.dataset_metadata(self.parts['ref_id'])
             mds = self.Datasets.dataset_metadata(self.parts['sat_id0'])
             dss = None

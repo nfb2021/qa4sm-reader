@@ -140,7 +140,7 @@ class QA4SMPlotter:
         parts: list of parts for title
         """
         parts = []
-        ref, mds, other, _ = [meta for meta in Var.get_varmeta()]
+        ref, mds, other, _ = Var.get_varmeta()
         if type == 'boxplot_basic':
             parts.append(ref[0])
             parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
@@ -998,16 +998,13 @@ class QA4SMPlotter:
         if 'meta_boxplot_min_samples' in plotting_kwargs:
             kwargs['min_size'] = plotting_kwargs['meta_boxplot_min_samples']
 
-        binned_values = bin_funct(
-            df=values,
-            metadata_values=meta_values,
-            meta_key=metadata,
-            **kwargs
-        )
+        binned_values = bin_funct(df=values,
+                                  metadata_values=meta_values,
+                                  meta_key=metadata,
+                                  **kwargs)
         if binned_values is None:
             raise PlotterError(
-                f"Could not bin metadata {metadata} with function {bin_funct}"
-            )
+                f"Could not bin metadata {metadata} with function {bin_funct}")
         # dictionary with subset values
         values_subset = {
             a_bin: values.reindex(index=binned_values[a_bin].index)
