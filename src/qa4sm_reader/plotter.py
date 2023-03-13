@@ -667,8 +667,6 @@ class QA4SMPlotter:
                                      Var=Var)
 
             out_name = self.create_filename(Var, type='barplot_basic')
-            if other_meta:
-                out_name += '_tc'
 
             # save or return plotting objects
             if save_files:
@@ -754,8 +752,6 @@ class QA4SMPlotter:
         if Var.varname.startswith('status'):
             title = self.create_title(Var=Var, type='mapplot_status')
             save_name = self.create_filename(Var=Var, type="mapplot_status")
-            if Var.g == 3:
-                save_name += '_tc'
         elif Var.g == 0:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
