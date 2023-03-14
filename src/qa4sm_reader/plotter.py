@@ -145,14 +145,6 @@ class QA4SMPlotter:
             parts.append(ref[0])
             parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
 
-        elif type in ['mapplot_basic_3ds']:
-            parts.append(ref[0])
-            parts.extend([ref[1]['pretty_name'], ref[1]['pretty_version']])
-            parts.append(mds[0])
-            parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
-            parts.append(other[0])
-            parts.extend([other[1]['pretty_name'], other[1]['pretty_version']])
-
         elif type in ['boxplot_tc', 'mapplot_basic', 'mapplot_tc']:
             parts.append(mds[0])
             parts.extend([mds[1]['pretty_name'], mds[1]['pretty_version']])
@@ -185,8 +177,6 @@ class QA4SMPlotter:
             'Intercomparison of {} \nfor {}-{} ({}) \nwith {}-{} ({})\n ',
             'mapplot_basic':
             '{} for {}-{} ({}) with {}-{} ({}) as spatial reference',
-            'mapplot_basic_3ds':
-            '{} for {}-{} ({}) with {}-{}({}) \nand {}-{}({})\n',
             'mapplot_tc': '{} for {}-{} ({}) with {}-{} ({}) and {}-{} ({})',
             'metadata':
             'Intercomparison of {} by {}\nwith spatial reference: {}',
@@ -216,7 +206,6 @@ class QA4SMPlotter:
             'mapplot_common': 'overview_{}',
             'boxplot_tc': 'boxplot_{}_for_{}-{}',
             'mapplot_double': 'overview_{}-{}_and_{}-{}_{}',
-            'mapplot_double_3ds': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}',
             'mapplot_tc': 'overview_{}-{}_and_{}-{}_and_{}-{}_{}_for_{}-{}',
             'metadata': 'boxplot_{}_metadata_{}',
             'table': 'statistics_table',
@@ -261,13 +250,6 @@ class QA4SMPlotter:
         # fetch parts of the name for the variable
         if type in ["barplot_basic", "mapplot_status"]:
             parts = []
-
-        elif type == "mapplot_double_3ds":
-            parts = [
-                ref_meta[0], ref_meta[1]['short_name'], mds_meta[0],
-                mds_meta[1]['short_name'], other_meta[0],
-                other_meta[1]['short_name'], Var.metric
-            ]
 
         elif type not in ["mapplot_tc", "mapplot_double"]:
             parts = [Var.metric]
@@ -667,8 +649,6 @@ class QA4SMPlotter:
                                      Var=Var)
 
             out_name = self.create_filename(Var, type='barplot_basic')
-            if other_meta:
-                out_name += '_tc'
 
             # save or return plotting objects
             if save_files:
@@ -754,15 +734,10 @@ class QA4SMPlotter:
         if Var.varname.startswith('status'):
             title = self.create_title(Var=Var, type='mapplot_status')
             save_name = self.create_filename(Var=Var, type="mapplot_status")
-            if Var.g == 3:
-                save_name += '_tc'
         elif Var.g == 0:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
             save_name = self.create_filename(Var, type='mapplot_common')
-        elif Var.g == 3:
-            title = self.create_title(Var=Var, type='mapplot_basic_3ds')
-            save_name = self.create_filename(Var, type='mapplot_double_3ds')
         elif Var.g == 2:
             title = self.create_title(Var=Var, type='mapplot_basic')
             save_name = self.create_filename(Var, type='mapplot_double')
