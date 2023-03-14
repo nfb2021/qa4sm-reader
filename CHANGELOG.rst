@@ -7,6 +7,16 @@ Unreleased
 
 -
 
+Version 0.9
+===========
+
+- QA4SM release 2 version
+- Status maps and box plots
+- FRM box plots added
+- Scaling reference units used on plots
+- SMOS and SMAP L2 added
+
+
 Version 0.4
 ===========
 
