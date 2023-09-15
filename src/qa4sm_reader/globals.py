@@ -292,6 +292,7 @@ def get_metric_units(dataset, raise_error=False):
         'SMOS_L3': 'm³/m³',
         'SMOS_L2': 'm³/m³',
         'SMAP_L2': 'm³/m³',
+        'SMOS_SBPCA': 'm³/m³',
     }
 
     try:
@@ -361,6 +362,7 @@ _dataset_pretty_names = {  # from qa4sm\validator\fixtures\datasets.json
     'SMOS_L3': 'SMOS L3',
     'SMOS_L2': 'SMOS L2',
     'SMAP_L2': 'SMAP L3',
+    'SMOS_SBPCA': 'SMOS SBPCA',
 }
 
 # available backups
@@ -404,6 +406,7 @@ _dataset_version_pretty_names = {  # from qa4sm\validator\fixtures\versions.json
     "SMOSL3_v339_DESC": "version 339 Descending",
     "SMAPL2_V8": 'V8',
     "SMOSL2_700": 'v700',
+    "SMOS_SBPCA_v724": "v724",
 }
 
 # fallback for dataset val_dc_variable in case they are not in the metadata
@@ -473,6 +476,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS_L3': 25,
         'SMOS_L2': 15,
         'SMAP_L2': 35,
+        'SMOS_SBPCA': 15,
     }
 
     # fallback for resolution unit information
@@ -496,6 +500,7 @@ def get_resolution_info(dataset, raise_error=False):
         'SMOS_L3': 'km',
         'SMOS_L2': 'km',
         'SMAP_L2': 'km',
+        'SMOS_SBPCA': 'km',
     }
 
     try:
