@@ -7,6 +7,12 @@ Unreleased
 
 -
 
+Version 0.9.1
+=============
+
+- Added function to retrieve the package version
+
+
 Version 0.9
 ===========
 
