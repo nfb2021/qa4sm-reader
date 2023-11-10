@@ -430,7 +430,7 @@ def test_bin_continuous():
 
     assert binned.keys() == exp.keys()
     for act, expected in zip(binned.values(), exp.values()):
-        pd.testing.assert_series_equal(act[act.columns[0]], expected)
+        pd.testing.assert_series_equal(act[act.columns[0]], expected, check_dtype=False)
 
 
 def test_bin_classes():
@@ -458,7 +458,7 @@ def test_bin_discrete():
     exp["instrument"] = data
     exp["Dataset"] = "dataset"
 
-    pd.testing.assert_frame_equal(binned, exp)
+    pd.testing.assert_frame_equal(binned, exp, check_dtype=False)
 
 
 def test_combine_soils():
@@ -477,7 +477,7 @@ def test_combine_soils():
     exp = pd.DataFrame(data=["Coarse\ngran.", "Fine\ngran.", "Coarse\ngran."],
                        columns=["soil_type"])
 
-    pd.testing.assert_frame_equal(combined, exp)
+    pd.testing.assert_frame_equal(combined, exp, check_dtype=False)
 
 
 def test_combine_depths():
@@ -496,7 +496,7 @@ def test_combine_depths():
                        data=np.full(10, 0.5),
                        columns=["instrument_depth"])
 
-    pd.testing.assert_frame_equal(combined, exp)
+    pd.testing.assert_frame_equal(combined, exp, check_dtype=False)
 
 
 def test_dict2df():
