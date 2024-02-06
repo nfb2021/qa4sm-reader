@@ -299,8 +299,10 @@ class QA4SMPlotter:
         """
         Vars = self.img._iter_vars(type="metric",
                                    filter_parms={"metric": metric})
-
         for n, Var in enumerate(Vars):
+            print(f'\n\n\tVar: {Var}')
+            print(f'\tVar.values: {Var.values}')
+            print('\n\n')
             values = Var.values[Var.varname]
             # changes if it's a common-type Var
             if Var.g == 0:
@@ -955,6 +957,8 @@ class QA4SMPlotter:
             raise PlotterError(f"No valid values for {metric}")
         values = pd.concat(values, axis=1)
 
+        print(len(values), values)
+
         metric_name = globals._metric_name[metric]
 
         unit_ref = self.ref['short_name']
@@ -980,6 +984,14 @@ class QA4SMPlotter:
         if binned_values is None:
             raise PlotterError(
                 f"Could not bin metadata {metadata} with function {bin_funct}")
+
+        # print(len({a_bin: values.index
+        #            for a_bin in binned_values.keys()}),
+        #       {a_bin: values.index
+        #        for a_bin in binned_values.keys()})
+        # print(f'values: {values}')
+        # print(f'values.index: {values.index}')
+        # print(f'binned_values: {binned_values}')
         # dictionary with subset values
         values_subset = {
             a_bin: values.reindex(index=binned_values[a_bin].index)

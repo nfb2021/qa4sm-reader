@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import warnings
 
+import sys
+
+sys.path.append(
+    '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm-reader/src/')
 from qa4sm_reader import globals
 from parse import *
 import warnings as warn
@@ -128,6 +132,11 @@ class QA4SMDatasets():
         ref_dc = 0
 
         try:
+            # print(f'globals._ref_ds_attr: {globals._ref_ds_attr}')
+            # print(f'self.meta: {self.meta}')
+            # print(
+            #     f'parse(globals._ds_short_name_attr, val_ref): {parse(globals._ds_short_name_attr, self.meta[globals._ref_ds_attr])}'
+            # )
             val_ref = self.meta[globals._ref_ds_attr]
             ref_dc = parse(globals._ds_short_name_attr, val_ref)[0]
         except KeyError as e:

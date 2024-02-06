@@ -9,17 +9,19 @@ import warnings
 import numpy as np
 import xarray as xr
 import pandas as pd
-from typing import Union
-
+from typing import Union, Tuple, Optional
+import os
+from qa4sm_reader.utils import make_loc_dim
 
 def extract_periods(filepath) -> np.array:
     """Get periods from .nc"""
-    dataset = xr.open_dataset(filepath)
-    if globals.period_name in dataset.dims:
-        return dataset[globals.period_name].values
+    with xr.open_dataset(filepath) as dataset:
+        if globals.period_name in dataset.dims:
+            return dataset[globals.period_name].values
 
-    else:
-        return np.array([None])
+        else:
+            return np.array([None])
+            return np.array([globals.DEFAULT_TSW])
 
 
 class SpatialExtentError(Exception):
@@ -84,15 +86,32 @@ class QA4SMImg(object):
             except AttributeError:
                 self.ref_dataset_grid_stepsize = 'nan'
 
-    def _open_ds(self, extent=None, period=None, engine='h5netcdf'):
-        """Open .nc as xarray datset, with selected extent"""
+    def _open_ds(self, extent: Optional[Tuple]=None, period:Optional[str]=None, engine:Optional[str]='h5netcdf') -> xr.Dataset:
+        """Open .nc as `xarray.Datset`, with selected extent and period.
+
+        Parameters
+        ----------
+        extent : tuple, optional (default: None)
+            Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
+        period : str, optional (default: None)
+            if results for multiple validation periods, i.e. multiple temporal sub-windows, are stored in file,
+            load this period.
+        engine: str, optional (default: h5netcdf)
+            Engine used by xarray to read data from file.
+
+        Returns
+        -------
+        ds : xarray.Dataset
+            Dataset with the validation results
+        """
         dataset = xr.load_dataset(
             self.filepath,
             drop_variables="time",
             engine=engine,
         )
         if period is not None:
-            ds = dataset.sel(dict(period=period))
+            selection = {globals.PERIOD_COORDINATE_NAME: period}
+            ds = dataset.sel(selection)
         else:
             ds = dataset
         # drop non-spatial variables (e.g.'time')
@@ -110,9 +129,11 @@ class QA4SMImg(object):
                 )
 
             return ds.where(mask, drop=True)
+            return make_loc_dim(ds.where(mask, drop=True))
 
         else:
             return ds
+            return make_loc_dim(ds)
 
     @property
     def res_info(self) -> dict:
@@ -373,9 +394,11 @@ class QA4SMImg(object):
                     if self.ds[globals.time_name].values.size == 0:
                         self.ds = self.ds.drop_vars(globals.time_name)
                 df = self.ds.to_dataframe()
+                df.to_csv('test10.csv')
             else:
                 df = self.ds[self.index_names + varnames].to_dataframe()
                 df.dropna(axis='index', subset=varnames, inplace=True)
+                df.to_csv('test11.csv')
         except KeyError as e:
             raise Exception(
                 "The variable name '{}' does not match any name in the input values."
@@ -389,8 +412,14 @@ class QA4SMImg(object):
             if gpi in df.index:
                 df[gpi] = df.index.get_level_values(gpi)
 
+        df.to_csv('test2.csv')
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
+
+
+        print(os.getcwd())
+        df.to_csv('test3.csv')
+        print(df)
 
         return df
 

@@ -651,3 +651,10 @@ _metadata_exclude = [
     'p_tau',
     'status',
 ]
+
+
+# intra-annual valdiation metric related settings
+# =====================================================
+
+PERIOD_COORDINATE_NAME = 'tsw' # name of the period coordinate in the netcdf file (Temporal Sub-Window)
+DEFAULT_TSW = 'bulk'

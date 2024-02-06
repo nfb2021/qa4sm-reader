@@ -10,6 +10,7 @@ import qa4sm_reader.globals as globals
 
 
 def plot_all(filepath: str,
+            temporal_sub_windows: list = None,
              metrics: list = None,
              extent: tuple = None,
              out_dir: str = None,
@@ -61,6 +62,13 @@ def plot_all(filepath: str,
         lists of filenames for created mapplots and boxplots
     fnames_csv: list
     """
+
+    print(
+        f'\n\n\t filepath: {filepath}, metrics: {metrics}, extent: {extent}, '
+        f'out_dir: {out_dir}, out_type: {out_type}, save_all: {save_all}, '
+        f'save_metadata: {save_metadata}, save_csv: {save_csv}, engine: {engine}, '
+        f'plotting_kwargs: {plotting_kwargs} \n\n')
+
     if isinstance(save_metadata, bool):
         if not save_metadata:
             save_metadata = 'never'
@@ -76,8 +84,14 @@ def plot_all(filepath: str,
 
     # initialise image and plotter
     fnames_bplot, fnames_mapplot, fnames_csv = [], [], []
-    periods = extract_periods(filepath)
+    if not temporal_sub_windows:
+        periods = extract_periods(filepath)
+    else:
+        periods = temporal_sub_windows
+
+    print(f'periods: {periods}')
     for period in periods:
+        print(f'period: {period}')
         img = QA4SMImg(
             filepath,
             period=period,
@@ -106,21 +120,17 @@ def plot_all(filepath: str,
                 fnames_mapplot.extend(metric_mapplots)
             if img.metadata and (save_metadata != 'never'):
                 if save_metadata == 'always':
-                    kwargs = {
-                        'meta_boxplot_min_samples': 0
-                    }
+                    kwargs = {'meta_boxplot_min_samples': 0}
                 else:
                     kwargs = {
-                        'meta_boxplot_min_samples': globals.meta_boxplot_min_samples
+                        'meta_boxplot_min_samples':
+                        globals.meta_boxplot_min_samples
                     }
 
                 fnames_bplot.extend(
-                    plotter.plot_save_metadata(
-                        metric,
-                        out_types=out_type,
-                        **kwargs
-                    ))
-
+                    plotter.plot_save_metadata(metric,
+                                               out_types=out_type,
+                                               **kwargs))
 
         if save_csv:
             out_csv = plotter.save_stats()
