@@ -2,7 +2,7 @@
 from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
 from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths, average_non_additive
-
+from qa4sm_reader.utils import note
 from pathlib import Path
 import warnings
 
@@ -11,19 +11,18 @@ import xarray as xr
 import pandas as pd
 from typing import Union, Tuple, Optional
 import os
-from qa4sm_reader.utils import make_loc_dim
 
+@note("Legacy code: Function is called if neither the 'bulk' case, nor any temporal sub-winwods \
+    were specified but instead None. This should not occur in a normal QA4SM run as provided by qa4sm.eu.\
+    This code is kept for special use-cases and for potential future development. Proceed with caution.")
 def extract_periods(filepath) -> np.array:
     """Get periods from .nc"""
-    with xr.open_dataset(filepath) as dataset:
-        if globals.period_name in dataset.dims:
-            return dataset[globals.period_name].values
+    dataset = xr.open_dataset(filepath)
+    if globals.period_name in dataset.dims:
+        return dataset[globals.period_name].values
 
-        else:
-            return np.array([None])
-            return np.array([globals.DEFAULT_TSW])
-
-
+    else:
+        return np.array([None])
 class SpatialExtentError(Exception):
     """Class to handle errors derived from the spatial extent of validations"""
     pass
@@ -33,7 +32,7 @@ class QA4SMImg(object):
     """A tool to analyze the results of a validation, which are stored in a netCDF file."""
     def __init__(self,
                  filepath,
-                 period=None,
+                 period=globals.DEFAULT_TSW,
                  extent=None,
                  ignore_empty=True,
                  metrics=None,
@@ -48,8 +47,8 @@ class QA4SMImg(object):
         ----------
         filepath : str
             Path to the results netcdf file (as created by QA4SM)
-        period : Any, optional (default: None)
-            If results for multiple validation periods are stored in file,
+        period : str, optional (default: `globals.DEFAULT_TSW`)
+            if results for multiple validation periods, i.e. multiple temporal sub-windows, are stored in file,
             load this period.
         extent : tuple, optional (default: None)
             Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
@@ -86,14 +85,14 @@ class QA4SMImg(object):
             except AttributeError:
                 self.ref_dataset_grid_stepsize = 'nan'
 
-    def _open_ds(self, extent: Optional[Tuple]=None, period:Optional[str]=None, engine:Optional[str]='h5netcdf') -> xr.Dataset:
+    def _open_ds(self, extent: Optional[Tuple]=None, period:Optional[str]=globals.DEFAULT_TSW, engine:Optional[str]='h5netcdf') -> xr.Dataset:
         """Open .nc as `xarray.Datset`, with selected extent and period.
 
         Parameters
         ----------
         extent : tuple, optional (default: None)
             Area to subset the values for -> (min_lon, max_lon, min_lat, max_lat)
-        period : str, optional (default: None)
+        period : str, optional (default: `globals.DEFAULT_TSW`)
             if results for multiple validation periods, i.e. multiple temporal sub-windows, are stored in file,
             load this period.
         engine: str, optional (default: h5netcdf)
@@ -109,11 +108,9 @@ class QA4SMImg(object):
             drop_variables="time",
             engine=engine,
         )
-        if period is not None:
-            selection = {globals.PERIOD_COORDINATE_NAME: period}
-            ds = dataset.sel(selection)
-        else:
-            ds = dataset
+
+        selection = {globals.PERIOD_COORDINATE_NAME: period}  # allows for flexible loading of both the dimension and temproal sub-window
+        ds = dataset.sel(selection)
         # drop non-spatial variables (e.g.'time')
         if globals.time_name in ds.variables:
             ds = ds.drop_vars(globals.time_name)
@@ -129,11 +126,9 @@ class QA4SMImg(object):
                 )
 
             return ds.where(mask, drop=True)
-            return make_loc_dim(ds.where(mask, drop=True))
 
         else:
             return ds
-            return make_loc_dim(ds)
 
     @property
     def res_info(self) -> dict:
@@ -412,14 +407,8 @@ class QA4SMImg(object):
             if gpi in df.index:
                 df[gpi] = df.index.get_level_values(gpi)
 
-        df.to_csv('test2.csv')
         df.reset_index(drop=True, inplace=True)
         df = df.set_index(self.index_names)
-
-
-        print(os.getcwd())
-        df.to_csv('test3.csv')
-        print(df)
 
         return df
 

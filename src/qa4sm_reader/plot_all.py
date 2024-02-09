@@ -7,10 +7,10 @@ import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter
 from qa4sm_reader.img import QA4SMImg, extract_periods
 import qa4sm_reader.globals as globals
-
+import numpy as np
 
 def plot_all(filepath: str,
-            temporal_sub_windows: list = None,
+             temporal_sub_windows: list = None,
              metrics: list = None,
              extent: tuple = None,
              out_dir: str = None,
@@ -63,12 +63,6 @@ def plot_all(filepath: str,
     fnames_csv: list
     """
 
-    print(
-        f'\n\n\t filepath: {filepath}, metrics: {metrics}, extent: {extent}, '
-        f'out_dir: {out_dir}, out_type: {out_type}, save_all: {save_all}, '
-        f'save_metadata: {save_metadata}, save_csv: {save_csv}, engine: {engine}, '
-        f'plotting_kwargs: {plotting_kwargs} \n\n')
-
     if isinstance(save_metadata, bool):
         if not save_metadata:
             save_metadata = 'never'
@@ -84,12 +78,11 @@ def plot_all(filepath: str,
 
     # initialise image and plotter
     fnames_bplot, fnames_mapplot, fnames_csv = [], [], []
-    if not temporal_sub_windows:
+    if temporal_sub_windows is None:
         periods = extract_periods(filepath)
     else:
-        periods = temporal_sub_windows
+        periods = np.array(temporal_sub_windows)
 
-    print(f'periods: {periods}')
     for period in periods:
         print(f'period: {period}')
         img = QA4SMImg(
@@ -110,6 +103,7 @@ def plot_all(filepath: str,
         for metric in metrics:
             metric_bplots, metric_mapplots = plotter.plot_metric(
                 metric=metric,
+                period=period,
                 out_types=out_type,
                 save_all=save_all,
                 **plotting_kwargs)
@@ -133,7 +127,7 @@ def plot_all(filepath: str,
                                                **kwargs))
 
         if save_csv:
-            out_csv = plotter.save_stats()
+            out_csv = plotter.save_stats(period=period)
             fnames_csv.append(out_csv)
 
     return fnames_bplot, fnames_mapplot, fnames_csv

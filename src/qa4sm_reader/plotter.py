@@ -45,6 +45,7 @@ class QA4SMPlotter:
 
     def get_dir(self, out_dir: str) -> Path:
         """Use output path if specified, otherwise same directory as the one storing the netCDF file"""
+        # if out_dir and globals.DEFAULT_TSW not in out_dir: #$$ really clever? bulk dir might be easier for UI
         if out_dir:
             out_dir = Path(out_dir)  # use directory if specified
             if not out_dir.exists():
@@ -217,7 +218,7 @@ class QA4SMPlotter:
         except KeyError:
             raise PlotterError(f"type '{type}' is not in the lookup table")
 
-    def create_title(self, Var, type: str) -> str:
+    def create_title(self, Var, type: str, period: str = None) -> str:
         """
         Create title of the plot
 
@@ -231,10 +232,11 @@ class QA4SMPlotter:
         parts = [globals._metric_name[Var.metric]]
         parts.extend(self._get_parts_name(Var=Var, type=type))
         title = self._titles_lut(type=type).format(*parts)
-
+        if period and period != globals.DEFAULT_TSW:
+            title = f'{period}: {title}'
         return title
 
-    def create_filename(self, Var, type: str) -> str:
+    def create_filename(self, Var, type: str, period: str= None) -> str:
         """
         Create name of the file
 
@@ -266,6 +268,8 @@ class QA4SMPlotter:
             parts.extend([mds_meta[0], mds_meta[1]['short_name'], Var.metric])
 
         name = name.format(*parts)
+        if period:
+            name = f'{period}_{name}'
 
         return name
 
@@ -300,9 +304,6 @@ class QA4SMPlotter:
         Vars = self.img._iter_vars(type="metric",
                                    filter_parms={"metric": metric})
         for n, Var in enumerate(Vars):
-            print(f'\n\n\tVar: {Var}')
-            print(f'\tVar.values: {Var.values}')
-            print('\n\n')
             values = Var.values[Var.varname]
             # changes if it's a common-type Var
             if Var.g == 0:
@@ -342,6 +343,7 @@ class QA4SMPlotter:
                             metric: str,
                             df: pd.DataFrame,
                             type: str,
+                            period: str = None,
                             ci=None,
                             offset=0.07,
                             Var=None,
@@ -391,7 +393,7 @@ class QA4SMPlotter:
                 Var = Var
                 break
         if not type == "metadata":
-            title = self.create_title(Var, type=type)
+            title = self.create_title(Var, type=type, period=period)
             ax.set_title(title, pad=globals.title_pad)
         # add watermark
         if self.img.has_CIs:
@@ -407,6 +409,7 @@ class QA4SMPlotter:
                             metric: str,
                             df: pd.DataFrame,
                             type: str,
+                            period: str = None,
                             Var=None) -> tuple:
         """
         Define parameters of plot
@@ -438,7 +441,7 @@ class QA4SMPlotter:
                 Var = Var
                 break
 
-        title = self.create_title(Var, type=type)
+        title = self.create_title(Var, type=type, period=period)
 
         ax.set_title(title, pad=globals.title_pad)
 
@@ -478,6 +481,7 @@ class QA4SMPlotter:
 
     def boxplot_basic(self,
                       metric: str,
+                      period: str = None,
                       out_name: str = None,
                       out_types: str = 'png',
                       save_files: bool = False,
@@ -520,11 +524,12 @@ class QA4SMPlotter:
         fig, ax = self._boxplot_definition(metric=metric,
                                            df=values,
                                            type='boxplot_basic',
+                                           period=period,
                                            ci=ci,
                                            Var=Var,
                                            **plotting_kwargs)
         if not out_name:
-            out_name = self.create_filename(Var, type='boxplot_basic')
+            out_name = self.create_filename(Var, type='boxplot_basic', period=period)
         # save or return plotting objects
         if save_files:
             fnames = self._save_plot(out_name, out_types=out_types)
@@ -537,6 +542,7 @@ class QA4SMPlotter:
 
     def boxplot_tc(self,
                    metric: str,
+                   period: str = None,
                    out_name: str = None,
                    out_types: str = 'png',
                    save_files: bool = False,
@@ -593,11 +599,12 @@ class QA4SMPlotter:
                                                df=df,
                                                ci=ci_id,
                                                type='boxplot_tc',
+                                               period=period,
                                                Var=Var,
                                                **plotting_kwargs)
             # save. Below workaround to avoid same names
             if not out_name:
-                save_name = self.create_filename(Var, type='boxplot_tc')
+                save_name = self.create_filename(Var, type='boxplot_tc', period=period)
             else:
                 save_name = out_name
             # save or return plotting objects
@@ -612,6 +619,7 @@ class QA4SMPlotter:
     def barplot(
         self,
         metric: str,
+        period: str = None,
         out_types: str = 'png',
         save_files: bool = False,
     ) -> Union[list, None]:
@@ -648,10 +656,10 @@ class QA4SMPlotter:
             self._barplot_definition(metric=metric,
                                      df=values,
                                      type='barplot_basic',
+                                     period=period,
                                      Var=Var)
 
-            out_name = self.create_filename(Var, type='barplot_basic')
-
+            out_name = self.create_filename(Var, type='barplot_basic', period=period)
             # save or return plotting objects
             if save_files:
                 fnames.extend(self._save_plot(out_name, out_types=out_types))
@@ -663,7 +671,7 @@ class QA4SMPlotter:
     def mapplot_var(
         self,
         Var,
-        out_name: str = None,
+        period: str = None,
         out_types: str = 'png',
         save_files: bool = False,
         compute_dpi: bool = True,
@@ -734,22 +742,19 @@ class QA4SMPlotter:
 
         # title and plot settings depend on the metric group
         if Var.varname.startswith('status'):
-            title = self.create_title(Var=Var, type='mapplot_status')
-            save_name = self.create_filename(Var=Var, type="mapplot_status")
+            title = self.create_title(Var=Var, type='mapplot_status', period=period)
+            save_name = self.create_filename(Var=Var, type="mapplot_status", period=period)
         elif Var.g == 0:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
-            save_name = self.create_filename(Var, type='mapplot_common')
+            save_name = self.create_filename(Var, type='mapplot_common', period=period)
         elif Var.g == 2:
-            title = self.create_title(Var=Var, type='mapplot_basic')
-            save_name = self.create_filename(Var, type='mapplot_double')
+            title = self.create_title(Var=Var, type='mapplot_basic', period=period)
+            save_name = self.create_filename(Var, type='mapplot_double', period=period)
         else:
-            title = self.create_title(Var=Var, type='mapplot_tc')
-            save_name = self.create_filename(Var, type='mapplot_tc')
+            title = self.create_title(Var=Var, type='mapplot_tc', period=period)
+            save_name = self.create_filename(Var, type='mapplot_tc', period=period)
 
-        # overwrite output file name if given
-        if out_name:
-            save_name = out_name
 
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
@@ -758,7 +763,6 @@ class QA4SMPlotter:
                                globals.watermark_pos,
                                for_map=True,
                                offset=0.04)
-
         # save file or just return the image
         if save_files:
             fnames = self._save_plot(save_name, out_types=out_types)
@@ -770,6 +774,7 @@ class QA4SMPlotter:
 
     def mapplot_metric(self,
                        metric: str,
+                       period: str = None,
                        out_types: str = 'png',
                        save_files: bool = False,
                        **plotting_kwargs) -> list:
@@ -798,7 +803,7 @@ class QA4SMPlotter:
                 continue
             if not (np.isnan(Var.values.to_numpy()).all() or Var.is_CI):
                 fns = self.mapplot_var(Var,
-                                       out_name=None,
+                                       period=period,
                                        out_types=out_types,
                                        save_files=save_files,
                                        **plotting_kwargs)
@@ -814,6 +819,7 @@ class QA4SMPlotter:
 
     def plot_metric(self,
                     metric: str,
+                    period: str,
                     out_types: str = 'png',
                     save_all: bool = True,
                     **plotting_kwargs) -> tuple:
@@ -834,20 +840,24 @@ class QA4SMPlotter:
 
         if Metric.name == 'status':
             fnames_bplot = self.barplot(metric='status',
+                                        period=period,
                                         out_types=out_types,
                                         save_files=save_all)
 
         elif Metric.g == 0 or Metric.g == 2:
             fnames_bplot = self.boxplot_basic(metric=metric,
+                                              period=period,
                                               out_types=out_types,
                                               save_files=save_all,
                                               **plotting_kwargs)
         elif Metric.g == 3:
             fnames_bplot = self.boxplot_tc(metric=metric,
+                                           period=period,
                                            out_types=out_types,
                                            save_files=save_all,
                                            **plotting_kwargs)
         fnames_mapplot = self.mapplot_metric(metric=metric,
+                                             period=period,
                                              out_types=out_types,
                                              save_files=save_all,
                                              **plotting_kwargs)
@@ -957,8 +967,6 @@ class QA4SMPlotter:
             raise PlotterError(f"No valid values for {metric}")
         values = pd.concat(values, axis=1)
 
-        print(len(values), values)
-
         metric_name = globals._metric_name[metric]
 
         unit_ref = self.ref['short_name']
@@ -985,14 +993,6 @@ class QA4SMPlotter:
             raise PlotterError(
                 f"Could not bin metadata {metadata} with function {bin_funct}")
 
-        # print(len({a_bin: values.index
-        #            for a_bin in binned_values.keys()}),
-        #       {a_bin: values.index
-        #        for a_bin in binned_values.keys()})
-        # print(f'values: {values}')
-        # print(f'values.index: {values.index}')
-        # print(f'binned_values: {binned_values}')
-        # dictionary with subset values
         values_subset = {
             a_bin: values.reindex(index=binned_values[a_bin].index)
             for a_bin in binned_values.keys()
@@ -1014,6 +1014,7 @@ class QA4SMPlotter:
     def plot_metadata(self,
                       metric: str,
                       metadata: str,
+                      period: str = None,
                       metadata_discrete: str = None,
                       save_file: bool = False,
                       out_types: str = 'png',
@@ -1063,6 +1064,8 @@ class QA4SMPlotter:
         title = self._titles_lut("metadata").format(
             globals._metric_name[metric], ", ".join(meta_names),
             self.img.datasets.ref["pretty_title"])
+        if period and period != globals.DEFAULT_TSW:
+            title = f'{period}: {title}'
         fig.suptitle(title)
 
         plm.make_watermark(fig=fig, offset=0)
@@ -1133,12 +1136,13 @@ class QA4SMPlotter:
 
         return filenames
 
-    def save_stats(self):
+    def save_stats(self, period: str = None) -> str:
         """Saves the summary statistics to a .csv file and returns the name"""
         table = self.img.stats_df()
         filename = self._filenames_lut("table") + '.csv'
+        if period:
+            filename = f'{period}_{filename}'
         filepath = self.out_dir.joinpath(filename)
-
         table.to_csv(path_or_buf=filepath)
 
         return filepath

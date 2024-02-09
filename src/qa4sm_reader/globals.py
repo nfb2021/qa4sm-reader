@@ -8,6 +8,7 @@ import warnings
 import cartopy.crs as ccrs
 import matplotlib.colors as cl
 import matplotlib.pyplot as plt
+import numpy as np
 
 # PLOT DEFAULT SETTINGS
 # =====================================================
