@@ -342,7 +342,7 @@ class QA4SMImg(object):
 
         return vars
 
-    def group_metrics(self, metrics: list = None) -> (dict, dict, dict):
+    def group_metrics(self, metrics: list = None) -> Union[None, Tuple[dict, dict, dict]]:
         """
         Load and group all metrics from file
 
@@ -389,11 +389,9 @@ class QA4SMImg(object):
                     if self.ds[globals.time_name].values.size == 0:
                         self.ds = self.ds.drop_vars(globals.time_name)
                 df = self.ds.to_dataframe()
-                df.to_csv('test10.csv')
             else:
                 df = self.ds[self.index_names + varnames].to_dataframe()
                 df.dropna(axis='index', subset=varnames, inplace=True)
-                df.to_csv('test11.csv')
         except KeyError as e:
             raise Exception(
                 "The variable name '{}' does not match any name in the input values."
@@ -412,7 +410,7 @@ class QA4SMImg(object):
 
         return df
 
-    def metric_df(self, metrics: str or list):
+    def metric_df(self, metrics: Union[str, list]) -> pd.DataFrame:
         """
         Group all variables for the metric in a common data frame
 

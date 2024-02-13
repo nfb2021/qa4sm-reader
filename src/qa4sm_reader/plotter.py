@@ -13,7 +13,8 @@ from qa4sm_reader import plotting_methods as plm
 
 from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
-
+from typing import Generator, Any
+import qa4sm_reader.handlers
 
 class QA4SMPlotter:
     """
@@ -279,7 +280,7 @@ class QA4SMPlotter:
         tc: bool = False,
         stats: bool = True,
         mean_ci: bool = True,
-    ) -> tuple:
+    ) -> Generator[pd.DataFrame, qa4sm_reader.handlers.MetricVariable, pd.DataFrame]:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
