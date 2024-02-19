@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+import re
+from unittest.mock import DEFAULT
 import warnings
 from pathlib import Path
+from matplotlib.pylab import f
 
 import pandas as pd
 from typing import Union
@@ -13,7 +16,7 @@ from qa4sm_reader import plotting_methods as plm
 
 from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
-from typing import Generator, Any
+from typing import Generator, Any, List
 import qa4sm_reader.handlers
 
 class QA4SMPlotter:
@@ -233,7 +236,7 @@ class QA4SMPlotter:
         parts = [globals._metric_name[Var.metric]]
         parts.extend(self._get_parts_name(Var=Var, type=type))
         title = self._titles_lut(type=type).format(*parts)
-        if period and period != globals.DEFAULT_TSW:
+        if period:
             title = f'{period}: {title}'
         return title
 
@@ -610,6 +613,8 @@ class QA4SMPlotter:
                 save_name = out_name
             # save or return plotting objects
             if save_files:
+                # if period:
+                #     save_name = f'{period}_{save_name}'
                 fns = self._save_plot(save_name, out_types=out_types)
                 fnames.extend(fns)
                 plt.close('all')
@@ -663,6 +668,8 @@ class QA4SMPlotter:
             out_name = self.create_filename(Var, type='barplot_basic', period=period)
             # save or return plotting objects
             if save_files:
+                # if period:
+                #     out_name = f'{period}_{out_name}'
                 fnames.extend(self._save_plot(out_name, out_types=out_types))
             plt.close('all')
 
@@ -748,6 +755,8 @@ class QA4SMPlotter:
         elif Var.g == 0:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
+            if period:
+                title = f'{period}: {title}'
             save_name = self.create_filename(Var, type='mapplot_common', period=period)
         elif Var.g == 2:
             title = self.create_title(Var=Var, type='mapplot_basic', period=period)
@@ -766,6 +775,8 @@ class QA4SMPlotter:
                                offset=0.04)
         # save file or just return the image
         if save_files:
+            # if period:
+            #     save_name = f'{period}_{save_name}'
             fnames = self._save_plot(save_name, out_types=out_types)
 
             return fnames
@@ -820,7 +831,7 @@ class QA4SMPlotter:
 
     def plot_metric(self,
                     metric: str,
-                    period: str,
+                    period: str = None,
                     out_types: str = 'png',
                     save_all: bool = True,
                     **plotting_kwargs) -> tuple:
@@ -857,11 +868,14 @@ class QA4SMPlotter:
                                            out_types=out_types,
                                            save_files=save_all,
                                            **plotting_kwargs)
-        fnames_mapplot = self.mapplot_metric(metric=metric,
-                                             period=period,
-                                             out_types=out_types,
-                                             save_files=save_all,
-                                             **plotting_kwargs)
+        if period == globals.DEFAULT_TSW:
+            fnames_mapplot = self.mapplot_metric(metric=metric,
+                                                period=period,
+                                                out_types=out_types,
+                                                save_files=save_all,
+                                                **plotting_kwargs)
+        else:
+            fnames_mapplot = None
 
         return fnames_bplot, fnames_mapplot
 
@@ -1015,10 +1029,10 @@ class QA4SMPlotter:
     def plot_metadata(self,
                       metric: str,
                       metadata: str,
-                      period: str = None,
                       metadata_discrete: str = None,
                       save_file: bool = False,
                       out_types: str = 'png',
+                      period: str = None,
                       **plotting_kwargs):
         """
         Wrapper built around the 'meta_single' or 'meta_combo' functions to produce a metadata-based boxplot of a
@@ -1065,7 +1079,7 @@ class QA4SMPlotter:
         title = self._titles_lut("metadata").format(
             globals._metric_name[metric], ", ".join(meta_names),
             self.img.datasets.ref["pretty_title"])
-        if period and period != globals.DEFAULT_TSW:
+        if period: #$$
             title = f'{period}: {title}'
         fig.suptitle(title)
 
@@ -1074,8 +1088,9 @@ class QA4SMPlotter:
         if save_file:
             out_name = self._filenames_lut("metadata").format(
                 metric, "_and_".join(metadata_tuple))
+            if period:
+                out_name = f'{period}_{out_name}'
             out_name = self._save_plot(out_name, out_types=out_types)
-
             return out_name
 
         else:
@@ -1086,6 +1101,7 @@ class QA4SMPlotter:
         metric,
         out_types: str = 'png',
         meta_boxplot_min_samples: int = 5,
+        period: str = None,
     ):
         """
         Plots and saves three metadata boxplots per metric (defined in globals.py):
@@ -1110,8 +1126,12 @@ class QA4SMPlotter:
         """
         filenames = []
 
+
         # makes no sense to plot the metadata for some metrics
         if metric in globals._metadata_exclude:
+            return filenames
+
+        if not period:              #$$
             return filenames
 
         for meta_type, meta_keys in globals.out_metadata_plots.items():
@@ -1124,7 +1144,9 @@ class QA4SMPlotter:
                         *meta_keys,
                         save_file=True,
                         out_types=out_types,
-                        meta_boxplot_min_samples=meta_boxplot_min_samples)
+                        meta_boxplot_min_samples=meta_boxplot_min_samples,
+                        period=period,
+                        )
                     filenames.extend(outfiles)
 
                 else:

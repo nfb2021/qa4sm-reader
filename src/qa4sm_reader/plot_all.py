@@ -121,10 +121,15 @@ def plot_all(filepath: str,
                         globals.meta_boxplot_min_samples
                     }
 
+                if period == globals.DEFAULT_TSW:
+                    kwargs['period'] = globals.DEFAULT_TSW
+
                 fnames_bplot.extend(
-                    plotter.plot_save_metadata(metric,
-                                               out_types=out_type,
-                                               **kwargs))
+                    plotter.plot_save_metadata(
+                        metric,
+                        out_types=out_type,
+                        **kwargs
+                    ))
 
         if save_csv:
             out_csv = plotter.save_stats(period=period)
