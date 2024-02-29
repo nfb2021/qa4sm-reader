@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from qa4sm_reader import globals
+from qa4sm_reader.globals import DEFAULT_TSW, index_names
 import qa4sm_reader.handlers as hdl
 from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths, average_non_additive
 from qa4sm_reader.utils import note

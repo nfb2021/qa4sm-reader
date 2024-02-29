@@ -2,14 +2,17 @@
 """
 Contains helper functions for plotting qa4sm results.
 """
+from turtle import width
 from qa4sm_reader import globals
 from qa4sm_reader.exceptions import PlotterError
+from qa4sm_reader.handlers import ClusteredBoxPlotTemplate, CWContainer
 
 import numpy as np
 import pandas as pd
 import os.path
 
-from typing import Union
+from dataclasses import dataclass
+from typing import Union, List, Tuple, Dict, Optional
 import copy
 
 import seaborn as sns
@@ -101,9 +104,9 @@ def geotraj_to_geo2d(df, index=globals.index_names, grid_stepsize=None):
     """
     Converts geotraj (list of lat, lon, value) to a regular grid over lon, lat.
     The values in df needs to be sampled from a regular grid, the order does not matter.
-    When used with plt.imshow(), specify data_extent to make sure, 
+    When used with plt.imshow(), specify data_extent to make sure,
     the pixels are exactly where they are expected.
-    
+
     Parameters
     ----------
     df : pandas.DataFrame
@@ -190,8 +193,8 @@ def get_value_range(ds,
         try:
             v_min = ranges[metric][0]
             v_max = ranges[metric][1]
-            if (v_min is None and v_max is
-                    None):  # get quantile range and make symmetric around 0.
+            if (v_min is None and v_max is None
+                ):  # get quantile range and make symmetric around 0.
                 v_min, v_max = get_quantiles(ds, quantiles)
                 v_max = max(
                     abs(v_min),
@@ -262,12 +265,12 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
         whether the values in df is on a equally spaced grid (for use in mapplot)
     df : pandas.DataFrame
         Plot values.
-    
+
     Returns
     -------
     extent : tuple | list
         (x_min, x_max, y_min, y_max) in Data coordinates.
-    
+
     """
     lat, lon, gpi = globals.index_names
     if grid and grid_stepsize in ['nan', None]:
@@ -722,6 +725,8 @@ def boxplot(
     ticklabels = values.columns
     # styling of the boxes
     kwargs = {"patch_artist": True, "return_type": "dict"}
+    for key, value in plotting_kwargs.items():
+        kwargs[key] = value
     # changes necessary to have confidence intervals in the plot
     # could be an empty list or could be 'None', if de-selected from the kwargs
     if ci:
@@ -750,9 +755,21 @@ def boxplot(
         patch_styling(low, 'skyblue')
         patch_styling(up, 'tomato')
 
-    cen = values.boxplot(positions=center_pos,
+    if not 'positions' in kwargs:
+        positions = center_pos
+    else:
+        positions = kwargs['positions']
+        del kwargs['positions']
+
+    if not 'widths' in kwargs:
+        widths = 0.3
+    else:
+        widths = kwargs['widths']
+        del kwargs['widths']
+
+    cen = values.boxplot(positions=positions,
                          showfliers=False,
-                         widths=0.3,
+                         widths=widths,
                          ax=ax,
                          **kwargs)
     patch_styling(cen, 'white')
@@ -764,7 +781,123 @@ def boxplot(
     # provide y label
     if label is not None:
         plt.ylabel(label, weight='normal')
-    ax.set_xticks(center_pos)
+    ax.set_xticks(positions)
+    ax.set_xticklabels(ticklabels)
+    ax.tick_params(labelsize=globals.tick_size)
+    ax.grid(axis='x')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    if axis is None:
+        return fig, ax
+
+
+def boxplot_org(
+    df,
+    ci=None,
+    label=None,
+    figsize=None,
+    dpi=100,
+    spacing=0.35,
+    axis=None,
+    **plotting_kwargs,
+) -> tuple:
+    """
+    Create a boxplot_basic from the variables in df.
+    The box shows the quartiles of the dataset while the whiskers extend
+    to show the rest of the distribution, except for points that are
+    determined to be “outliers” using a method that is a function of
+    the inter-quartile range.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame containing 'lat', 'lon' and (multiple) 'var' Series.
+    ci : list
+        list of Dataframes containing "upper" and "lower" CIs
+    label : str, optional
+        Label of the y axis, describing the metric. The default is None.
+    figsize : tuple, optional
+        Figure size in inches. The default is globals.map_figsize.
+    dpi : int, optional
+        Resolution for raster graphic output. The default is globals.dpi.
+    spacing : float, optional.
+        Space between the central boxplot and the CIs. Default is 0.3
+    axis : matplotlib Axis obj.
+        if provided, the plot will be shown on it
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        the boxplot
+    ax : matplotlib.axes.Axes
+    """
+    values = df.copy()
+    center_pos = np.arange(len(values.columns)) * 2
+    # make plot
+    ax = axis
+    if axis is None:
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+    ticklabels = values.columns
+    # styling of the boxes
+    kwargs = {"patch_artist": True, "return_type": "dict"}
+    for key, value in plotting_kwargs.items():
+        kwargs[key] = value
+    # changes necessary to have confidence intervals in the plot
+    # could be an empty list or could be 'None', if de-selected from the kwargs
+    if ci:
+        upper, lower = [], []
+        for n, intervals in enumerate(ci):
+            lower.append(intervals["lower"])
+            upper.append(intervals["upper"])
+        lower = _add_dummies(
+            pd.concat(lower, ignore_index=True, axis=1),
+            len(center_pos) - len(ci),
+        )
+        upper = _add_dummies(
+            pd.concat(upper, ignore_index=True, axis=1),
+            len(center_pos) - len(ci),
+        )
+        low = lower.boxplot(positions=center_pos - spacing,
+                            showfliers=False,
+                            widths=0.15,
+                            ax=ax,
+                            **kwargs)
+        up = upper.boxplot(positions=center_pos + spacing,
+                           showfliers=False,
+                           widths=0.15,
+                           ax=ax,
+                           **kwargs)
+        patch_styling(low, 'skyblue')
+        patch_styling(up, 'tomato')
+
+    if not 'positions' in kwargs:
+        positions = center_pos
+    else:
+        positions = kwargs['positions']
+        del kwargs['positions']
+
+    if not 'widths' in kwargs:
+        widths = 0.3
+    else:
+        widths = kwargs['widths']
+        del kwargs['widths']
+
+    cen = values.boxplot(positions=positions,
+                         showfliers=False,
+                         widths=widths,
+                         ax=ax,
+                         **kwargs)
+    patch_styling(cen, 'white')
+    if ci:
+        low_ci = Patch(color='skyblue', alpha=0.7, label='Lower CI')
+        up_ci = Patch(color='tomato', alpha=0.7, label='Upper CI')
+        # _CI_difference(fig, ax, ci)
+        plt.legend(handles=[low_ci, up_ci], fontsize=8, loc="best")
+    # provide y label
+    if label is not None:
+        plt.ylabel(label, weight='normal')
+    ax.set_xticks(positions)
     ax.set_xticklabels(ticklabels)
     ax.tick_params(labelsize=globals.tick_size)
     ax.grid(axis='x')
@@ -1807,3 +1940,134 @@ def average_non_additive(values: Union[pd.Series, np.array],
 
     # Back transform the result
     return np.tanh(mean)
+
+
+class ClusteredBoxPlot:
+
+    def __init__(self,
+                 anchor_list: Union[List[float], np.ndarray],
+                 no_of_ds: int,
+                 space_per_box_cluster: Optional[float] = 0.9,
+                 rel_indiv_box_width: Optional[float] = 0.9):
+        self.anchor_list = anchor_list
+        self.no_of_ds = no_of_ds
+        self.space_per_box_cluster = space_per_box_cluster
+        self.rel_indiv_box_width = rel_indiv_box_width
+
+        # xticklabel and legend label templates
+        # self.xticklabel_template = "{tsw}:\n{dataset_name}\n({dataset_version})\nVariable: {variable_name} [{unit}]\n Median: {median:.3e}\n IQR: {iqr:.3e}\nN: {count}"
+        self.xticklabel_template = "Median: {median:.3e}\n IQR: {iqr:.3e}\nN: {count}"
+        self.label_template = "{dataset_name} ({dataset_version})\nVariable: {variable_name} [{unit}]"
+
+    @staticmethod
+    def centers_and_widths(
+            anchor_list: Union[List[float], np.ndarray],
+            no_of_ds: int,
+            space_per_box_cluster: Optional[float] = 0.9,
+            rel_indiv_box_width: Optional[float] = 0.9) -> List[CWContainer]:
+        """
+        Function to calculate the centers and widths of the boxes of a clustered boxplot. The function returns a list of tuples, each containing the center and width of a box in the clustered boxplot. The output can then be used as indices for creating the boxes a boxplot using `matplotlib.pyplot.boxplot()`
+
+        Parameters
+        ----------
+
+        anchor_list: Union[List[float], np.ndarray]
+            A list of floats representing the anchor points for each box cluster
+        no_of_ds: int
+            The number of datasets, i.e. the number of boxes in each cluster
+        space_per_box_cluster: float
+            The space each box cluster can occupy, 0.9 pwe default. This value should be <= 1 for a clustered boxplot to prevent overlap between neighboring clusters and boxes
+        rel_indiv_box_width: float
+            The relative width of the individual boxes in a cluster, 0.9 per default. This value should be <= 1 to prevent overlap between neighboring boxes
+
+        Returns
+        -------
+
+        List[CWContainer]
+            A list of CWContainer objects. Each dataset present has its own CWContainer object, each containing the centers and widths of the boxes in the clustered boxplot
+
+        """
+
+        b_lb_list = [
+            -space_per_box_cluster / 2 + anchor for anchor in anchor_list
+        ]  # list of lower bounds for each box cluster
+        b_ub_list = [
+            space_per_box_cluster / 2 + anchor for anchor in anchor_list
+        ]  # list of upper bounds for each box cluster
+
+        _centers = sorted([(b_ub - b_lb) / (no_of_ds + 1) + b_lb + i *
+                           ((b_ub - b_lb) / (no_of_ds + 1))
+                           for i in range(int(no_of_ds))
+                           for b_lb, b_ub in zip(b_lb_list, b_ub_list)])
+        _widths = [
+            rel_indiv_box_width * (_centers[0] - b_lb_list[0])
+            for _center in _centers
+        ]
+
+        return [
+            CWContainer(name=f'ds_{ds}',
+                        centers=_centers[ds::no_of_ds],
+                        widths=_widths[ds::no_of_ds])
+            for ds in range(int(no_of_ds))
+        ]
+
+    @staticmethod
+    def figure_template(detailed: Optional[bool] = False,
+                        **figure_kwargs) -> ClusteredBoxPlotTemplate:
+        """
+        Function to create a figure template for a clustered boxplot. The function returns a ClusteredBoxPlotTemplate object, which contains the figure and the subplots for the boxplot, median, IQR and N values.
+
+        Parameters
+        ----------
+        detailed: Optional[bool]
+            If True, creates a subplot with median, IQR and N values for each box. If False, only the boxplot is created. Default is False
+        figure_kwargs: dict
+            Keyword arguments for the figure
+
+        Returns
+        -------
+        ClusteredBoxPlotTemplate
+            A ClusteredBoxPlotTemplate object containing the figure and the subplots for the boxplot, median, IQR and N values
+        """
+
+        # Create a figure and gridspec
+        if 'figsize' in figure_kwargs:
+            _fig = plt.figure(figsize=figure_kwargs['figsize'])
+        else:
+            _fig = plt.figure(figsize=(20, 14))
+
+        # Create a main gridspec for ax_box and subplots below
+        gs_main = gridspec.GridSpec(2, 1, height_ratios=[2, 1], hspace=0.2)
+
+        # Subgridspec for ax_box and ax_median (top subplot)
+        gs_top = gridspec.GridSpecFromSubplotSpec(1,
+                                                  1,
+                                                  subplot_spec=gs_main[0])
+
+        # Subgridspec for ax_iqr and ax_n (bottom subplots)
+        gs_bottom = gridspec.GridSpecFromSubplotSpec(3,
+                                                     1,
+                                                     height_ratios=[1, 1, 1],
+                                                     subplot_spec=gs_main[1],
+                                                     hspace=0)
+
+        # Create subplots based on gridspec and store them in ClusteredBoxPlotTemplate
+        if detailed:
+            ax_box = plt.subplot(gs_top[0])
+            ax_median = plt.subplot(gs_bottom[0], sharex=ax_box)
+            ax_iqr = plt.subplot(gs_bottom[1], sharex=ax_box)
+            ax_n = plt.subplot(gs_bottom[2], sharex=ax_box)
+
+        else:
+            ax_box = _fig.add_subplot(111)
+            ax_median, ax_iqr, ax_n = None, None, None
+
+        ax_box.tick_params(labelsize=globals.tick_size)
+        ax_box.spines['right'].set_visible(False)
+        ax_box.spines['top'].set_visible(False)
+
+        return ClusteredBoxPlotTemplate(fig=_fig,
+                                        ax_box=ax_box,
+                                        ax_median=ax_median,
+                                        ax_iqr=ax_iqr,
+                                        ax_n=ax_n)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import stat
 from unittest.mock import DEFAULT
 import warnings
 from pathlib import Path
@@ -18,6 +19,10 @@ from qa4sm_reader.exceptions import PlotterError
 from warnings import warn
 from typing import Generator, Any, List
 import qa4sm_reader.handlers
+
+import xarray as xr
+from typing import Union, List, Tuple, Dict, Any, Optional
+from itertools import chain
 
 class QA4SMPlotter:
     """
@@ -240,7 +245,7 @@ class QA4SMPlotter:
             title = f'{period}: {title}'
         return title
 
-    def create_filename(self, Var, type: str, period: str= None) -> str:
+    def create_filename(self, Var, type: str, period: str = None) -> str:
         """
         Create name of the file
 
@@ -283,7 +288,8 @@ class QA4SMPlotter:
         tc: bool = False,
         stats: bool = True,
         mean_ci: bool = True,
-    ) -> Generator[pd.DataFrame, qa4sm_reader.handlers.MetricVariable, pd.DataFrame]:
+    ) -> Generator[pd.DataFrame, qa4sm_reader.handlers.MetricVariable,
+                   pd.DataFrame]:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
@@ -524,6 +530,8 @@ class QA4SMPlotter:
             return None
         # put all Variables in the same dataframe
         values = pd.concat(values)
+        print(f'\n\nvalues: {type(values)}\n\n')
+        values.to_csv(f'values_{metric}.csv')
         # create plot
         fig, ax = self._boxplot_definition(metric=metric,
                                            df=values,
@@ -533,7 +541,9 @@ class QA4SMPlotter:
                                            Var=Var,
                                            **plotting_kwargs)
         if not out_name:
-            out_name = self.create_filename(Var, type='boxplot_basic', period=period)
+            out_name = self.create_filename(Var,
+                                            type='boxplot_basic',
+                                            period=period)
         # save or return plotting objects
         if save_files:
             fnames = self._save_plot(out_name, out_types=out_types)
@@ -608,7 +618,9 @@ class QA4SMPlotter:
                                                **plotting_kwargs)
             # save. Below workaround to avoid same names
             if not out_name:
-                save_name = self.create_filename(Var, type='boxplot_tc', period=period)
+                save_name = self.create_filename(Var,
+                                                 type='boxplot_tc',
+                                                 period=period)
             else:
                 save_name = out_name
             # save or return plotting objects
@@ -665,7 +677,9 @@ class QA4SMPlotter:
                                      period=period,
                                      Var=Var)
 
-            out_name = self.create_filename(Var, type='barplot_basic', period=period)
+            out_name = self.create_filename(Var,
+                                            type='barplot_basic',
+                                            period=period)
             # save or return plotting objects
             if save_files:
                 # if period:
@@ -750,21 +764,34 @@ class QA4SMPlotter:
 
         # title and plot settings depend on the metric group
         if Var.varname.startswith('status'):
-            title = self.create_title(Var=Var, type='mapplot_status', period=period)
-            save_name = self.create_filename(Var=Var, type="mapplot_status", period=period)
+            title = self.create_title(Var=Var,
+                                      type='mapplot_status',
+                                      period=period)
+            save_name = self.create_filename(Var=Var,
+                                             type="mapplot_status",
+                                             period=period)
         elif Var.g == 0:
             title = "{} between all datasets".format(
                 globals._metric_name[metric])
             if period:
                 title = f'{period}: {title}'
-            save_name = self.create_filename(Var, type='mapplot_common', period=period)
+            save_name = self.create_filename(Var,
+                                             type='mapplot_common',
+                                             period=period)
         elif Var.g == 2:
-            title = self.create_title(Var=Var, type='mapplot_basic', period=period)
-            save_name = self.create_filename(Var, type='mapplot_double', period=period)
+            title = self.create_title(Var=Var,
+                                      type='mapplot_basic',
+                                      period=period)
+            save_name = self.create_filename(Var,
+                                             type='mapplot_double',
+                                             period=period)
         else:
-            title = self.create_title(Var=Var, type='mapplot_tc', period=period)
-            save_name = self.create_filename(Var, type='mapplot_tc', period=period)
-
+            title = self.create_title(Var=Var,
+                                      type='mapplot_tc',
+                                      period=period)
+            save_name = self.create_filename(Var,
+                                             type='mapplot_tc',
+                                             period=period)
 
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
@@ -870,10 +897,10 @@ class QA4SMPlotter:
                                            **plotting_kwargs)
         if period == globals.DEFAULT_TSW:
             fnames_mapplot = self.mapplot_metric(metric=metric,
-                                                period=period,
-                                                out_types=out_types,
-                                                save_files=save_all,
-                                                **plotting_kwargs)
+                                                 period=period,
+                                                 out_types=out_types,
+                                                 save_files=save_all,
+                                                 **plotting_kwargs)
         else:
             fnames_mapplot = None
 
@@ -1079,7 +1106,7 @@ class QA4SMPlotter:
         title = self._titles_lut("metadata").format(
             globals._metric_name[metric], ", ".join(meta_names),
             self.img.datasets.ref["pretty_title"])
-        if period: #$$
+        if period:  #$$
             title = f'{period}: {title}'
         fig.suptitle(title)
 
@@ -1126,12 +1153,11 @@ class QA4SMPlotter:
         """
         filenames = []
 
-
         # makes no sense to plot the metadata for some metrics
         if metric in globals._metadata_exclude:
             return filenames
 
-        if not period:              #$$
+        if not period:  #$$
             return filenames
 
         for meta_type, meta_keys in globals.out_metadata_plots.items():
@@ -1146,7 +1172,7 @@ class QA4SMPlotter:
                         out_types=out_types,
                         meta_boxplot_min_samples=meta_boxplot_min_samples,
                         period=period,
-                        )
+                    )
                     filenames.extend(outfiles)
 
                 else:
@@ -1169,3 +1195,569 @@ class QA4SMPlotter:
         table.to_csv(path_or_buf=filepath)
 
         return filepath
+
+
+import os
+import itertools
+import re
+import qa4sm_reader.handlers as hdl
+from qa4sm_reader.plotting_methods import ClusteredBoxPlot
+from copy import deepcopy
+
+class QA4SMCompPlotter:
+    """
+    Class to create plots containing the calculated metric for all temporal sub-window, default case excldued
+    """
+
+    def __init__(self,
+                 results_file: str,
+                 include_default_case: bool = False) -> None:
+        self.results_file = results_file
+        self.include_default_case = include_default_case
+        if os.path.isfile(results_file):
+            with xr.open_dataset(results_file) as ds:
+                self.ds = ds
+                self.datasets = hdl.QA4SMDatasets(self.ds.attrs)
+                self.ref = self.datasets.ref
+                self.ds_metrics = self.__ds_metrics()
+                self.varnames = list(self.ds_metrics.keys())
+                self.metric_lut = self.metrics_ds_grouped_lut()
+                # self.df = self._ds2df()
+                # self.check_for_unexpecetd_metrics()
+
+        else:
+            print(
+                f'FileNotFoundError: The file {results_file} does not exist. Please check the file path and try again.'
+            )
+            return None
+
+    @property
+    def temp_sub_win_dependent_vars(self) -> List[str]:
+        _list = []
+        for var_name in self.ds.data_vars:
+            if 'tsw' in self.ds[var_name].dims:
+                _list.append(var_name)
+        return _list
+
+    def __ds_metrics(self) -> Dict[str, List[str]]:
+        """
+        Returns a dictionary of metrics in the dataset
+
+        Returns
+        -------
+        dict
+            dictionary of metrics in the dataset
+
+        """
+        return {
+            metric: [
+                var_name for var_name in self.temp_sub_win_dependent_vars
+                if var_name.startswith(f'{metric}_')
+            ]
+            for metric in globals._colormaps.keys() if any(
+                var_name.startswith(f'{metric}_')
+                for var_name in self.temp_sub_win_dependent_vars)
+        }  #  globals._colormaps just so happens to contain all metrics
+
+    def check_for_unexpecetd_metrics(self) -> bool:
+        """
+        Checks if the metrics are present in the dataset that were not specified in `globals.METRICS` and adds them to `QA4SMCompPlotter.ds_metrics`.
+
+        Returns
+        -------
+        bool
+            True if no unexpected metrics are found in the dataset, False otherwise
+        """
+
+        flattened_list = list(
+            set(itertools.chain.from_iterable(self.ds_metrics.values())))
+        elements_not_in_flattened_list = set(
+            self.temp_sub_win_dependent_vars) - set(flattened_list)
+        _list = list(
+            set([
+                m.split('_between')[0] for m in elements_not_in_flattened_list
+            ]))
+        grouped_dict = {
+            prefix:
+            [element for element in _list if element.startswith(prefix)]
+            for prefix in set([element.split('_')[0] for element in _list])
+        }
+
+        for prefix, elements in grouped_dict.items():
+            self.ds_metrics[prefix] = elements
+
+        if len(elements_not_in_flattened_list) > 0:
+            print(
+                f"Following metrics were found in the dataset that were not specified in `globals.METRICS` and have been added to `QA4SMCompPlotter.ds_metrics`: {elements_not_in_flattened_list}"
+            )
+            return False
+
+        return True
+
+
+    def metrics_ds_grouped_lut(self, include_ci: Optional[bool] = False) -> Dict[str, List[str]]:
+        """
+        Returns a dictionary of for each metric, containing the QA4SM dataset combination used to compute said metric
+
+        Parameters
+        ----------
+        include_ci : bool, default is False
+            Whether to include the confidence intervals of a specific metric in the output
+
+        Returns
+        -------
+        dict
+            dictionary of grouped metrics in the dataset
+        """
+        _metric_lut = {}
+
+        def parse_metric_string(
+                metric_string: str) -> Union[Tuple[str, str], None]:
+            pattern = globals.METRIC_TEMPLATE.format(
+                ds1=
+                '(?P<ds1>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), followed by one or more word characters (\w+)
+                ds2=
+                '(?P<ds2>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), followed by one or more word characters (\w+)
+            )
+
+            match = re.search(pattern, metric_string)
+            if match:
+                return match.group('ds1'), match.group('ds2')
+            else:
+                return None
+
+        def purge_ci_metrics(_dict: Dict) -> Dict:
+            return {ds_combi: [metric for metric in metric_values if "ci" not in metric][0] for ds_combi, metric_values in _dict.items()}
+
+        for metric_kind, metrics_in_ds in self.ds_metrics.items():
+
+            parsed_metrics = set([
+                pp for metric in metrics_in_ds
+                if (pp := parse_metric_string(metric)) is not None
+            ])
+
+            grouped_dict = {
+                metric: [
+                    item for item in metrics_in_ds
+                    if parse_metric_string(item) == metric
+                ]
+                for metric in parsed_metrics
+            }
+
+            if not include_ci:
+                grouped_dict = purge_ci_metrics(grouped_dict)
+
+            _metric_lut[metric_kind] = grouped_dict
+
+        return _metric_lut
+
+    @property
+    def tsws_used(self):
+        """
+        Get all temporal sub-windows used in the validation
+
+        Parameters
+        ----------
+        incl_default : bool, default is False
+            Whether to include the default TSW in the output
+
+
+        Returns
+        -------
+        tsws_used : list
+            list of all TSWs used in the validation
+        """
+
+        temp_sub_wins_names = [
+            tsw
+            for tsw in self.ds.coords[globals.PERIOD_COORDINATE_NAME].values
+            if tsw != globals.DEFAULT_TSW
+        ]
+
+        if self.include_default_case:
+            temp_sub_wins_names.append(globals.DEFAULT_TSW)
+
+        return temp_sub_wins_names
+
+    def get_specific_metric_df(self, specific_metric: str, ds_name: str) -> pd.DataFrame:
+        """
+        Get the DataFrame for a single **specific** metric (e.g. "R_between_0-ISMN_and_1-SMOS_L3") from a QA4SM netCDF file with temporal sub-windows.
+
+        Parameters
+        ----------
+        specific_metric : str
+            Name of the specific metric
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame for this specific metric
+        """
+
+        _data_dict = {}
+        _data_dict['lat'] = self.ds['lat'].values
+        _data_dict['lon'] = self.ds['lon'].values
+        _data_dict['gpi'] = self.ds['gpi'].values
+        # _data_dict['dataset'] = [ds_name for _ in range(len(self.ds['lat']))]
+        for tsw in self.tsws_used:
+            selection = {
+                globals.PERIOD_COORDINATE_NAME: tsw
+            }
+
+            _data_dict[tsw] = self.ds[specific_metric].sel(selection).values.astype(np.float32)
+
+        df = pd.DataFrame(_data_dict)
+
+        # df.set_index(['lat', 'lon', 'gpi', 'dataset'], inplace=True)
+        df.set_index(['lat', 'lon', 'gpi'], inplace=True)
+
+
+        return df
+
+    def get_metric_df(self, generic_metric: str) -> pd.DataFrame:
+
+        df_dict = {ds_combi[1]: self.get_specific_metric_df(specific_metric=specific_metric, ds_name=ds_combi[1]) for ds_combi, specific_metric in self.metric_lut[generic_metric].items()}
+        return pd.concat(df_dict.values(), keys=df_dict.keys(), axis=1)
+
+    @staticmethod
+    def get_tsws_from_df(df: pd.DataFrame) -> List[str]:
+        """
+        Get all temporal sub-windows used in the validation from a DataFrame
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame with the temporal sub-windows
+
+        Returns
+        -------
+        tsws_used : list
+            list of all TSWs used in the validation
+        """
+        return df.columns.levels[1].unique().tolist()
+
+    @staticmethod
+    def get_datasets_from_df(df: pd.DataFrame) -> List[str]:
+        """
+        Get all datasets used in the validation from a DataFrame
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame with the datasets
+
+        Returns
+        -------
+        datasets_used : list
+            list of all datasets used in the validation
+        """
+        return sorted(df.columns.levels[0].unique().tolist())
+
+
+    def create_title(self, Var, metric: str, type: str) -> str:
+        """
+        Create title of the plot
+
+        Parameters
+        ----------
+        Var: MetricVar
+            variable for a metric
+        type: str
+            type of plot
+        """
+        parts = [globals._metric_name[Var.pretty_name]]
+        parts.extend(QA4SMPlotter._get_parts_name(Var=Var, type=type))
+        title = QA4SMPlotter._titles_lut(type=type).format(*parts)
+
+        return title
+
+    # def _ds2df(self, varnames: list = None) -> pd.DataFrame:
+    #     """
+    #     Return one or more or all variables in a single DataFrame.
+
+    #     Parameters
+    #     ----------
+    #     varnames : list or None
+    #         list of QA4SMVariables to be placed in the DataFrame
+
+    #     Return
+    #     ------
+    #     df : pd.DataFrame
+    #         DataFrame with Var name as column names
+    #     """
+    #     try:
+    #         if varnames is None:
+    #             if globals.time_name in self.varnames:
+    #                 if self.ds[globals.time_name].values.size == 0:
+    #                     self.ds = self.ds.drop_vars(globals.time_name)
+    #             df = self.ds.to_dataframe()
+    #         else:
+    #             df = self.ds[self.index_names + varnames].to_dataframe()
+    #             df.dropna(axis='index', subset=varnames, inplace=True)
+    #     except KeyError as e:
+    #         raise Exception(
+    #             "The variable name '{}' does not match any name in the input values."
+    #             .format(e.args[0]))
+
+    #     if isinstance(df.index, pd.MultiIndex):
+    #         lat, lon, gpi = globals.index_names
+    #         df[lat] = df.index.get_level_values(lat)
+    #         df[lon] = df.index.get_level_values(lon)
+
+    #         if gpi in df.index:
+    #             df[gpi] = df.index.get_level_values(gpi)
+
+    #     df.reset_index(drop=True, inplace=True)
+    #     df = df.set_index(self.index_names)
+
+    #     return df
+
+    def _load_vars(self, empty=False, only_metrics=False) -> list:
+        """
+        Create a list of common variables and fill each with values
+
+        Parameters
+        ----------
+        empty : bool, default is False
+            if True, Var.values is an empty dataframe
+        only_metrics : bool, default is False
+            if True, only variables for metric scores are kept (i.e. not gpi, idx ...)
+
+        Returns
+        -------
+        vars : list
+            list of QA4SMVariable objects for the validation variables
+        """
+        vars = []
+        for varname in self.varnames:
+            df = self.get_metric_df(generic_metric=varname)
+            if empty:
+                values = None
+            else:
+                # lat, lon are in varnames but not in datasframe (as they are the index)
+                try:
+                    # values = df
+                    values = df
+                except:  # KeyError:
+                    values = None
+
+            Var = hdl.QA4SMVariable(varname, self.ds.attrs,
+                                    values=df).initialize()
+
+            if only_metrics and isinstance(Var, hdl.MetricVariable):
+                vars.append(Var)
+            elif not only_metrics:
+                vars.append(Var)
+
+        return vars
+
+    def _iter_vars(self,
+                   type: str = None,
+                   name: str = None,
+                   filter_parms: dict = None) -> iter:
+        """
+        Iter through QA4SMVariable objects that are in the file
+
+        Parameters
+        ----------
+        type : str, default is None
+            One of 'metric', 'ci', 'metadata' can be specified to only iterate through the specific group
+        name : str, default is None
+            yield a specific variable by its name
+        filter_parms : dict
+            dictionary with QA4SMVariable attributes as keys and filter value as values (e.g. {g: 0})
+        """
+        type_lut = {
+            "metric": hdl.MetricVariable,
+            "ci": hdl.ConfidenceInterval,
+            "metadata": hdl.Metadata,
+        }
+        for Var in self._load_vars():
+            if name:
+                if name in [Var.varname, Var.pretty_name]:
+                    yield Var
+                    break
+                else:
+                    continue
+            if type and not isinstance(Var, type_lut[type]):
+                continue
+            if filter_parms:
+                for key, val in filter_parms.items():
+                    if getattr(Var,
+                               key) == val:  # check all attribute individually
+                        check = True
+                    else:
+                        check = False  # does not match requirements
+                        break
+                if check != True:
+                    continue
+
+            yield Var
+
+    def _yield_values(
+        self,
+        metric: str,
+        tc: bool = False,
+        stats: bool = False,
+        mean_ci: bool = False,
+    ) -> Generator[pd.DataFrame, qa4sm_reader.handlers.MetricVariable,
+                   pd.DataFrame]:
+        """
+        Get iterable with pandas dataframes for all variables of a metric to plot
+
+        Parameters
+        ----------
+        metric: str
+            metric name
+        tc: bool, default is False
+            True if TC. Then, caption starts with "Other Data:"
+        stats: bool
+            If true, append the statistics to the caption
+        mean_ci: bool
+            If True, 'Mean CI: {value}' is added to the caption
+
+        Yield
+        -----
+        df: pd.DataFrame with variable values and caption name
+        Var: QA4SMMetricVariable
+            variable corresponding to the dataframe
+        ci: pd.DataFrame with "upper" and "lower" CI
+        """
+        Vars = self._iter_vars(type="metadata",
+                                #    filter_parms={"metadata": metric}
+                                   )
+        for n, Var in enumerate(Vars):
+            values = Var.values[Var.varname]
+            # changes if it's a common-type Var
+            if Var.g == 0:
+                box_cap_ds = 'All datasets'
+            else:
+                box_cap_ds = self._box_caption(Var, tc=tc)
+            # setting in global for caption stats
+            if globals.boxplot_printnumbers:
+                box_cap = '{}'.format(box_cap_ds)
+                if stats:
+                    box_stats = plm._box_stats(values)
+                    box_cap = box_cap + "\n{}".format(box_stats)
+            else:
+                box_cap = box_cap_ds
+            df = values.to_frame(box_cap)
+
+            ci = self.img.get_cis(Var)
+            if ci:  # could be that variable doesn't have CIs - empty list
+                ci = pd.concat(ci, axis=1)
+                label = ""
+                if mean_ci:
+                    # get the mean CI range
+                    diff = ci["upper"] - ci["lower"]
+                    ci_range = float(diff.mean())
+                    label = "\nMean CI range: {:.3g}".format(ci_range)
+                df.columns = [df.columns[0] + label]
+            else:
+                ci = None
+            # values are all Nan or NaNf - not plotted
+            df_arr = df.to_numpy()
+            if np.isnan(df_arr).all() or df_arr.size == 0:
+                continue
+
+            print(df)
+            print(Var)
+            yield df, Var, ci
+
+    def comp_boxplot_definition(self,
+                                Var: qa4sm_reader.handlers.MetricVariable,
+                                metric: str,
+                                df: pd.DataFrame,
+                                type: str,
+                                offset=0.07,
+                                **kwargs) -> tuple:
+        """
+        Define parameters of plot
+
+        Parameters
+        ----------
+        df: pd.DataFrame to plot
+        type: str
+            one of _titles_lut
+        ci : list of Dataframes containing "upper" and "lower" CIs
+        xticks: list
+            caption to each boxplot (or triplet thereof)
+        offset: float
+            offset of boxplots
+        Var: QA4SMMetricVariable, optional. Default is None
+            Specified in case mds meta is needed
+        """
+        # plot label
+        unit_ref = self.ref['short_name']
+
+        _, _, _, scl_meta = Var.get_varmeta()
+        if scl_meta:
+            unit_ref = scl_meta[1]['short_name']
+        parts = [globals._metric_name[Var.metric]]
+        parts.append(globals._metric_description[Var.metric].format(
+            globals.get_metric_units(unit_ref)))
+        label = "{}{}".format(*parts)
+        print(f'\n\tlabel: {label}\n')
+        # generate plot
+        figwidth = globals.boxplot_width * (len(df.columns) + 1)
+        # otherwise it's too narrow
+        if metric == "n_obs":
+            figwidth = figwidth + 0.2
+        figsize = [figwidth, globals.boxplot_height]
+
+        print(f'df.columns  {df.columns}')
+        anchor_list = np.linspace(1, len(df.columns), len(df.columns))
+        cbp = ClusteredBoxPlot(
+            anchor_list=anchor_list,
+            no_of_ds=len(df.columns),
+        )
+        centers_and_widths = cbp.centers_and_widths(anchor_list=cbp.anchor_list,
+                                            no_of_ds=cbp.no_of_ds,
+                                            space_per_box_cluster=0.7,
+                                            rel_indiv_box_width=0.8)
+
+        cbp_fig = cbp.figure_template()
+        fig, ax = cbp_fig.fig, cbp_fig.ax_box
+
+        # print(sorted(list(chain(*[container.centers for container in centers_and_widths]))))
+        # fig, ax = plm.boxplot(
+        #     df=df,
+        #     label=label,
+        #     figsize=figsize,
+        #     patch_artist=True,
+        #     positions=sorted(list(chain(*[container.centers for container in centers_and_widths]))),
+        #     widths=sorted(list(chain(*[container.widths for container in centers_and_widths]))),
+        #     axis = ax
+        # )
+
+        # fig, ax = plm.boxplot(
+        #     df=df,
+        #     label=label,
+        #     figsize=figsize,
+        #     patch_artist=True,
+        #     positions=np.arange(len(df.columns)),
+        #     widths=0.5,
+        # )
+
+
+
+        if not Var:
+            # when we only need reference dataset from variables (i.e. is the same):
+            for Var in self.img._iter_vars(type="metric",
+                                           filter_parms={"metric": metric}):
+                Var = Var
+                break
+
+        if not type == "metadata":
+            # title = self.create_title(Var, type=type, period=period)
+            title = 'test title'
+            ax.set_title(title, pad=globals.title_pad)
+        # add watermark
+        # if self.img.has_CIs:
+        #     offset = 0.08  # offset smaller as CI variables have a larger caption
+        if Var.g == 0:
+            offset = 0.03  # offset larger as common metrics have a shorter caption
+        if globals.watermark_pos not in [None, False]:
+            plm.make_watermark(fig, offset=offset)
+
+        return fig, ax

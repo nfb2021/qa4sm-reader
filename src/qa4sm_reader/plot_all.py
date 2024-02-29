@@ -135,6 +135,9 @@ def plot_all(filepath: str,
             out_csv = plotter.save_stats(period=period)
             fnames_csv.append(out_csv)
 
+
+
+
     return fnames_bplot, fnames_mapplot, fnames_csv
 
 

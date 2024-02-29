@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
 import warnings
 
 import sys
+
+import matplotlib
 
 sys.path.append(
     '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm-reader/src/')
@@ -9,6 +12,7 @@ from qa4sm_reader import globals
 from parse import *
 import warnings as warn
 import re
+from typing import List, Optional, Tuple
 
 
 class MixinVarmeta:
@@ -551,3 +555,17 @@ class QA4SMMetric():
                 break
 
         return it_does
+
+@dataclass()
+class ClusteredBoxPlotTemplate:
+    fig: matplotlib.figure.Figure
+    ax_box: matplotlib.axes.Axes
+    ax_median: Optional[matplotlib.axes.Axes] = None
+    ax_iqr: Optional[matplotlib.axes.Axes] = None
+    ax_n: Optional[matplotlib.axes.Axes] = None
+
+@dataclass(frozen=True)
+class CWContainer:
+    centers: List[float]
+    widths: List[float]
+    name: Optional[str] = 'Generic Dataset'

@@ -653,6 +653,9 @@ _metadata_exclude = [
     'status',
 ]
 
+METRIC_TEMPLATE = '_between_{ds1}_and_{ds2}'
+METRIC_CI_TEMPLATE = '{metric}_ci_{bound}_between_{ds1}_and_{ds2}_{ending}'
+
 
 # intra-annual valdiation metric related settings
 # =====================================================
