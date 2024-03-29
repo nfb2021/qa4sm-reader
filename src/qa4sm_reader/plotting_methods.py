@@ -31,6 +31,7 @@ from pygeogrids.grids import BasicGrid, genreg_grid
 from shapely.geometry import Polygon, Point
 
 import warnings
+import os
 
 cconfig['data_dir'] = os.path.join(os.path.dirname(__file__), 'cartopy')
 
@@ -454,7 +455,8 @@ def make_watermark(fig,
                    placement=globals.watermark_pos,
                    for_map=False,
                    offset=0.03,
-                   for_barplot=False):
+                   for_barplot=False,
+                   fontsize=globals.watermark_fontsize):
     """
     Adds a watermark to fig and adjusts the current axis to make sure there
     is enough padding around the watermarks.
@@ -475,7 +477,6 @@ def make_watermark(fig,
     """
     # ax = fig.gca()
     # pos1 = ax.get_position() #fraction of figure
-    fontsize = globals.watermark_fontsize
     pad = globals.watermark_pad
     height = fig.get_size_inches()[1]
     offset = offset + ((
@@ -485,7 +486,7 @@ def make_watermark(fig,
                      xy=[0.5, 1],
                      xytext=[-pad, -pad],
                      fontsize=fontsize,
-                     color='grey',
+                     color='white',                         #TODO! change back to grey
                      horizontalalignment='center',
                      verticalalignment='top',
                      xycoords='figure fraction',
@@ -496,7 +497,7 @@ def make_watermark(fig,
     elif for_map or for_barplot:
         if for_barplot:
             plt.suptitle(globals.watermark,
-                         color='grey',
+                         color='white',                     #TODO! change back to grey
                          fontsize=fontsize,
                          x=-0.07,
                          y=0.5,
@@ -504,7 +505,7 @@ def make_watermark(fig,
                          rotation=90)
         else:
             plt.suptitle(globals.watermark,
-                         color='grey',
+                         color='white',                     #TODO! change back to grey
                          fontsize=fontsize,
                          y=0,
                          ha='center')
@@ -514,7 +515,7 @@ def make_watermark(fig,
                      xy=[0.5, 0],
                      xytext=[pad, pad],
                      fontsize=fontsize,
-                     color='grey',
+                     color='white',                         #TODO! change back to grey
                      horizontalalignment='center',
                      verticalalignment='bottom',
                      xycoords='figure fraction',
@@ -2012,16 +2013,16 @@ class ClusteredBoxPlot:
         ]
 
     @staticmethod
-    def figure_template(detailed: Optional[bool] = False,
-                        **figure_kwargs) -> ClusteredBoxPlotTemplate:
+    def figure_template(incl_median_iqr_n_axs: Optional[bool] = False,
+                        **fig_kwargs) -> ClusteredBoxPlotTemplate:
         """
         Function to create a figure template for a clustered boxplot. The function returns a ClusteredBoxPlotTemplate object, which contains the figure and the subplots for the boxplot, median, IQR and N values.
 
         Parameters
         ----------
-        detailed: Optional[bool]
+        incl_median_iqr_n_axs: Optional[bool]
             If True, creates a subplot with median, IQR and N values for each box. If False, only the boxplot is created. Default is False
-        figure_kwargs: dict
+        fig_kwargs: dict
             Keyword arguments for the figure
 
         Returns
@@ -2030,41 +2031,52 @@ class ClusteredBoxPlot:
             A ClusteredBoxPlotTemplate object containing the figure and the subplots for the boxplot, median, IQR and N values
         """
 
-        # Create a figure and gridspec
-        if 'figsize' in figure_kwargs:
-            _fig = plt.figure(figsize=figure_kwargs['figsize'])
+        if 'figsize' in fig_kwargs:
+            _fig = plt.figure(figsize=fig_kwargs['figsize'])
         else:
             _fig = plt.figure(figsize=(20, 14))
 
-        # Create a main gridspec for ax_box and subplots below
-        gs_main = gridspec.GridSpec(2, 1, height_ratios=[2, 1], hspace=0.2)
+        if not incl_median_iqr_n_axs:
+            ax_box = _fig.add_subplot(111)
+            ax_median, ax_iqr, ax_n = None, None, None
 
-        # Subgridspec for ax_box and ax_median (top subplot)
-        gs_top = gridspec.GridSpecFromSubplotSpec(1,
-                                                  1,
-                                                  subplot_spec=gs_main[0])
+        if incl_median_iqr_n_axs:
+            # Create a main gridspec for ax_box and subplots below
+            gs_main = gridspec.GridSpec(2, 1, height_ratios=[2, 1], hspace=0.2)
 
-        # Subgridspec for ax_iqr and ax_n (bottom subplots)
-        gs_bottom = gridspec.GridSpecFromSubplotSpec(3,
-                                                     1,
-                                                     height_ratios=[1, 1, 1],
-                                                     subplot_spec=gs_main[1],
-                                                     hspace=0)
+            # Subgridspec for ax_box and ax_median (top subplot)
+            gs_top = gridspec.GridSpecFromSubplotSpec(1,
+                                                    1,
+                                                    subplot_spec=gs_main[0])
 
-        # Create subplots based on gridspec and store them in ClusteredBoxPlotTemplate
-        if detailed:
+            # Subgridspec for ax_iqr and ax_n (bottom subplots)
+            gs_bottom = gridspec.GridSpecFromSubplotSpec(3,
+                                                        1,
+                                                        height_ratios=[1, 1, 1],
+                                                        subplot_spec=gs_main[1],
+                                                        hspace=0)
             ax_box = plt.subplot(gs_top[0])
             ax_median = plt.subplot(gs_bottom[0], sharex=ax_box)
             ax_iqr = plt.subplot(gs_bottom[1], sharex=ax_box)
             ax_n = plt.subplot(gs_bottom[2], sharex=ax_box)
 
-        else:
-            ax_box = _fig.add_subplot(111)
-            ax_median, ax_iqr, ax_n = None, None, None
 
-        ax_box.tick_params(labelsize=globals.tick_size)
-        ax_box.spines['right'].set_visible(False)
-        ax_box.spines['top'].set_visible(False)
+        for _ax in [ax_box, ax_median, ax_iqr, ax_n]:
+            try:
+                _ax.tick_params(labelsize=globals.tick_size)
+                _ax.spines['right'].set_visible(False)
+                _ax.spines['top'].set_visible(False)
+            except AttributeError:
+                pass
+
+        make_watermark(
+            fig=_fig,
+            placement=globals.watermark_pos,
+            for_map=False,
+            offset=-0.03,
+            for_barplot=False,
+            fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']['tick_labelsize'],
+        )
 
         return ClusteredBoxPlotTemplate(fig=_fig,
                                         ax_box=ax_box,

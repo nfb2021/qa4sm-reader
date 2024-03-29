@@ -1,5 +1,8 @@
+from functools import wraps
+
 def note(note_text):
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             print(f'\n\n{note_text}\n\n')
             return func(*args, **kwargs)

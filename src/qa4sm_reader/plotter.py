@@ -4,25 +4,28 @@ import stat
 from unittest.mock import DEFAULT
 import warnings
 from pathlib import Path
-from matplotlib.pylab import f
-
+import os
+from warnings import warn
 import pandas as pd
-from typing import Union
+import xarray as xr
+from typing import Generator, Union, List, Tuple, Dict, Optional
 import numpy as np
+import itertools
+
 import matplotlib.pyplot as plt
+from matplotlib.pylab import f
+import matplotlib
+from matplotlib.patches import Rectangle
+import matplotlib.cbook as cbook
+import matplotlib.image as image
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
 from qa4sm_reader import plotting_methods as plm
-
+from qa4sm_reader.plotting_methods import ClusteredBoxPlot, patch_styling
 from qa4sm_reader.exceptions import PlotterError
-from warnings import warn
-from typing import Generator, Any, List
-import qa4sm_reader.handlers
-
-import xarray as xr
-from typing import Union, List, Tuple, Dict, Any, Optional
-from itertools import chain
+import qa4sm_reader.handlers as hdl
+from qa4sm_reader.utils import note
 
 class QA4SMPlotter:
     """
@@ -288,7 +291,7 @@ class QA4SMPlotter:
         tc: bool = False,
         stats: bool = True,
         mean_ci: bool = True,
-    ) -> Generator[pd.DataFrame, qa4sm_reader.handlers.MetricVariable,
+    ) -> Generator[pd.DataFrame, hdl.MetricVariable,
                    pd.DataFrame]:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
@@ -530,7 +533,6 @@ class QA4SMPlotter:
             return None
         # put all Variables in the same dataframe
         values = pd.concat(values)
-        print(f'\n\nvalues: {type(values)}\n\n')
         values.to_csv(f'values_{metric}.csv')
         # create plot
         fig, ax = self._boxplot_definition(metric=metric,
@@ -1195,18 +1197,21 @@ class QA4SMPlotter:
         table.to_csv(path_or_buf=filepath)
 
         return filepath
-
-
-import os
-import itertools
-import re
-import qa4sm_reader.handlers as hdl
-from qa4sm_reader.plotting_methods import ClusteredBoxPlot
-from copy import deepcopy
-
 class QA4SMCompPlotter:
     """
     Class to create plots containing the calculated metric for all temporal sub-window, default case excldued
+
+    Parameters
+    ----------
+
+    results_file : str
+        path to the .nc results file
+    include_default_case : bool, default is False
+        whether to include the bulk case in the plots
+
+    Returns
+    -------
+    QA4SMCompPlotter object
     """
 
     def __init__(self,
@@ -1216,14 +1221,25 @@ class QA4SMCompPlotter:
         self.include_default_case = include_default_case
         if os.path.isfile(results_file):
             with xr.open_dataset(results_file) as ds:
-                self.ds = ds
+                self.ds: xr.Dataset = ds
                 self.datasets = hdl.QA4SMDatasets(self.ds.attrs)
-                self.ref = self.datasets.ref
-                self.ds_metrics = self.__ds_metrics()
-                self.varnames = list(self.ds_metrics.keys())
-                self.metric_lut = self.metrics_ds_grouped_lut()
+                self.ref_dataset: Dict = self.datasets.ref
+                self.candidate_datasets: List[Dict] = self.datasets.others
+                # self.metrics_in_ds = self.__ds_metrics()
+                self.metric_kinds_available: List = list(
+                    self.metrics_in_ds.keys())
+                self.metric_lut: Dict = self.metrics_ds_grouped_lut(
+                    include_ci=False)
                 # self.df = self._ds2df()
                 # self.check_for_unexpecetd_metrics()
+
+                self.cbp: ClusteredBoxPlot = ClusteredBoxPlot(
+                    anchor_list=np.linspace(1, len(self.tsws_used),
+                                            len(self.tsws_used)),
+                    no_of_ds=len(self.candidate_datasets),
+                    space_per_box_cluster=0.9,
+                    rel_indiv_box_width=0.9,
+                )
 
         else:
             print(
@@ -1239,9 +1255,10 @@ class QA4SMCompPlotter:
                 _list.append(var_name)
         return _list
 
-    def __ds_metrics(self) -> Dict[str, List[str]]:
+    @property
+    def metrics_in_ds(self) -> Dict[str, List[str]]:
         """
-        Returns a dictionary of metrics in the dataset
+        Returns a dictionary of metrics in the dataset, whereas each individual metric kind is a key in the dictionary and the values are lists of variables in the dataset that are associated with the respective metric kind.
 
         Returns
         -------
@@ -1270,7 +1287,7 @@ class QA4SMCompPlotter:
         """
 
         flattened_list = list(
-            set(itertools.chain.from_iterable(self.ds_metrics.values())))
+            set(itertools.chain.from_iterable(self.metrics_in_ds.values())))
         elements_not_in_flattened_list = set(
             self.temp_sub_win_dependent_vars) - set(flattened_list)
         _list = list(
@@ -1284,7 +1301,7 @@ class QA4SMCompPlotter:
         }
 
         for prefix, elements in grouped_dict.items():
-            self.ds_metrics[prefix] = elements
+            self.metrics_in_ds[prefix] = elements
 
         if len(elements_not_in_flattened_list) > 0:
             print(
@@ -1294,8 +1311,9 @@ class QA4SMCompPlotter:
 
         return True
 
-
-    def metrics_ds_grouped_lut(self, include_ci: Optional[bool] = False) -> Dict[str, List[str]]:
+    def metrics_ds_grouped_lut(self,
+                               include_ci: Optional[bool] = False
+                               ) -> Dict[str, List[str]]:
         """
         Returns a dictionary of for each metric, containing the QA4SM dataset combination used to compute said metric
 
@@ -1327,9 +1345,13 @@ class QA4SMCompPlotter:
                 return None
 
         def purge_ci_metrics(_dict: Dict) -> Dict:
-            return {ds_combi: [metric for metric in metric_values if "ci" not in metric][0] for ds_combi, metric_values in _dict.items()}
+            return {
+                ds_combi:
+                [metric for metric in metric_values if "ci" not in metric][0]
+                for ds_combi, metric_values in _dict.items()
+            }
 
-        for metric_kind, metrics_in_ds in self.ds_metrics.items():
+        for metric_kind, metrics_in_ds in self.metrics_in_ds.items():
 
             parsed_metrics = set([
                 pp for metric in metrics_in_ds
@@ -1379,7 +1401,7 @@ class QA4SMCompPlotter:
 
         return temp_sub_wins_names
 
-    def get_specific_metric_df(self, specific_metric: str, ds_name: str) -> pd.DataFrame:
+    def get_specific_metric_df(self, specific_metric: str) -> pd.DataFrame:
         """
         Get the DataFrame for a single **specific** metric (e.g. "R_between_0-ISMN_and_1-SMOS_L3") from a QA4SM netCDF file with temporal sub-windows.
 
@@ -1398,31 +1420,47 @@ class QA4SMCompPlotter:
         _data_dict['lat'] = self.ds['lat'].values
         _data_dict['lon'] = self.ds['lon'].values
         _data_dict['gpi'] = self.ds['gpi'].values
-        # _data_dict['dataset'] = [ds_name for _ in range(len(self.ds['lat']))]
         for tsw in self.tsws_used:
-            selection = {
-                globals.PERIOD_COORDINATE_NAME: tsw
-            }
+            selection = {globals.PERIOD_COORDINATE_NAME: tsw}
 
-            _data_dict[tsw] = self.ds[specific_metric].sel(selection).values.astype(np.float32)
+            _data_dict[tsw] = self.ds[specific_metric].sel(
+                selection).values.astype(np.float32)
 
         df = pd.DataFrame(_data_dict)
-
-        # df.set_index(['lat', 'lon', 'gpi', 'dataset'], inplace=True)
         df.set_index(['lat', 'lon', 'gpi'], inplace=True)
-
 
         return df
 
     def get_metric_df(self, generic_metric: str) -> pd.DataFrame:
+        """
+        Get the DataFrame for a single **generic** metric/metric kind (e.g. "R") from a QA4SM netCDF file with temporal sub-windows.
 
-        df_dict = {ds_combi[1]: self.get_specific_metric_df(specific_metric=specific_metric, ds_name=ds_combi[1]) for ds_combi, specific_metric in self.metric_lut[generic_metric].items()}
+        Parameters
+        ----------
+        generic_metric : str
+            Name of the generic metric/metric kind
+
+        Returns
+        -------
+        pd.DataFrame
+            Multilevel DataFrame for this generic metric/metric kind, whereas the two column levels are all candidate datasets and the temporal sub-windows
+        """
+
+        df_dict = {
+            ds_combi[1]:
+            self.get_specific_metric_df(specific_metric=specific_metric)
+            for ds_combi, specific_metric in
+            self.metric_lut[generic_metric].items()
+        }
         return pd.concat(df_dict.values(), keys=df_dict.keys(), axis=1)
 
     @staticmethod
+    @note(
+        "This method is redundant, as it yields the same result as QA4SMCompPlotter.tsws_used. It is kept as a static method for debugging purposes."
+    )
     def get_tsws_from_df(df: pd.DataFrame) -> List[str]:
         """
-        Get all temporal sub-windows used in the validation from a DataFrame
+        Get all temporal sub-windows used in the validation from a DataFrame as returned by `QA4SMCompPlotter.get_metric_df()`
 
         Parameters
         ----------
@@ -1439,7 +1477,7 @@ class QA4SMCompPlotter:
     @staticmethod
     def get_datasets_from_df(df: pd.DataFrame) -> List[str]:
         """
-        Get all datasets used in the validation from a DataFrame
+        Get all candiate datasets used in the validation from a DataFrame as returned by `QA4SMCompPlotter.get_metric_df()`
 
         Parameters
         ----------
@@ -1453,8 +1491,7 @@ class QA4SMCompPlotter:
         """
         return sorted(df.columns.levels[0].unique().tolist())
 
-
-    def create_title(self, Var, metric: str, type: str) -> str:
+    def create_title(self, Var, type: str) -> str:
         """
         Create title of the plot
 
@@ -1465,52 +1502,62 @@ class QA4SMCompPlotter:
         type: str
             type of plot
         """
-        parts = [globals._metric_name[Var.pretty_name]]
+        parts = [globals._metric_name[Var.metric]]
         parts.extend(QA4SMPlotter._get_parts_name(Var=Var, type=type))
         title = QA4SMPlotter._titles_lut(type=type).format(*parts)
 
         return title
 
-    # def _ds2df(self, varnames: list = None) -> pd.DataFrame:
-    #     """
-    #     Return one or more or all variables in a single DataFrame.
+    def create_label(self, Var) -> str:
+        """
+        Create y-label of the plot
 
-    #     Parameters
-    #     ----------
-    #     varnames : list or None
-    #         list of QA4SMVariables to be placed in the DataFrame
+        Parameters
+        ----------
 
-    #     Return
-    #     ------
-    #     df : pd.DataFrame
-    #         DataFrame with Var name as column names
-    #     """
-    #     try:
-    #         if varnames is None:
-    #             if globals.time_name in self.varnames:
-    #                 if self.ds[globals.time_name].values.size == 0:
-    #                     self.ds = self.ds.drop_vars(globals.time_name)
-    #             df = self.ds.to_dataframe()
-    #         else:
-    #             df = self.ds[self.index_names + varnames].to_dataframe()
-    #             df.dropna(axis='index', subset=varnames, inplace=True)
-    #     except KeyError as e:
-    #         raise Exception(
-    #             "The variable name '{}' does not match any name in the input values."
-    #             .format(e.args[0]))
+        Var: MetricVar
+            variable for a metric
 
-    #     if isinstance(df.index, pd.MultiIndex):
-    #         lat, lon, gpi = globals.index_names
-    #         df[lat] = df.index.get_level_values(lat)
-    #         df[lon] = df.index.get_level_values(lon)
+        Returns
+        -------
+        label: str
+            y-label for the plot
+        """
+        parts = [globals._metric_name[Var.metric]]
+        parts.append(globals._metric_description[Var.metric].format(
+            globals.get_metric_units(self.ref_dataset['short_name'])))
+        return "{}{}".format(*parts)
 
-    #         if gpi in df.index:
-    #             df[gpi] = df.index.get_level_values(gpi)
+    def get_metric_vars(self, generic_metric: str) -> Dict[str, str]:
+        _dict = {}
 
-    #     df.reset_index(drop=True, inplace=True)
-    #     df = df.set_index(self.index_names)
+        _df = self.get_metric_df(generic_metric=generic_metric)
+        for dataset in self.get_datasets_from_df(_df):
+            for ds_combi, specific_metric in self.metrics_ds_grouped_lut(
+            )[generic_metric].items():
+                if dataset in ds_combi:
+                    _Var = hdl.MetricVariable(varname=specific_metric,
+                                              global_attrs=self.ds.attrs)
+                    if _Var.values == None:
+                        _Var.values = _df.loc[:, (dataset, slice(None))]
 
-    #     return df
+                    _dict[dataset] = _Var
+
+        return _dict
+
+    def get_legend_entries(self, generic_metric: str) -> Dict[str, str]:
+        return {
+            f'{Var.metric_ds[0]}-{Var.metric_ds[1]["short_name"]}':
+            # 'hello':
+            self.cbp.label_template.format(
+                dataset_name=Var.metric_ds[1]["pretty_name"],
+                dataset_version=Var.metric_ds[1]
+                ["pretty_version"],  # Replace with your actual dataset version
+                variable_name=Var.metric_ds[1]
+                ["pretty_variable"],  # Replace with your actual variable name
+                unit=Var.metric_ds[1]["mu"])
+            for Var in self.get_metric_vars(generic_metric).values()
+        }
 
     def _load_vars(self, empty=False, only_metrics=False) -> list:
         """
@@ -1529,7 +1576,7 @@ class QA4SMCompPlotter:
             list of QA4SMVariable objects for the validation variables
         """
         vars = []
-        for varname in self.varnames:
+        for varname in self.metric_kinds_available:
             df = self.get_metric_df(generic_metric=varname)
             if empty:
                 values = None
@@ -1594,170 +1641,179 @@ class QA4SMCompPlotter:
 
             yield Var
 
-    def _yield_values(
-        self,
-        metric: str,
-        tc: bool = False,
-        stats: bool = False,
-        mean_ci: bool = False,
-    ) -> Generator[pd.DataFrame, qa4sm_reader.handlers.MetricVariable,
-                   pd.DataFrame]:
+    def plot_cbp(self,
+                 chosen_metric: str,
+                 out_name: Optional[str] = None) -> matplotlib.figure.Figure:
         """
-        Get iterable with pandas dataframes for all variables of a metric to plot
+        Plot a Clustered Boxplot for a chosen metric
 
         Parameters
         ----------
-        metric: str
-            metric name
-        tc: bool, default is False
-            True if TC. Then, caption starts with "Other Data:"
-        stats: bool
-            If true, append the statistics to the caption
-        mean_ci: bool
-            If True, 'Mean CI: {value}' is added to the caption
+        chosen_metric : str
+            name of the metric
 
-        Yield
-        -----
-        df: pd.DataFrame with variable values and caption name
-        Var: QA4SMMetricVariable
-            variable corresponding to the dataframe
-        ci: pd.DataFrame with "upper" and "lower" CI
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            the boxplot
+
         """
-        Vars = self._iter_vars(type="metadata",
-                                #    filter_parms={"metadata": metric}
-                                   )
-        for n, Var in enumerate(Vars):
-            values = Var.values[Var.varname]
-            # changes if it's a common-type Var
-            if Var.g == 0:
-                box_cap_ds = 'All datasets'
-            else:
-                box_cap_ds = self._box_caption(Var, tc=tc)
-            # setting in global for caption stats
-            if globals.boxplot_printnumbers:
-                box_cap = '{}'.format(box_cap_ds)
-                if stats:
-                    box_stats = plm._box_stats(values)
-                    box_cap = box_cap + "\n{}".format(box_stats)
-            else:
-                box_cap = box_cap_ds
-            df = values.to_frame(box_cap)
 
-            ci = self.img.get_cis(Var)
-            if ci:  # could be that variable doesn't have CIs - empty list
-                ci = pd.concat(ci, axis=1)
-                label = ""
-                if mean_ci:
-                    # get the mean CI range
-                    diff = ci["upper"] - ci["lower"]
-                    ci_range = float(diff.mean())
-                    label = "\nMean CI range: {:.3g}".format(ci_range)
-                df.columns = [df.columns[0] + label]
-            else:
-                ci = None
-            # values are all Nan or NaNf - not plotted
-            df_arr = df.to_numpy()
-            if np.isnan(df_arr).all() or df_arr.size == 0:
-                continue
+        def get_metric_vars(
+                generic_metric: str) -> Dict[str, hdl.MetricVariable]:
+            _dict = {}
 
-            print(df)
-            print(Var)
-            yield df, Var, ci
+            for dataset in self.get_datasets_from_df(metric_df):
+                for ds_combi, specific_metric in self.metrics_ds_grouped_lut(
+                )[generic_metric].items():
+                    if dataset in ds_combi:
+                        _Var = hdl.MetricVariable(varname=specific_metric,
+                                                  global_attrs=self.ds.attrs)
+                        if _Var.values == None:
+                            _Var.values = metric_df.loc[:,
+                                                        (dataset, slice(None))]
 
-    def comp_boxplot_definition(self,
-                                Var: qa4sm_reader.handlers.MetricVariable,
-                                metric: str,
-                                df: pd.DataFrame,
-                                type: str,
-                                offset=0.07,
-                                **kwargs) -> tuple:
-        """
-        Define parameters of plot
+                        _dict[dataset] = _Var
 
-        Parameters
-        ----------
-        df: pd.DataFrame to plot
-        type: str
-            one of _titles_lut
-        ci : list of Dataframes containing "upper" and "lower" CIs
-        xticks: list
-            caption to each boxplot (or triplet thereof)
-        offset: float
-            offset of boxplots
-        Var: QA4SMMetricVariable, optional. Default is None
-            Specified in case mds meta is needed
-        """
-        # plot label
-        unit_ref = self.ref['short_name']
+            return _dict
 
-        _, _, _, scl_meta = Var.get_varmeta()
-        if scl_meta:
-            unit_ref = scl_meta[1]['short_name']
-        parts = [globals._metric_name[Var.metric]]
-        parts.append(globals._metric_description[Var.metric].format(
-            globals.get_metric_units(unit_ref)))
-        label = "{}{}".format(*parts)
-        print(f'\n\tlabel: {label}\n')
-        # generate plot
-        figwidth = globals.boxplot_width * (len(df.columns) + 1)
-        # otherwise it's too narrow
-        if metric == "n_obs":
-            figwidth = figwidth + 0.2
+        def get_legend_entries(cbp_obj: ClusteredBoxPlot,
+                               generic_metric: str) -> Dict[str, str]:
+            return {
+                f'{Var.metric_ds[0]}-{Var.metric_ds[1]["short_name"]}':
+                cbp_obj.label_template.format(
+                    dataset_name=Var.metric_ds[1]["pretty_name"],
+                    dataset_version=Var.metric_ds[1]["pretty_version"],
+                    variable_name=Var.metric_ds[1]["pretty_variable"],
+                    unit=Var.metric_ds[1]["mu"])
+                for Var in get_metric_vars(generic_metric).values()
+            }
+
+        metric_df = self.get_metric_df(chosen_metric)
+        Vars = get_metric_vars(chosen_metric)
+
+        legend_entries = get_legend_entries(cbp_obj=self.cbp,
+                                            generic_metric=chosen_metric)
+
+        centers_and_widths = self.cbp.centers_and_widths(
+            anchor_list=self.cbp.anchor_list,
+            no_of_ds=self.cbp.no_of_ds,
+            space_per_box_cluster=0.9,
+            rel_indiv_box_width=0.8)
+
+        figwidth = globals.boxplot_width * (len(metric_df.columns) + 1
+                                            )  # otherwise it's too narrow
         figsize = [figwidth, globals.boxplot_height]
+        fig_kwargs = {
+            'figsize': figsize,
+            'dpi': 'figure',
+            'bbox_inches': 'tight'
+        }
 
-        print(f'df.columns  {df.columns}')
-        anchor_list = np.linspace(1, len(df.columns), len(df.columns))
-        cbp = ClusteredBoxPlot(
-            anchor_list=anchor_list,
-            no_of_ds=len(df.columns),
+        cbp_fig = self.cbp.figure_template(incl_median_iqr_n_axs=False,
+                                           fig_kwargs=fig_kwargs)
+
+        legend_handles = []
+        for dc_num, (dc_val_name, Var) in enumerate(Vars.items()):
+            _df = Var.values
+            bp = cbp_fig.ax_box.boxplot(
+                _df.dropna().values,
+                positions=centers_and_widths[dc_num].centers,
+                widths=centers_and_widths[dc_num].widths,
+                showfliers=False,
+                patch_artist=True,
+            )
+
+            for box in bp['boxes']:
+                box.set(color=list(globals.CLUSTERED_BOX_PLOT_STYLE['colors'].
+                                   values())[dc_num])
+
+            legend_handles.append(
+                Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    color=list(
+                        globals.CLUSTERED_BOX_PLOT_STYLE['colors'].values())
+                    [dc_num],
+                    alpha=0.7,
+                    label=legend_entries[dc_val_name]))
+
+            patch_styling(
+                bp,
+                list(globals.CLUSTERED_BOX_PLOT_STYLE['colors'].values())
+                [dc_num])
+
+        if self.cbp.no_of_ds >= 3:
+            _ncols = 3
+        else:
+            _ncols = self.cbp.no_of_ds
+
+        cbp_fig.ax_box.legend(
+            handles=legend_handles,
+            fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
+            ['legend_fontsize'],
+            ncols=_ncols)
+
+        xtick_pos = self.cbp.centers_and_widths(
+            anchor_list=self.cbp.anchor_list,
+            no_of_ds=1,
+            space_per_box_cluster=0.7,
+            rel_indiv_box_width=0.8)
+        cbp_fig.ax_box.set_xticks([])
+        cbp_fig.ax_box.set_xticklabels([])
+        cbp_fig.ax_box.set_xticks(xtick_pos[0].centers)
+
+        def get_xtick_labels(df: pd.DataFrame) -> List:
+            _count_dict = df.count().to_dict()
+            return [
+                f"{tsw[1]}\nN: {count}" for tsw, count in _count_dict.items()
+            ]
+
+        cbp_fig.ax_box.set_xticklabels(get_xtick_labels(_df), )
+        cbp_fig.ax_box.tick_params(
+            axis='both',
+            labelsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
+            ['tick_labelsize'])
+
+        _dummy_xticks = [
+            cbp_fig.ax_box.axvline(x=(a + b) / 2, color='lightgrey') for a, b
+            in zip(xtick_pos[0].centers[:-1], xtick_pos[0].centers[1:])
+        ]
+        cbp_fig.fig.suptitle(
+            self.create_title(Var, type='boxplot_basic'),
+            fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
+            ['title_fontsize'])
+        cbp_fig.ax_box.set_ylabel(
+            self.create_label(Var),
+            fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
+            ['y_labelsize'],
         )
-        centers_and_widths = cbp.centers_and_widths(anchor_list=cbp.anchor_list,
-                                            no_of_ds=cbp.no_of_ds,
-                                            space_per_box_cluster=0.7,
-                                            rel_indiv_box_width=0.8)
 
-        cbp_fig = cbp.figure_template()
-        fig, ax = cbp_fig.fig, cbp_fig.ax_box
+        with cbook.get_sample_data(globals.watermark_logo_pth) as file:
+            im = image.imread(file)
 
-        # print(sorted(list(chain(*[container.centers for container in centers_and_widths]))))
-        # fig, ax = plm.boxplot(
-        #     df=df,
-        #     label=label,
-        #     figsize=figsize,
-        #     patch_artist=True,
-        #     positions=sorted(list(chain(*[container.centers for container in centers_and_widths]))),
-        #     widths=sorted(list(chain(*[container.widths for container in centers_and_widths]))),
-        #     axis = ax
-        # )
+            # im = zoom(im, 0.5)
 
-        # fig, ax = plm.boxplot(
-        #     df=df,
-        #     label=label,
-        #     figsize=figsize,
-        #     patch_artist=True,
-        #     positions=np.arange(len(df.columns)),
-        #     widths=0.5,
-        # )
+        watermark_x = 1300
+        watermark_y = 10  # Bottom of the figure
+        watermark = cbp_fig.fig.figimage(im,
+                                         watermark_x,
+                                         watermark_y,
+                                         zorder=3,
+                                         alpha=1,
+                                         cmap='gray',
+                                         origin='upper',
+                                         resize=False)
 
+        spth = f"{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = chosen_metric, filetype = '.png')}"
+        if out_name:
+            spth = out_name
 
+        cbp_fig.fig.savefig(
+            fname=spth,
+            dpi=fig_kwargs['dpi'],
+            bbox_inches=fig_kwargs['bbox_inches'],
+        )
 
-        if not Var:
-            # when we only need reference dataset from variables (i.e. is the same):
-            for Var in self.img._iter_vars(type="metric",
-                                           filter_parms={"metric": metric}):
-                Var = Var
-                break
-
-        if not type == "metadata":
-            # title = self.create_title(Var, type=type, period=period)
-            title = 'test title'
-            ax.set_title(title, pad=globals.title_pad)
-        # add watermark
-        # if self.img.has_CIs:
-        #     offset = 0.08  # offset smaller as CI variables have a larger caption
-        if Var.g == 0:
-            offset = 0.03  # offset larger as common metrics have a shorter caption
-        if globals.watermark_pos not in [None, False]:
-            plm.make_watermark(fig, offset=offset)
-
-        return fig, ax
+        return cbp_fig.fig

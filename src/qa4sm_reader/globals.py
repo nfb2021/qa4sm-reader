@@ -9,6 +9,7 @@ import cartopy.crs as ccrs
 import matplotlib.colors as cl
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 # PLOT DEFAULT SETTINGS
 # =====================================================
@@ -51,6 +52,12 @@ watermark = u'made with QA4SM (qa4sm.eu)'  # Watermark string
 watermark_pos = 'bottom'  # Default position ('top' or 'bottom' or None)
 watermark_fontsize = 8  # fontsize in points (matplotlib uses 72ppi)
 watermark_pad = 5  # padding above/below watermark in points (matplotlib uses 72ppi)
+
+# === watermark logo defaults ===
+watermark_logo_pth = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), 'static', 'images', 'logo',
+    'QA4SM_logo_long_small.png')
 
 # === filename template ===
 ds_fn_templ = "{i}-{ds}.{var}"
@@ -662,3 +669,20 @@ METRIC_CI_TEMPLATE = '{metric}_ci_{bound}_between_{ds1}_and_{ds2}_{ending}'
 
 PERIOD_COORDINATE_NAME = 'tsw' # name of the period coordinate in the netcdf file (Temporal Sub-Window)
 DEFAULT_TSW = 'bulk'
+CLUSTERED_BOX_PLOT_STYLE = {
+    'fig_params': {
+        'title_fontsize': 20,
+        'y_labelsize': 18,
+        'tick_labelsize': 16,
+        'legend_fontsize': 12,
+    },
+    'colors': {
+        'Teal Blue': '#00778F',
+        'Mustard Yellow': '#FFD166',
+        'Sage Green': '#8FB339',
+        'Coral Pink': '#EF476F',
+        'Steel Gray': '#6A0572'
+    }
+}
+
+CLUSTERED_BOX_PLOT_SAVENAME = 'comparison_boxplot_{metric}.{filetype}'

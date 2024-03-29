@@ -4,7 +4,7 @@ import warnings
 from typing import Union
 
 import pandas as pd
-from qa4sm_reader.plotter import QA4SMPlotter
+from qa4sm_reader.plotter import QA4SMPlotter, QA4SMCompPlotter
 from qa4sm_reader.img import QA4SMImg, extract_periods
 import qa4sm_reader.globals as globals
 import numpy as np
@@ -61,6 +61,8 @@ def plot_all(filepath: str,
     fnames_mapplots: list
         lists of filenames for created mapplots and boxplots
     fnames_csv: list
+    fnames_cbplot: list
+        list of filenames for created comparison boxplots
     """
 
     if isinstance(save_metadata, bool):
@@ -135,10 +137,23 @@ def plot_all(filepath: str,
             out_csv = plotter.save_stats(period=period)
             fnames_csv.append(out_csv)
 
+    fnames_cbplot = []
+    cbp = QA4SMCompPlotter(filepath)
+    if not os.path.isdir(os.path.join(out_dir, 'comparison_boxplots')):
+        os.makedirs(os.path.join(out_dir, 'comparison_boxplots'))
+
+    for available_metric in cbp.metric_kinds_available:
+        if available_metric in metrics.keys() and available_metric not in globals._metadata_exclude and available_metric != 'n_obs':
+            spth = os.path.join(out_dir, 'comparison_boxplots',
+            f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = available_metric, filetype = out_type)}')
+            cbp.plot_cbp(chosen_metric = available_metric,
+                        out_name=spth,
+                        )
+            fnames_cbplot.append(spth)
 
 
 
-    return fnames_bplot, fnames_mapplot, fnames_csv
+    return fnames_bplot, fnames_mapplot, fnames_csv, fnames_cbplot
 
 
 def get_img_stats(
