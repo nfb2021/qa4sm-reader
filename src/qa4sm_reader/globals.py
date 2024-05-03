@@ -3,6 +3,7 @@
 Settings and global variables used in the reading and plotting procedures
 """
 # todo: reduce dependency on globals (e.g flexible if new datasets/versions are added)
+from tkinter import W
 import warnings
 
 import cartopy.crs as ccrs
@@ -42,7 +43,7 @@ max_title_len = 8 * map_figsize[
 
 # === boxplot_basic defaults ===
 boxplot_printnumbers = True  # Print 'median', 'nObs', 'stdDev' to the boxplot_basic.
-boxplot_height = 6
+boxplot_height = 7 #$ increased by 1 to house logo
 boxplot_width = 2.1  # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 tick_size = 8.5
@@ -51,13 +52,20 @@ tick_size = 8.5
 watermark = u'made with QA4SM (qa4sm.eu)'  # Watermark string
 watermark_pos = 'bottom'  # Default position ('top' or 'bottom' or None)
 watermark_fontsize = 8  # fontsize in points (matplotlib uses 72ppi)
-watermark_pad = 5  # padding above/below watermark in points (matplotlib uses 72ppi)
+watermark_pad = 50  # padding above/below watermark in points (matplotlib uses 72ppi)
 
 # === watermark logo defaults ===
+watermark_logo_position = 'lower_right'
+watermark_logo_scale = 0.1  # height of the logo relative to the height of the figure
+watermark_logo_offset_comp_plots = (0, -0.1)
+watermark_logo_offset_metadata_plots = (0, -0.08)
+watermark_logo_offset_map_plots = (0, -0.15)
+watermark_logo_offset_bar_plots = (0, -0.1)
+watermark_logo_offset_box_plots = (0, -0.15)
 watermark_logo_pth = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__)))), 'static', 'images', 'logo',
-    'QA4SM_logo_long_small.png')
+    'QA4SM_logo_long.png')
 
 # === filename template ===
 ds_fn_templ = "{i}-{ds}.{var}"

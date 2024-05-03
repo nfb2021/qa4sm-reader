@@ -8,6 +8,8 @@ from qa4sm_reader.plotter import QA4SMPlotter, QA4SMCompPlotter
 from qa4sm_reader.img import QA4SMImg, extract_periods
 import qa4sm_reader.globals as globals
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def plot_all(filepath: str,
              temporal_sub_windows: list = None,
@@ -127,31 +129,33 @@ def plot_all(filepath: str,
                     kwargs['period'] = globals.DEFAULT_TSW
 
                 fnames_bplot.extend(
-                    plotter.plot_save_metadata(
-                        metric,
-                        out_types=out_type,
-                        **kwargs
-                    ))
+                    plotter.plot_save_metadata(metric,
+                                               out_types=out_type,
+                                               **kwargs))
 
         if save_csv:
             out_csv = plotter.save_stats(period=period)
             fnames_csv.append(out_csv)
 
     fnames_cbplot = []
-    cbp = QA4SMCompPlotter(filepath)
-    if not os.path.isdir(os.path.join(out_dir, 'comparison_boxplots')):
-        os.makedirs(os.path.join(out_dir, 'comparison_boxplots'))
+    if globals.DEFAULT_TSW in periods and len(periods) > 1:
+        cbp = QA4SMCompPlotter(filepath)
+        if not os.path.isdir(os.path.join(out_dir, 'comparison_boxplots')):
+            os.makedirs(os.path.join(out_dir, 'comparison_boxplots'))
 
-    for available_metric in cbp.metric_kinds_available:
-        if available_metric in metrics.keys() and available_metric not in globals._metadata_exclude and available_metric != 'n_obs':
-            spth = os.path.join(out_dir, 'comparison_boxplots',
-            f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = available_metric, filetype = out_type)}')
-            cbp.plot_cbp(chosen_metric = available_metric,
-                        out_name=spth,
-                        )
-            fnames_cbplot.append(spth)
-
-
+        for available_metric in cbp.metric_kinds_available:
+            if available_metric in metrics.keys(
+            ) and available_metric not in globals._metadata_exclude and available_metric != 'n_obs':
+                spth = os.path.join(
+                    out_dir, 'comparison_boxplots',
+                    f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = available_metric, filetype = out_type)}'
+                )
+                _fig = cbp.plot_cbp(
+                    chosen_metric=available_metric,
+                    out_name=spth,
+                )
+                plt.close(_fig)
+                fnames_cbplot.append(spth)
 
     return fnames_bplot, fnames_mapplot, fnames_csv, fnames_cbplot
 

@@ -2,36 +2,43 @@
 """
 Contains helper functions for plotting qa4sm results.
 """
-from turtle import width
+from logging import handlers
 from qa4sm_reader import globals
 from qa4sm_reader.exceptions import PlotterError
-from qa4sm_reader.handlers import ClusteredBoxPlotTemplate, CWContainer
+from qa4sm_reader.handlers import ClusteredBoxPlotContainer, CWContainer
+from qa4sm_reader.utils import note
 
 import numpy as np
 import pandas as pd
 import os.path
 
-from dataclasses import dataclass
-from typing import Union, List, Tuple, Dict, Optional
+from typing import Union, List, Tuple, Dict, Optional, Any
 import copy
 
 import seaborn as sns
+import matplotlib
+import matplotlib.axes
+import matplotlib.cbook as cbook
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcol
 import matplotlib.ticker as mticker
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch, PathPatch
-from matplotlib.lines import Line2D
+
 
 from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import cartopy.crs as ccrs
 
 from pygeogrids.grids import BasicGrid, genreg_grid
 from shapely.geometry import Polygon, Point
 
 import warnings
 import os
+from collections import namedtuple
+from scipy.ndimage import zoom
 
 cconfig['data_dir'] = os.path.join(os.path.dirname(__file__), 'cartopy')
 
@@ -316,22 +323,29 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
     return extent
 
 
-def init_plot(figsize, dpi, add_cbar=None, projection=None) -> tuple:
+def init_plot(figsize, dpi, add_cbar=None, projection=None, fig_template = None) -> tuple:
     """Initialize mapplot"""
     if not projection:
         projection = globals.crs
-    fig = plt.figure(figsize=figsize, dpi=dpi)
+
+    if fig_template is None:
+        # fig, ax_main = plt.subplots(figsize=figsize, dpi=dpi)
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+    else:
+        fig = fig_template.fig
+        ax_main = fig_template.ax_main
+
+
     if add_cbar:
         gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[19, 1])
-        ax = fig.add_subplot(gs[0], projection=projection)
+        ax_main = fig.add_subplot(gs[0], projection=projection)
         cax = fig.add_subplot(gs[1])
     else:
         gs = gridspec.GridSpec(nrows=1, ncols=1)
-        ax = fig.add_subplot(gs[0], projection=projection)
+        ax_main = fig.add_subplot(gs[0], projection=projection)
         cax = None
 
-    return fig, ax, cax
-
+    return fig, ax_main, cax
 
 def get_extend_cbar(metric):
     """
@@ -451,6 +465,10 @@ def style_map(
     return ax
 
 
+
+@note(
+    "DeprecationWarning: The function `qa4sm_reader.plotting_methods.make_watermark()` is deprecated and will be removed in the next release. Use `qa4sm_reader.plotting_methods.add_logo_to_figure` instead to add a logo."
+)
 def make_watermark(fig,
                    placement=globals.watermark_pos,
                    for_map=False,
@@ -482,49 +500,134 @@ def make_watermark(fig,
     offset = offset + ((
         (fontsize + pad) / globals.matplotlib_ppi) / height) * 2.2
     if placement == 'top':
-        plt.annotate(globals.watermark,
-                     xy=[0.5, 1],
-                     xytext=[-pad, -pad],
-                     fontsize=fontsize,
-                     color='white',                         #TODO! change back to grey
-                     horizontalalignment='center',
-                     verticalalignment='top',
-                     xycoords='figure fraction',
-                     textcoords='offset points')
+        plt.annotate(
+            globals.watermark,
+            xy=[0.5, 1],
+            xytext=[-pad, -pad],
+            fontsize=fontsize,
+            color='white',  #TODO! change back to grey
+            horizontalalignment='center',
+            verticalalignment='top',
+            xycoords='figure fraction',
+            textcoords='offset points')
         top = fig.subplotpars.top
         fig.subplots_adjust(top=top - offset)
 
     elif for_map or for_barplot:
         if for_barplot:
-            plt.suptitle(globals.watermark,
-                         color='white',                     #TODO! change back to grey
-                         fontsize=fontsize,
-                         x=-0.07,
-                         y=0.5,
-                         va='center',
-                         rotation=90)
+            plt.suptitle(
+                globals.watermark,
+                color='white',  #TODO! change back to grey
+                fontsize=fontsize,
+                x=-0.07,
+                y=0.5,
+                va='center',
+                rotation=90)
         else:
-            plt.suptitle(globals.watermark,
-                         color='white',                     #TODO! change back to grey
-                         fontsize=fontsize,
-                         y=0,
-                         ha='center')
+            plt.suptitle(
+                globals.watermark,
+                color='white',  #TODO! change back to grey
+                fontsize=fontsize,
+                y=0,
+                ha='center')
 
     elif placement == 'bottom':
-        plt.annotate(globals.watermark,
-                     xy=[0.5, 0],
-                     xytext=[pad, pad],
-                     fontsize=fontsize,
-                     color='white',                         #TODO! change back to grey
-                     horizontalalignment='center',
-                     verticalalignment='bottom',
-                     xycoords='figure fraction',
-                     textcoords='offset points')
+        plt.annotate(
+            globals.watermark,
+            xy=[0.5, 0],
+            xytext=[pad, pad],
+            fontsize=fontsize,
+            color='white',  #TODO! change back to grey
+            horizontalalignment='center',
+            verticalalignment='bottom',
+            xycoords='figure fraction',
+            textcoords='offset points')
         bottom = fig.subplotpars.bottom
         if not for_map:
             fig.subplots_adjust(bottom=bottom + offset)
     else:
         raise NotImplementedError
+
+Offset = namedtuple('offset', ['x', 'y'])
+
+def add_logo_to_figure(fig: matplotlib.figure.Figure,
+                       logo_path: Optional[str] = globals.watermark_logo_pth,
+                       position: Optional[str] = globals.watermark_logo_position,
+                       offset: Optional[Union[Tuple, Offset]] = (0., -0.15),
+                       scale: Optional[float] = 0.15) -> None:
+    """
+    Add a logo to an existing figure. This is done by creating an additional axis in the figure, at the location specified by `position`. The logo is then placed on this axis.
+
+    Parameters
+    ----------
+    fig: matplotlib.figure.Figure
+        The figure to add the logo to. The figure should have at least one axis, otherwise an axis is created.z
+
+    logo_path: Optional[str]
+        Path to the logo image. If the path does not exist, a warning is raised and the function returns. Default is `globals.watermark_logo_pth`.
+
+    position: Optional[str]
+        The position of the logo in the figure. Valid values are 'lower_left', 'lower_center', 'lower_right', 'upper_left', 'upper_center', 'upper_right'. Default is `globals.watermark_logo_position`.
+
+    offset: Optional[Tuple | Offset]
+        Offset of the logo from the right edge of the subplot (right lower corner of the main plot). The first value is the x-offset, the second value is the y-offset. Default is (0., 0).
+
+    scale: Optional[float]
+        Scale of the logo relative to the figure height (= fraction of figure height). Valid values are (0, 1]. Default is 0.15.
+
+    Returns
+    -------
+    None
+    """
+
+    if not fig.get_axes():
+        warnings.warn("No axes found in the figure. Creating a new one.")
+        fig.add_subplot(111)
+
+    if not os.path.exists(logo_path):
+        warnings.warn("No logo found at the specified path")
+        return
+
+    with cbook.get_sample_data(logo_path) as file:
+        im = mpimg.imread(file)
+
+    # Get the dimensions of the image
+    height, width, _ = im.shape
+
+    fig_height_pixels = fig.get_figheight() * fig.dpi
+
+    logo_height_pixels = scale * fig_height_pixels
+    logo_width_pixels = width * logo_height_pixels / height
+
+    # Convert back to figure coordinates
+    logo_width_fig = logo_width_pixels / fig.dpi
+
+    if not isinstance(offset, Offset):
+        offset = Offset(*offset)
+
+
+    if 'left' in position:
+        left = 1 - (logo_width_fig) + offset.x
+    elif 'center' in position:
+        left = 0.5 - (logo_width_fig / 2) + offset.x
+    elif 'right' in position:  # 'right' in position
+        left = 0 + offset.x
+
+    if 'lower' in position:
+        bottom = offset.y
+    elif 'upper' in position:  # 'upper' in position
+        bottom = 1 - offset.y
+
+    # Define the new position of ax_logo
+    # [left, bottom, width, height]
+    ax_logo_pos = [left, bottom, logo_width_fig, scale]
+
+    # Add a new axis to the figure at the position of ax_logo to house the logo
+    ax_logo = fig.add_axes(ax_logo_pos)
+    ax_logo.imshow(im)
+
+    # Hide the axis
+    ax_logo.axis('off')
 
 
 def _make_cbar(fig,
@@ -720,9 +823,12 @@ def boxplot(
     values = df.copy()
     center_pos = np.arange(len(values.columns)) * 2
     # make plot
+
     ax = axis
     if axis is None:
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+    else:
+        fig = None
     ticklabels = values.columns
     # styling of the boxes
     kwargs = {"patch_artist": True, "return_type": "dict"}
@@ -774,11 +880,12 @@ def boxplot(
                          ax=ax,
                          **kwargs)
     patch_styling(cen, 'white')
+
     if ci:
         low_ci = Patch(color='skyblue', alpha=0.7, label='Lower CI')
         up_ci = Patch(color='tomato', alpha=0.7, label='Upper CI')
         # _CI_difference(fig, ax, ci)
-        plt.legend(handles=[low_ci, up_ci], fontsize=8, loc="best")
+        ax.legend(handles=[low_ci, up_ci], fontsize=8, loc="best")
     # provide y label
     if label is not None:
         plt.ylabel(label, weight='normal')
@@ -789,124 +896,7 @@ def boxplot(
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    if axis is None:
-        return fig, ax
-
-
-def boxplot_org(
-    df,
-    ci=None,
-    label=None,
-    figsize=None,
-    dpi=100,
-    spacing=0.35,
-    axis=None,
-    **plotting_kwargs,
-) -> tuple:
-    """
-    Create a boxplot_basic from the variables in df.
-    The box shows the quartiles of the dataset while the whiskers extend
-    to show the rest of the distribution, except for points that are
-    determined to be “outliers” using a method that is a function of
-    the inter-quartile range.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        DataFrame containing 'lat', 'lon' and (multiple) 'var' Series.
-    ci : list
-        list of Dataframes containing "upper" and "lower" CIs
-    label : str, optional
-        Label of the y axis, describing the metric. The default is None.
-    figsize : tuple, optional
-        Figure size in inches. The default is globals.map_figsize.
-    dpi : int, optional
-        Resolution for raster graphic output. The default is globals.dpi.
-    spacing : float, optional.
-        Space between the central boxplot and the CIs. Default is 0.3
-    axis : matplotlib Axis obj.
-        if provided, the plot will be shown on it
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        the boxplot
-    ax : matplotlib.axes.Axes
-    """
-    values = df.copy()
-    center_pos = np.arange(len(values.columns)) * 2
-    # make plot
-    ax = axis
-    if axis is None:
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-    ticklabels = values.columns
-    # styling of the boxes
-    kwargs = {"patch_artist": True, "return_type": "dict"}
-    for key, value in plotting_kwargs.items():
-        kwargs[key] = value
-    # changes necessary to have confidence intervals in the plot
-    # could be an empty list or could be 'None', if de-selected from the kwargs
-    if ci:
-        upper, lower = [], []
-        for n, intervals in enumerate(ci):
-            lower.append(intervals["lower"])
-            upper.append(intervals["upper"])
-        lower = _add_dummies(
-            pd.concat(lower, ignore_index=True, axis=1),
-            len(center_pos) - len(ci),
-        )
-        upper = _add_dummies(
-            pd.concat(upper, ignore_index=True, axis=1),
-            len(center_pos) - len(ci),
-        )
-        low = lower.boxplot(positions=center_pos - spacing,
-                            showfliers=False,
-                            widths=0.15,
-                            ax=ax,
-                            **kwargs)
-        up = upper.boxplot(positions=center_pos + spacing,
-                           showfliers=False,
-                           widths=0.15,
-                           ax=ax,
-                           **kwargs)
-        patch_styling(low, 'skyblue')
-        patch_styling(up, 'tomato')
-
-    if not 'positions' in kwargs:
-        positions = center_pos
-    else:
-        positions = kwargs['positions']
-        del kwargs['positions']
-
-    if not 'widths' in kwargs:
-        widths = 0.3
-    else:
-        widths = kwargs['widths']
-        del kwargs['widths']
-
-    cen = values.boxplot(positions=positions,
-                         showfliers=False,
-                         widths=widths,
-                         ax=ax,
-                         **kwargs)
-    patch_styling(cen, 'white')
-    if ci:
-        low_ci = Patch(color='skyblue', alpha=0.7, label='Lower CI')
-        up_ci = Patch(color='tomato', alpha=0.7, label='Upper CI')
-        # _CI_difference(fig, ax, ci)
-        plt.legend(handles=[low_ci, up_ci], fontsize=8, loc="best")
-    # provide y label
-    if label is not None:
-        plt.ylabel(label, weight='normal')
-    ax.set_xticks(positions)
-    ax.set_xticklabels(ticklabels)
-    ax.tick_params(labelsize=globals.tick_size)
-    ax.grid(axis='x')
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-
-    if axis is None:
-        return fig, ax
+    return fig, ax
 
 
 def _replace_status_values(ser):
@@ -939,6 +929,7 @@ def barplot(
     label=None,
     figsize=None,
     dpi=100,
+    axis=None,
 ) -> tuple:
     """
     Create a barplot from the validation errors in df.
@@ -956,6 +947,8 @@ def barplot(
         Figure size in inches. The default is globals.map_figsize.
     dpi : int, optional
         Resolution for raster graphic output. The default is globals.dpi.
+    axis : matplotlib Axis obj.
+        if provided, the plot will be shown on it
 
     Returns
     -------
@@ -963,7 +956,12 @@ def barplot(
         the boxplot
     ax : matplotlib.axes.Axes
     """
-    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+
+    ax = axis
+    if axis is None:
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+    else:
+        fig = None
 
     values = df.copy()
     values = values[[values.keys()[0]]]
@@ -1559,20 +1557,20 @@ def boxplot_metadata(
         return fig, axes
 
 
-def mapplot(df,
-            metric,
-            ref_short,
-            scl_short=None,
-            ref_grid_stepsize=None,
-            plot_extent=None,
+def mapplot(df: pd.DataFrame,
+            metric: str,
+            ref_short : str,
+            scl_short: Optional[str] = None,
+            ref_grid_stepsize: Optional[float] = None,
+            plot_extent: Optional[Tuple[float, float, float, float]] = None,
             colormap=None,
-            projection=None,
-            add_cbar=True,
-            label=None,
-            figsize=globals.map_figsize,
-            dpi=globals.dpi_min,
-            diff_map=False,
-            **style_kwargs) -> tuple:
+            projection: Optional[ccrs.Projection] = None,
+            add_cbar: Optional[bool] = True,
+            label: Optional[str] = None,
+            figsize: Optional[Tuple[float, float]] = globals.map_figsize,
+            dpi: Optional[int] = globals.dpi_min,
+            diff_map: Optional[bool] = False,
+            **style_kwargs: Dict) -> Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]:
     """
         Create an overview map from df using values as color. Plots a scatterplot for ISMN and an image plot for other
         input values.
@@ -2014,27 +2012,27 @@ class ClusteredBoxPlot:
 
     @staticmethod
     def figure_template(incl_median_iqr_n_axs: Optional[bool] = False,
-                        **fig_kwargs) -> ClusteredBoxPlotTemplate:
+                        **fig_kwargs) -> ClusteredBoxPlotContainer:
         """
-        Function to create a figure template for a clustered boxplot. The function returns a ClusteredBoxPlotTemplate object, which contains the figure and the subplots for the boxplot, median, IQR and N values.
+        Function to create a figure template for e.g. a clustered boxplot. The function returns a ClusteredBoxPlotContainer object, which contains the figure and the subplots for the boxplot, median, IQR and N values.
 
         Parameters
         ----------
         incl_median_iqr_n_axs: Optional[bool]
-            If True, creates a subplot with median, IQR and N values for each box. If False, only the boxplot is created. Default is False
+            If True, creates three subplots with median, IQR and N values for each box. If False, only the boxplot is created. Default is False
         fig_kwargs: dict
             Keyword arguments for the figure
 
         Returns
         -------
-        ClusteredBoxPlotTemplate
-            A ClusteredBoxPlotTemplate object containing the figure and the subplots for the boxplot, median, IQR and N values
+        ClusteredBoxPlotContainer
+            A ClusteredBoxPlotContainer object containing the figure and the subplots for the boxplot, median, IQR and N values
         """
 
         if 'figsize' in fig_kwargs:
             _fig = plt.figure(figsize=fig_kwargs['figsize'])
         else:
-            _fig = plt.figure(figsize=(20, 14))
+            _fig = plt.figure(figsize=(15, 10.5))
 
         if not incl_median_iqr_n_axs:
             ax_box = _fig.add_subplot(111)
@@ -2046,20 +2044,20 @@ class ClusteredBoxPlot:
 
             # Subgridspec for ax_box and ax_median (top subplot)
             gs_top = gridspec.GridSpecFromSubplotSpec(1,
-                                                    1,
-                                                    subplot_spec=gs_main[0])
+                                                      1,
+                                                      subplot_spec=gs_main[0])
 
             # Subgridspec for ax_iqr and ax_n (bottom subplots)
-            gs_bottom = gridspec.GridSpecFromSubplotSpec(3,
-                                                        1,
-                                                        height_ratios=[1, 1, 1],
-                                                        subplot_spec=gs_main[1],
-                                                        hspace=0)
+            gs_bottom = gridspec.GridSpecFromSubplotSpec(
+                3,
+                1,
+                height_ratios=[1, 1, 1],
+                subplot_spec=gs_main[1],
+                hspace=0)
             ax_box = plt.subplot(gs_top[0])
             ax_median = plt.subplot(gs_bottom[0], sharex=ax_box)
             ax_iqr = plt.subplot(gs_bottom[1], sharex=ax_box)
             ax_n = plt.subplot(gs_bottom[2], sharex=ax_box)
-
 
         for _ax in [ax_box, ax_median, ax_iqr, ax_n]:
             try:
@@ -2069,16 +2067,14 @@ class ClusteredBoxPlot:
             except AttributeError:
                 pass
 
-        make_watermark(
-            fig=_fig,
-            placement=globals.watermark_pos,
-            for_map=False,
-            offset=-0.03,
-            for_barplot=False,
-            fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']['tick_labelsize'],
-        )
+        add_logo_to_figure(fig = _fig,
+                        logo_path = globals.watermark_logo_pth,
+                        position = globals.watermark_logo_position,
+                        offset = globals.watermark_logo_offset_comp_plots,
+                        scale = globals.watermark_logo_scale,
+                        )
 
-        return ClusteredBoxPlotTemplate(fig=_fig,
+        return ClusteredBoxPlotContainer(fig=_fig,
                                         ax_box=ax_box,
                                         ax_median=ax_median,
                                         ax_iqr=ax_iqr,

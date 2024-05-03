@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import re
-import stat
 from unittest.mock import DEFAULT
 import warnings
 from pathlib import Path
@@ -16,8 +15,6 @@ import matplotlib.pyplot as plt
 from matplotlib.pylab import f
 import matplotlib
 from matplotlib.patches import Rectangle
-import matplotlib.cbook as cbook
-import matplotlib.image as image
 
 from qa4sm_reader.img import QA4SMImg
 import qa4sm_reader.globals as globals
@@ -26,6 +23,7 @@ from qa4sm_reader.plotting_methods import ClusteredBoxPlot, patch_styling
 from qa4sm_reader.exceptions import PlotterError
 import qa4sm_reader.handlers as hdl
 from qa4sm_reader.utils import note
+
 
 class QA4SMPlotter:
     """
@@ -291,8 +289,7 @@ class QA4SMPlotter:
         tc: bool = False,
         stats: bool = True,
         mean_ci: bool = True,
-    ) -> Generator[pd.DataFrame, hdl.MetricVariable,
-                   pd.DataFrame]:
+    ) -> Generator[pd.DataFrame, hdl.MetricVariable, pd.DataFrame]:
         """
         Get iterable with pandas dataframes for all variables of a metric to plot
 
@@ -408,13 +405,20 @@ class QA4SMPlotter:
         if not type == "metadata":
             title = self.create_title(Var, type=type, period=period)
             ax.set_title(title, pad=globals.title_pad)
-        # add watermark
         if self.img.has_CIs:
             offset = 0.08  # offset smaller as CI variables have a larger caption
         if Var.g == 0:
             offset = 0.03  # offset larger as common metrics have a shorter caption
-        if globals.watermark_pos not in [None, False]:
-            plm.make_watermark(fig, offset=offset)
+
+        # fig.tight_layout()
+
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_box_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
+
 
         return fig, ax
 
@@ -459,8 +463,12 @@ class QA4SMPlotter:
         ax.set_title(title, pad=globals.title_pad)
 
         # add watermark
-        if globals.watermark_pos not in [None, False]:
-            plm.make_watermark(fig, for_barplot=True)
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_bar_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
 
     def _save_plot(self, out_name: str, out_types: str = 'png') -> list:
         """
@@ -483,7 +491,7 @@ class QA4SMPlotter:
         for ext in out_types:
             fname = self._standard_filename(out_name, out_type=ext)
             if fname.exists():
-                warn('Overwriting file {}'.format(fname.name))
+                warn(f'Overwriting file {fname.name}')
             try:
                 plt.savefig(fname, dpi='figure', bbox_inches='tight')
             except ValueError:
@@ -700,7 +708,7 @@ class QA4SMPlotter:
         save_files: bool = False,
         compute_dpi: bool = True,
         **style_kwargs,
-    ) -> Union[list, tuple]:
+    ) -> Union[list, Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]]:
         """
         Plots values to a map, using the values as color. Plots a scatterplot for
         ISMN and a image plot for other input values.
@@ -759,8 +767,7 @@ class QA4SMPlotter:
             metric=metric,
             ref_short=ref_meta[1]['short_name'],
             ref_grid_stepsize=ref_grid_stepsize,
-            plot_extent=
-            None,  # if None, extent is automatically adjusted (as opposed to img.extent)
+            plot_extent=None,  # if None, extent is automatically adjusted (as opposed to img.extent)
             scl_short=scl_short,
             **style_kwargs)
 
@@ -797,11 +804,14 @@ class QA4SMPlotter:
 
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
-        if globals.watermark_pos not in [None, False]:
-            plm.make_watermark(fig,
-                               globals.watermark_pos,
-                               for_map=True,
-                               offset=0.04)
+
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_map_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
+
         # save file or just return the image
         if save_files:
             # if period:
@@ -1112,7 +1122,14 @@ class QA4SMPlotter:
             title = f'{period}: {title}'
         fig.suptitle(title)
 
-        plm.make_watermark(fig=fig, offset=0)
+        fig.subplots_adjust(bottom=0.2)
+
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_metadata_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
 
         if save_file:
             out_name = self._filenames_lut("metadata").format(
@@ -1197,6 +1214,8 @@ class QA4SMPlotter:
         table.to_csv(path_or_buf=filepath)
 
         return filepath
+
+
 class QA4SMCompPlotter:
     """
     Class to create plots containing the calculated metric for all temporal sub-window, default case excldued
@@ -1789,22 +1808,6 @@ class QA4SMCompPlotter:
             fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
             ['y_labelsize'],
         )
-
-        with cbook.get_sample_data(globals.watermark_logo_pth) as file:
-            im = image.imread(file)
-
-            # im = zoom(im, 0.5)
-
-        watermark_x = 1300
-        watermark_y = 10  # Bottom of the figure
-        watermark = cbp_fig.fig.figimage(im,
-                                         watermark_x,
-                                         watermark_y,
-                                         zorder=3,
-                                         alpha=1,
-                                         cmap='gray',
-                                         origin='upper',
-                                         resize=False)
 
         spth = f"{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = chosen_metric, filetype = '.png')}"
         if out_name:

@@ -3,16 +3,17 @@ from dataclasses import dataclass
 import warnings
 
 import sys
-
-import matplotlib
-
 sys.path.append(
     '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm-reader/src/')
+
 from qa4sm_reader import globals
 from parse import *
 import warnings as warn
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any, Union
+
+import matplotlib
+import matplotlib.axes
 
 
 class MixinVarmeta:
@@ -51,7 +52,7 @@ class MixinVarmeta:
         else:
             return self.ref_ds[0]
 
-    def get_varmeta(self) -> (tuple, tuple, tuple, tuple):
+    def get_varmeta(self) -> Tuple[Tuple, Tuple, Tuple, Tuple]:
         """
         Get the datasets from the current variable. Each dataset is provided with shape
         (id, dict{names})
@@ -311,7 +312,7 @@ class QA4SMDatasets():
 
         return others_meta
 
-    def dataset_metadata(self, id: int, element: str or list = None) -> tuple:
+    def dataset_metadata(self, id: int, element: Union[str, list] = None) -> tuple:
         """
         Get the metadata for the dataset specified by the id. This function is used by the QA4SMMetricVariable class
 
@@ -428,7 +429,7 @@ class QA4SMVariable():
                 self.varname)
         return parse(pattern, self.varname)
 
-    def _parse_varname(self) -> (str, int, dict):
+    def _parse_varname(self) -> Tuple[str, int, dict]:
         """
         Parse the name to get the metric, group and variable data
 
@@ -557,7 +558,10 @@ class QA4SMMetric():
         return it_does
 
 @dataclass()
-class ClusteredBoxPlotTemplate:
+class ClusteredBoxPlotContainer:
+    '''Container for the figure and axes of a clustered boxplot.
+    See `qa4sm_reader.plotting_methods.figure_template` for usage.
+    '''
     fig: matplotlib.figure.Figure
     ax_box: matplotlib.axes.Axes
     ax_median: Optional[matplotlib.axes.Axes] = None
