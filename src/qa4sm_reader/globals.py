@@ -3,10 +3,10 @@
 Settings and global variables used in the reading and plotting procedures
 """
 # todo: reduce dependency on globals (e.g flexible if new datasets/versions are added)
-from tkinter import W
 import warnings
 
 import cartopy.crs as ccrs
+import matplotlib
 import matplotlib.colors as cl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,14 +48,16 @@ boxplot_width = 2.1  # times (n+1), where n is the number of boxes.
 boxplot_title_len = 8 * boxplot_width  # times the number of boxes. maximum length of plot title in chars.
 tick_size = 8.5
 
+#TODO: remove eventually, as watermarlk string no longer needed
 # === watermark defaults ===
 watermark = u'made with QA4SM (qa4sm.eu)'  # Watermark string
 watermark_pos = 'bottom'  # Default position ('top' or 'bottom' or None)
 watermark_fontsize = 8  # fontsize in points (matplotlib uses 72ppi)
 watermark_pad = 50  # padding above/below watermark in points (matplotlib uses 72ppi)
 
+#$$
 # === watermark logo defaults ===
-watermark_logo_position = 'lower_right'
+watermark_logo_position = 'lower_center'
 watermark_logo_scale = 0.1  # height of the logo relative to the height of the figure
 watermark_logo_offset_comp_plots = (0, -0.1)
 watermark_logo_offset_metadata_plots = (0, -0.08)
@@ -109,28 +111,28 @@ status_replace = {
 def get_status_colors():
     # function to get custom cmap for calculation errors
     # limited to 14 different error entries to produce distinct colors
-    cmap = plt.cm.get_cmap('Set3', len(status) - 2)
+    # cmap = plt.cm.get_cmap('Set3', len(status) - 2)
+    cmap = cl.ListedColormap(matplotlib.colormaps['Set3'].colors[:len(status) - 2])
     colors = [cmap(i) for i in range(cmap.N)]
     colors.insert(0, (0, 0.66666667, 0.89019608, 1.0))
     colors.insert(0, (0.45882353, 0.08235294, 0.11764706, 1.0))
     cmap = cl.ListedColormap(colors=colors)
     return cmap
 
-
 _cclasses = {
-    'div_better': plt.cm.get_cmap(
+    'div_better': matplotlib.colormaps[
         'RdYlBu'
-    ),  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
-    'div_worse': plt.cm.get_cmap(
+    ],  # diverging: 1 good, 0 special, -1 bad (pearson's R, spearman's rho')
+    'div_worse': matplotlib.colormaps[
         'RdYlBu_r'
-    ),  # diverging: 1 bad, 0 special, -1 good (difference of bias)
+    ],  # diverging: 1 bad, 0 special, -1 good (difference of bias)
     'div_neutr':
-    plt.cm.get_cmap('RdYlGn'),  # diverging: zero good, +/- neutral: (bias)
-    'seq_worse': plt.cm.get_cmap(
+    matplotlib.colormaps['RdYlGn'],  # diverging: zero good, +/- neutral: (bias)
+    'seq_worse': matplotlib.colormaps[
         'YlGn_r'
-    ),  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
-    'seq_better': plt.cm.get_cmap(
-        'YlGn'),  # sequential: increasing value good (n_obs, STDerr)
+    ],  # sequential: increasing value bad (p_R, p_rho, rmsd, ubRMSD, RSS)
+    'seq_better': matplotlib.colormaps[
+        'YlGn'],  # sequential: increasing value good (n_obs, STDerr)
     'qua_neutr':
     get_status_colors(),  # qualitative category with 2 forced colors
 }
@@ -672,6 +674,7 @@ METRIC_TEMPLATE = '_between_{ds1}_and_{ds2}'
 METRIC_CI_TEMPLATE = '{metric}_ci_{bound}_between_{ds1}_and_{ds2}_{ending}'
 
 
+#$$
 # intra-annual valdiation metric related settings
 # =====================================================
 
@@ -685,11 +688,11 @@ CLUSTERED_BOX_PLOT_STYLE = {
         'legend_fontsize': 12,
     },
     'colors': {
-        'Teal Blue': '#00778F',
-        'Mustard Yellow': '#FFD166',
-        'Sage Green': '#8FB339',
-        'Coral Pink': '#EF476F',
-        'Steel Gray': '#6A0572'
+        'Teal Blue':        '#00778F',
+        'Mustard Yellow':   '#FFD166',
+        'Sage Green':       '#8FB339',
+        'Coral Pink':       '#EF476F',
+        'Steel Gray':       '#6A0572',
     }
 }
 

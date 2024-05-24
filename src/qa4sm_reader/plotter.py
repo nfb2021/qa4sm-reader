@@ -55,7 +55,7 @@ class QA4SMPlotter:
 
     def get_dir(self, out_dir: str) -> Path:
         """Use output path if specified, otherwise same directory as the one storing the netCDF file"""
-        # if out_dir and globals.DEFAULT_TSW not in out_dir: #$$ really clever? bulk dir might be easier for UI
+        # if out_dir and globals.DEFAULT_TSW not in out_dir:
         if out_dir:
             out_dir = Path(out_dir)  # use directory if specified
             if not out_dir.exists():
@@ -541,7 +541,6 @@ class QA4SMPlotter:
             return None
         # put all Variables in the same dataframe
         values = pd.concat(values)
-        values.to_csv(f'values_{metric}.csv')
         # create plot
         fig, ax = self._boxplot_definition(metric=metric,
                                            df=values,
@@ -1215,7 +1214,7 @@ class QA4SMPlotter:
 
         return filepath
 
-
+#$$
 class QA4SMCompPlotter:
     """
     Class to create plots containing the calculated metric for all temporal sub-window, default case excldued
@@ -1261,7 +1260,7 @@ class QA4SMCompPlotter:
                 )
 
         else:
-            print(
+            warnings.warn(
                 f'FileNotFoundError: The file {results_file} does not exist. Please check the file path and try again.'
             )
             return None
@@ -1277,7 +1276,8 @@ class QA4SMCompPlotter:
     @property
     def metrics_in_ds(self) -> Dict[str, List[str]]:
         """
-        Returns a dictionary of metrics in the dataset, whereas each individual metric kind is a key in the dictionary and the values are lists of variables in the dataset that are associated with the respective metric kind.
+        Returns a dictionary of metrics in the dataset, whereas each individual metric kind is a key in the dictionary \
+        and the values are lists of variables in the dataset that are associated with the respective metric kind.
 
         Returns
         -------
@@ -1297,7 +1297,8 @@ class QA4SMCompPlotter:
 
     def check_for_unexpecetd_metrics(self) -> bool:
         """
-        Checks if the metrics are present in the dataset that were not specified in `globals.METRICS` and adds them to `QA4SMCompPlotter.ds_metrics`.
+        Checks if the metrics are present in the dataset that were not specified in `globals.METRICS` and adds them to \
+        `QA4SMCompPlotter.ds_metrics`.
 
         Returns
         -------
@@ -1323,8 +1324,9 @@ class QA4SMCompPlotter:
             self.metrics_in_ds[prefix] = elements
 
         if len(elements_not_in_flattened_list) > 0:
-            print(
-                f"Following metrics were found in the dataset that were not specified in `globals.METRICS` and have been added to `QA4SMCompPlotter.ds_metrics`: {elements_not_in_flattened_list}"
+            warnings.warn(
+                f"Following metrics were found in the dataset that were not specified in `globals.METRICS` and have \
+                been added to `QA4SMCompPlotter.ds_metrics`: {elements_not_in_flattened_list}"
             )
             return False
 
@@ -1352,9 +1354,11 @@ class QA4SMCompPlotter:
                 metric_string: str) -> Union[Tuple[str, str], None]:
             pattern = globals.METRIC_TEMPLATE.format(
                 ds1=
-                '(?P<ds1>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), followed by one or more word characters (\w+)
+                '(?P<ds1>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), \
+                                     # followed by one or more word characters (\w+)
                 ds2=
-                '(?P<ds2>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), followed by one or more word characters (\w+)
+                '(?P<ds2>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), \
+                                     # followed by one or more word characters (\w+)
             )
 
             match = re.search(pattern, metric_string)
@@ -1422,7 +1426,8 @@ class QA4SMCompPlotter:
 
     def get_specific_metric_df(self, specific_metric: str) -> pd.DataFrame:
         """
-        Get the DataFrame for a single **specific** metric (e.g. "R_between_0-ISMN_and_1-SMOS_L3") from a QA4SM netCDF file with temporal sub-windows.
+        Get the DataFrame for a single **specific** metric (e.g. "R_between_0-ISMN_and_1-SMOS_L3") from a QA4SM netCDF \
+        file with temporal sub-windows.
 
         Parameters
         ----------
@@ -1452,7 +1457,8 @@ class QA4SMCompPlotter:
 
     def get_metric_df(self, generic_metric: str) -> pd.DataFrame:
         """
-        Get the DataFrame for a single **generic** metric/metric kind (e.g. "R") from a QA4SM netCDF file with temporal sub-windows.
+        Get the DataFrame for a single **generic** metric/metric kind (e.g. "R") from a QA4SM netCDF file with \
+        temporal sub-windows.
 
         Parameters
         ----------
@@ -1462,7 +1468,8 @@ class QA4SMCompPlotter:
         Returns
         -------
         pd.DataFrame
-            Multilevel DataFrame for this generic metric/metric kind, whereas the two column levels are all candidate datasets and the temporal sub-windows
+            Multilevel DataFrame for this generic metric/metric kind, whereas the two column levels are all candidate \
+            datasets and the temporal sub-windows
         """
 
         df_dict = {
@@ -1475,11 +1482,13 @@ class QA4SMCompPlotter:
 
     @staticmethod
     @note(
-        "This method is redundant, as it yields the same result as QA4SMCompPlotter.tsws_used. It is kept as a static method for debugging purposes."
+        "This method is redundant, as it yields the same result as `QA4SMCompPlotter.tsws_used()`. \
+        It is kept as a static method for debugging purposes."
     )
     def get_tsws_from_df(df: pd.DataFrame) -> List[str]:
         """
-        Get all temporal sub-windows used in the validation from a DataFrame as returned by `QA4SMCompPlotter.get_metric_df()`
+        Get all temporal sub-windows used in the validation from a DataFrame as returned by \
+        `QA4SMCompPlotter.get_metric_df()`
 
         Parameters
         ----------
@@ -1496,7 +1505,8 @@ class QA4SMCompPlotter:
     @staticmethod
     def get_datasets_from_df(df: pd.DataFrame) -> List[str]:
         """
-        Get all candiate datasets used in the validation from a DataFrame as returned by `QA4SMCompPlotter.get_metric_df()`
+        Get all candiate datasets used in the validation from a DataFrame as returned by \
+        `QA4SMCompPlotter.get_metric_df()`
 
         Parameters
         ----------

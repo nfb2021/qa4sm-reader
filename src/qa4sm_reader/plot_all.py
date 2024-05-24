@@ -137,6 +137,8 @@ def plot_all(filepath: str,
             out_csv = plotter.save_stats(period=period)
             fnames_csv.append(out_csv)
 
+    #$$
+    # ? move somewhere else?
     fnames_cbplot = []
     if globals.DEFAULT_TSW in periods and len(periods) > 1:
         cbp = QA4SMCompPlotter(filepath)

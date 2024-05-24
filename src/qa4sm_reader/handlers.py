@@ -2,10 +2,6 @@
 from dataclasses import dataclass
 import warnings
 
-import sys
-sys.path.append(
-    '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm-reader/src/')
-
 from qa4sm_reader import globals
 from parse import *
 import warnings as warn
@@ -557,6 +553,7 @@ class QA4SMMetric():
 
         return it_does
 
+#$$
 @dataclass()
 class ClusteredBoxPlotContainer:
     '''Container for the figure and axes of a clustered boxplot.
@@ -568,8 +565,10 @@ class ClusteredBoxPlotContainer:
     ax_iqr: Optional[matplotlib.axes.Axes] = None
     ax_n: Optional[matplotlib.axes.Axes] = None
 
+#$$
 @dataclass(frozen=True)
 class CWContainer:
+    '''Container for the centers and widths of the boxplots. Used for the plotting of the clustered boxplots.'''
     centers: List[float]
     widths: List[float]
     name: Optional[str] = 'Generic Dataset'

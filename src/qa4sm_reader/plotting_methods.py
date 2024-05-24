@@ -548,15 +548,16 @@ def make_watermark(fig,
     else:
         raise NotImplementedError
 
-Offset = namedtuple('offset', ['x', 'y'])
-
+#$$
+Offset = namedtuple('offset', ['x', 'y']) # helper for offset in add_logo_to_figure
 def add_logo_to_figure(fig: matplotlib.figure.Figure,
                        logo_path: Optional[str] = globals.watermark_logo_pth,
                        position: Optional[str] = globals.watermark_logo_position,
                        offset: Optional[Union[Tuple, Offset]] = (0., -0.15),
                        scale: Optional[float] = 0.15) -> None:
     """
-    Add a logo to an existing figure. This is done by creating an additional axis in the figure, at the location specified by `position`. The logo is then placed on this axis.
+    Add a logo to an existing figure. This is done by creating an additional axis in the figure, at the location\
+        specified by `position`. The logo is then placed on this axis.
 
     Parameters
     ----------
@@ -564,16 +565,20 @@ def add_logo_to_figure(fig: matplotlib.figure.Figure,
         The figure to add the logo to. The figure should have at least one axis, otherwise an axis is created.z
 
     logo_path: Optional[str]
-        Path to the logo image. If the path does not exist, a warning is raised and the function returns. Default is `globals.watermark_logo_pth`.
+        Path to the logo image. If the path does not exist, a warning is raised and the function returns. Default is\
+            `globals.watermark_logo_pth`.
 
     position: Optional[str]
-        The position of the logo in the figure. Valid values are 'lower_left', 'lower_center', 'lower_right', 'upper_left', 'upper_center', 'upper_right'. Default is `globals.watermark_logo_position`.
+        The position of the logo in the figure. Valid values are 'lower_left', 'lower_center', 'lower_right',\
+            'upper_left', 'upper_center', 'upper_right'. Default is `globals.watermark_logo_position`.
 
     offset: Optional[Tuple | Offset]
-        Offset of the logo from the right edge of the subplot (right lower corner of the main plot). The first value is the x-offset, the second value is the y-offset. Default is (0., 0).
+        Offset of the logo from the right edge of the subplot (right lower corner of the main plot).\
+            The first value is the x-offset, the second value is the y-offset. Default is (0., 0).
 
     scale: Optional[float]
-        Scale of the logo relative to the figure height (= fraction of figure height). Valid values are (0, 1]. Default is 0.15.
+        Scale of the logo relative to the figure height (= fraction of figure height). Valid values are (0, 1].\
+            Default is 0.15.
 
     Returns
     -------
@@ -1940,8 +1945,11 @@ def average_non_additive(values: Union[pd.Series, np.array],
     # Back transform the result
     return np.tanh(mean)
 
-
+#$$
 class ClusteredBoxPlot:
+    """
+    Class to create an empty figure object with one main axis and optionally three sub-axis. It is used to create a template for the clustered boxplot, which can then be filled with data.
+    """
 
     def __init__(self,
                  anchor_list: Union[List[float], np.ndarray],
@@ -1975,7 +1983,7 @@ class ClusteredBoxPlot:
         no_of_ds: int
             The number of datasets, i.e. the number of boxes in each cluster
         space_per_box_cluster: float
-            The space each box cluster can occupy, 0.9 pwe default. This value should be <= 1 for a clustered boxplot to prevent overlap between neighboring clusters and boxes
+            The space each box cluster can occupy, 0.9 per default. This value should be <= 1 for a clustered boxplot to prevent overlap between neighboring clusters and boxes
         rel_indiv_box_width: float
             The relative width of the individual boxes in a cluster, 0.9 per default. This value should be <= 1 to prevent overlap between neighboring boxes
 
@@ -2014,19 +2022,25 @@ class ClusteredBoxPlot:
     def figure_template(incl_median_iqr_n_axs: Optional[bool] = False,
                         **fig_kwargs) -> ClusteredBoxPlotContainer:
         """
-        Function to create a figure template for e.g. a clustered boxplot. The function returns a ClusteredBoxPlotContainer object, which contains the figure and the subplots for the boxplot, median, IQR and N values.
+        Function to create a figure template for e.g. a clustered boxplot. The function returns a \
+        ClusteredBoxPlotContainer object, which contains the figure and the subplots for the boxplot as well as \
+        optionally the median, IQR and N values. The layout is as follows: the axes are arranged in a 2x1 grid, \
+        with the boxplot in the upper subplot and the median, IQR and N values in the lower subplot. \
+        The lower subplot is further divided into three subplots, one for each value.
 
         Parameters
         ----------
         incl_median_iqr_n_axs: Optional[bool]
-            If True, creates three subplots with median, IQR and N values for each box. If False, only the boxplot is created. Default is False
+            If True, creates three subplots with median, IQR and N values for each box. If False, only the boxplot is \
+                created. Default is False
         fig_kwargs: dict
             Keyword arguments for the figure
 
         Returns
         -------
         ClusteredBoxPlotContainer
-            A ClusteredBoxPlotContainer object containing the figure and the subplots for the boxplot, median, IQR and N values
+            A ClusteredBoxPlotContainer object containing the figure and the subplots for the boxplot, median, \
+                IQR and N values
         """
 
         if 'figsize' in fig_kwargs:
