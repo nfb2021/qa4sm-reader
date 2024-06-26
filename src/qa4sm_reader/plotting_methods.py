@@ -1365,20 +1365,29 @@ def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
     return fig, axes
 
 
-def _dict2df(to_plot_dict: dict, meta_key: str) -> pd.DataFrame:
+def _dict2df(to_plot_dict: dict, meta_key: str, counter) -> pd.DataFrame:
     """Transform a dictionary into a DataFrame for catplotting"""
     to_plot_df = []
+
+    import json
+    from pprint import pprint as pp
+    # with open(os.path.join(os.getcwd(), f"{counter}_to_plot_dict_{meta_key}.json"), 'w') as file:
+    #     json.dump(to_plot_dict, file, indent=4)
+
     for range, values in to_plot_dict.items():
         range_grouped = []
         for ds in values:
-            values_ds = values[ds].to_frame(name="values")
+            # values_ds = values[ds].to_frame(name="values")
+            values_ds = values[ds]
+            # values_ds.to_csv(os.path.join(os.getcwd(), f"{counter}_values_ds_{meta_key}.csv"))
+            values_ds = values_ds.to_frame(name="values")
             values_ds["Dataset"] = ds
             values_ds[meta_key] = "\n[".join(range.split(" ["))
             range_grouped.append(values_ds)
         range_grouped = pd.concat(range_grouped)
         to_plot_df.append(range_grouped)
     to_plot_df = pd.concat(to_plot_df)
-
+    # to_plot_df.to_csv(os.path.join(os.getcwd(), f"{counter}_to_plot_{meta_key}.csv"))
     return to_plot_df
 
 
@@ -1482,6 +1491,7 @@ def boxplot_metadata(
     axis=None,
     plot_type: str = "catplot",
     meta_boxplot_min_samples=5,
+    counter=0,
     **bplot_kwargs,
 ) -> tuple:
     """
@@ -1523,8 +1533,11 @@ def boxplot_metadata(
     metric_label = "values"
     meta_key = metadata_values.columns[0]
     # sort data according to the metadata type
-    type = globals.metadata[meta_key][2]
-    bin_funct = bin_function_lut(type)
+    metadata_type = globals.metadata[meta_key][2]
+    print(metadata_type)
+
+    # df.to_csv(os.path.join(os.getcwd(), f"{counter}_dict2df_df.csv"))
+    bin_funct = bin_function_lut(metadata_type)
     to_plot = bin_funct(
         df=df,
         metadata_values=metadata_values,
@@ -1539,13 +1552,17 @@ def boxplot_metadata(
 
     if isinstance(to_plot, dict):
         if plot_type == "catplot":
-            to_plot = _dict2df(to_plot, meta_key)
+            to_plot = _dict2df(to_plot, meta_key, counter)
             generate_plot = bplot_catplot
+            print(f'\n\n\n\t\t{counter} was bplot_catplot, dict \n\n\n')
         elif plot_type == "multiplot":
             generate_plot = bplot_multiple
+            print(f'\n\n\n\t\t{counter} was bplot_multiple, dict \n\n\n')
 
     elif isinstance(to_plot, pd.DataFrame):
         generate_plot = bplot_catplot
+        print(f'\n\n\n\t\t{counter} was bplot_catplot, pd.DataFrame \n\n\n')
+
 
     out = generate_plot(
         to_plot=to_plot,

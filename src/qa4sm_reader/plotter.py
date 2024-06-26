@@ -951,21 +951,36 @@ class QA4SMPlotter:
             the boxplot
         ax : matplotlib.axes.Axes
         """
+
+
+        counter = np.random.randint(0, 1000)
+        # if isinstance(df, pd.DataFrame):
+            # df.to_csv(os.path.join(os.getcwd(), f"{counter}_input_meta_single_df.csv"))
+
+
         values = []
         for data, Var, var_ci in self._yield_values(metric=metric,
                                                     stats=False,
                                                     mean_ci=False):
             values.append(data)
-
         if not values:
             raise PlotterError(f"No valid values for {metric}")
         values = pd.concat(values, axis=1)
+        if values.shape[1] > 3:
+            print(f"\n\n\n\n\nWarning: Too many datasets for {metric} to plot\n\n\n\n\n")
+            print(values)
+
+        # values.to_csv(os.path.join(os.getcwd(), f"{counter}_values_concatenated_df.csv"))
         # override values from metric
         if df is not None:
             values = df
+            # values.to_csv(os.path.join(os.getcwd(), f"{counter}_values_is now_df_df.csv"))
+
         # get meta and select only metric values with metadata available
         meta_values = self.img.metadata[metadata].values.dropna()
         values = values.reindex(index=meta_values.index)
+        # values.to_csv(os.path.join(os.getcwd(), f"{counter}_values_for_boxplot_metadata_df.csv"))
+
 
         unit_ref = self.ref['short_name']
         _, _, _, scl_meta = Var.get_varmeta()
@@ -974,7 +989,10 @@ class QA4SMPlotter:
         mu = globals._metric_description[metric].format(
             globals.get_metric_units(unit_ref))
 
+
+
         out = plm.boxplot_metadata(df=values,
+                                   counter = counter,
                                    metadata_values=meta_values,
                                    ax_label=Var.Metric.pretty_name + mu,
                                    axis=axis,

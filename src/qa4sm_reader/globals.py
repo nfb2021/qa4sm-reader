@@ -111,7 +111,6 @@ status_replace = {
 def get_status_colors():
     # function to get custom cmap for calculation errors
     # limited to 14 different error entries to produce distinct colors
-    # cmap = plt.cm.get_cmap('Set3', len(status) - 2)
     cmap = cl.ListedColormap(matplotlib.colormaps['Set3'].colors[:len(status) - 2])
     colors = [cmap(i) for i in range(cmap.N)]
     colors.insert(0, (0, 0.66666667, 0.89019608, 1.0))
