@@ -1020,7 +1020,7 @@ def bin_discrete(
         group.columns = ["values", meta_key]
         group["Dataset"] = col
         groups.append(group)
-    grouped = pd.concat(groups)
+    grouped = pd.concat(groups, axis=0)
     formatted = []
     for meta, meta_df in grouped.groupby(meta_key).__iter__():
         if meta_df["values"].count() < min_size:
@@ -1238,17 +1238,20 @@ def _dict2df(to_plot_dict: dict, meta_key: str) -> pd.DataFrame:
             values_ds["Dataset"] = ds
             values_ds[meta_key] = "\n[".join(range.split(" ["))
             range_grouped.append(values_ds)
-        range_grouped = pd.concat(range_grouped)
+        range_grouped = pd.concat(range_grouped, axis=0)
         to_plot_df.append(range_grouped)
-    to_plot_df = pd.concat(to_plot_df)
+    to_plot_df = pd.concat(to_plot_df, axis=0)
 
     return to_plot_df
 
 
 def add_cat_info(to_plot: pd.DataFrame, metadata_name: str) -> pd.DataFrame:
     """Add info (N, median value) to metadata category labels"""
-    groups = to_plot.groupby(metadata_name)["values"]
-    counts = groups.count()
+    groups = to_plot.groupby(metadata_name)["values"]#
+    counts = {}
+    for name, group in groups:
+        counts[name] = group[~group.index.duplicated(keep='first')].index.size
+
     to_plot[metadata_name] = to_plot[metadata_name].apply(
         lambda x: x + "\nN: {}".format(counts[x]))
 
@@ -1296,7 +1299,7 @@ def bplot_catplot(to_plot,
         x=x,
         y=y,
         hue="Dataset",
-        data=to_plot,
+        data=to_plot.set_index(np.arange(to_plot.index.size)),
         palette="Set2",
         ax=axis,
         showfliers=False,
