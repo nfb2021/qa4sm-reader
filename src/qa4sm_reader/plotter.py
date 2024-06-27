@@ -108,7 +108,7 @@ class QA4SMPlotter:
         ds_parts = []
         id, meta = mds_meta
         if tc:
-            id, meta = other_meta
+            id, meta = other_meta   # show name of the OTHER dataset
         if short_caption:
             ds_parts.append(
                 f"{id}-{meta['pretty_name']} ({meta['pretty_version']})")
@@ -117,10 +117,8 @@ class QA4SMPlotter:
                 id, meta['pretty_name'], meta['pretty_version'],
                 meta['pretty_variable'], meta['mu']))
         capt = '\n and \n'.join(ds_parts)
-
         if tc:
             capt = 'Other Data:\n' + capt
-
         return capt
 
     @staticmethod
@@ -513,7 +511,7 @@ class QA4SMPlotter:
         if not values:
             return None
         # put all Variables in the same dataframe
-        values = pd.concat(values)
+        values = pd.concat(values, axis=1)
         # create plot
         fig, ax = self._boxplot_definition(metric=metric,
                                            df=values,
@@ -908,6 +906,18 @@ class QA4SMPlotter:
             unit_ref = scl_meta[1]['short_name']
         mu = globals._metric_description[metric].format(
             globals.get_metric_units(unit_ref))
+
+        # For tca with > 3 datasets, it can be that the same metric comes
+        # from different combinations of datasets, in that case take average
+        # the different versions
+        for col in np.unique(values.columns):
+            loc = np.where(values.columns == col)[0]
+            if len(loc) == 1:
+                continue
+            else:
+                colmean = values.pop(col).mean(axis=1, skipna=True)
+                values[col] = colmean
+
 
         out = plm.boxplot_metadata(df=values,
                                    metadata_values=meta_values,
