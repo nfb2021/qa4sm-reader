@@ -2,6 +2,7 @@
 import os
 import warnings
 from typing import Union, List, Tuple
+from itertools import chain
 
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter, QA4SMCompPlotter
@@ -142,6 +143,7 @@ def plot_all(filepath: str,
     #$$
     # ? move somewhere else?
     fnames_cbplot = []
+    metrics_not_to_plot = list(set(chain(globals._metadata_exclude, globals.metric_groups[3], ['n_obs']))) # metadata, tcol metrics, n_obs
     if globals.DEFAULT_TSW in periods and len(periods) > 1:
         cbp = QA4SMCompPlotter(filepath)
         if not os.path.isdir(os.path.join(out_dir, 'comparison_boxplots')):
@@ -149,7 +151,7 @@ def plot_all(filepath: str,
 
         for available_metric in cbp.metric_kinds_available:
             if available_metric in metrics.keys(
-            ) and available_metric not in globals._metadata_exclude and available_metric != 'n_obs':
+            ) and available_metric not in metrics_not_to_plot:
                 spth = os.path.join(
                     out_dir, 'comparison_boxplots',
                     f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = available_metric, filetype = out_type)}'
@@ -192,14 +194,14 @@ def get_img_stats(
 if __name__ == '__main__':
     # out = plot_all(
     # '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/a461826a-8236-4b44-8ecc-22e7447ce963/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    # out_dir='/tmp/local_france_bulk2',
+    # out_dir='/tmp/local_france_bulk55',
     # save_metadata='threshold',
     # # temporal_sub_windows=np.array([globals.DEFAULT_TSW])
     # )
 
     out = plot_all(
     '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/eb210e72-281f-4d9b-ab2a-07f0c9188aaf/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    out_dir='/tmp/local_france_season3',
+    out_dir='/tmp/local_france_season55',
     save_metadata='threshold',
     # temporal_sub_windows=['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW],
     # temporal_sub_windows=np.array(['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW])
