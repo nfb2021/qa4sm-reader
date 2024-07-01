@@ -190,19 +190,19 @@ def get_img_stats(
 
 
 if __name__ == '__main__':
-    out = plot_all(
-    '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/a461826a-8236-4b44-8ecc-22e7447ce963/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    out_dir='/tmp/local_france_bulk2',
-    save_metadata='threshold',
-    # temporal_sub_windows=np.array([globals.DEFAULT_TSW])
-    )
-
-    #     plot_all(
-    # '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/eb210e72-281f-4d9b-ab2a-07f0c9188aaf/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    # out_dir='/tmp/local_france_season2',
+    # out = plot_all(
+    # '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/a461826a-8236-4b44-8ecc-22e7447ce963/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
+    # out_dir='/tmp/local_france_bulk2',
     # save_metadata='threshold',
-    # # temporal_sub_windows=['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW],
-    # # temporal_sub_windows=np.array(['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW])
+    # # temporal_sub_windows=np.array([globals.DEFAULT_TSW])
     # )
+
+    out = plot_all(
+    '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/eb210e72-281f-4d9b-ab2a-07f0c9188aaf/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
+    out_dir='/tmp/local_france_season3',
+    save_metadata='threshold',
+    # temporal_sub_windows=['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW],
+    # temporal_sub_windows=np.array(['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW])
+    )
 
     print(len(out))

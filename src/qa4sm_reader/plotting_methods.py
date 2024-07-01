@@ -1157,7 +1157,7 @@ def bin_discrete(
         group.columns = ["values", meta_key]
         group["Dataset"] = col
         groups.append(group)
-    grouped = pd.concat(groups)
+    grouped = pd.concat(groups, axis=0)
     formatted = []
     for meta, meta_df in grouped.groupby(meta_key).__iter__():
         if meta_df["values"].count() < min_size:
@@ -1365,36 +1365,31 @@ def bplot_multiple(to_plot, y_axis, n_bars, **kwargs) -> tuple:
     return fig, axes
 
 
-def _dict2df(to_plot_dict: dict, meta_key: str, counter) -> pd.DataFrame:
+def _dict2df(to_plot_dict: dict, meta_key: str) -> pd.DataFrame:
     """Transform a dictionary into a DataFrame for catplotting"""
     to_plot_df = []
-
-    import json
-    from pprint import pprint as pp
-    # with open(os.path.join(os.getcwd(), f"{counter}_to_plot_dict_{meta_key}.json"), 'w') as file:
-    #     json.dump(to_plot_dict, file, indent=4)
 
     for range, values in to_plot_dict.items():
         range_grouped = []
         for ds in values:
-            # values_ds = values[ds].to_frame(name="values")
             values_ds = values[ds]
-            # values_ds.to_csv(os.path.join(os.getcwd(), f"{counter}_values_ds_{meta_key}.csv"))
             values_ds = values_ds.to_frame(name="values")
             values_ds["Dataset"] = ds
             values_ds[meta_key] = "\n[".join(range.split(" ["))
             range_grouped.append(values_ds)
-        range_grouped = pd.concat(range_grouped)
+        range_grouped = pd.concat(range_grouped, axis=0)
         to_plot_df.append(range_grouped)
-    to_plot_df = pd.concat(to_plot_df)
-    # to_plot_df.to_csv(os.path.join(os.getcwd(), f"{counter}_to_plot_{meta_key}.csv"))
+    to_plot_df = pd.concat(to_plot_df, axis=0)
     return to_plot_df
 
 
 def add_cat_info(to_plot: pd.DataFrame, metadata_name: str) -> pd.DataFrame:
     """Add info (N, median value) to metadata category labels"""
-    groups = to_plot.groupby(metadata_name)["values"]
-    counts = groups.count()
+    groups = to_plot.groupby(metadata_name)["values"]#
+    counts = {}
+    for name, group in groups:
+        counts[name] = group[~group.index.duplicated(keep='first')].index.size
+
     to_plot[metadata_name] = to_plot[metadata_name].apply(
         lambda x: x + "\nN: {}".format(counts[x]))
 
@@ -1442,7 +1437,7 @@ def bplot_catplot(to_plot,
         x=x,
         y=y,
         hue="Dataset",
-        data=to_plot,
+        data=to_plot.set_index(np.arange(to_plot.index.size)),
         palette="Set2",
         ax=axis,
         showfliers=False,
@@ -1491,7 +1486,6 @@ def boxplot_metadata(
     axis=None,
     plot_type: str = "catplot",
     meta_boxplot_min_samples=5,
-    counter=0,
     **bplot_kwargs,
 ) -> tuple:
     """
@@ -1534,9 +1528,7 @@ def boxplot_metadata(
     meta_key = metadata_values.columns[0]
     # sort data according to the metadata type
     metadata_type = globals.metadata[meta_key][2]
-    print(metadata_type)
 
-    # df.to_csv(os.path.join(os.getcwd(), f"{counter}_dict2df_df.csv"))
     bin_funct = bin_function_lut(metadata_type)
     to_plot = bin_funct(
         df=df,
@@ -1552,16 +1544,13 @@ def boxplot_metadata(
 
     if isinstance(to_plot, dict):
         if plot_type == "catplot":
-            to_plot = _dict2df(to_plot, meta_key, counter)
+            to_plot = _dict2df(to_plot, meta_key)
             generate_plot = bplot_catplot
-            print(f'\n\n\n\t\t{counter} was bplot_catplot, dict \n\n\n')
         elif plot_type == "multiplot":
             generate_plot = bplot_multiple
-            print(f'\n\n\n\t\t{counter} was bplot_multiple, dict \n\n\n')
 
     elif isinstance(to_plot, pd.DataFrame):
         generate_plot = bplot_catplot
-        print(f'\n\n\n\t\t{counter} was bplot_catplot, pd.DataFrame \n\n\n')
 
 
     out = generate_plot(

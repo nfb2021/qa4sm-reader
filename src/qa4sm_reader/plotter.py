@@ -59,7 +59,7 @@ class QA4SMPlotter:
         if out_dir:
             out_dir = Path(out_dir)  # use directory if specified
             if not out_dir.exists():
-                out_dir.mkdir()  # make if not existing
+                os.makedirs(out_dir)  # make if not existing
         else:
             out_dir = self.img.filepath.parent  # use default otherwise
 
@@ -119,7 +119,7 @@ class QA4SMPlotter:
         ds_parts = []
         id, meta = mds_meta
         if tc:
-            id, meta = other_meta
+            id, meta = other_meta   # show name of the OTHER dataset
         if short_caption:
             ds_parts.append(
                 f"{id}-{meta['pretty_name']} ({meta['pretty_version']})")
@@ -128,10 +128,8 @@ class QA4SMPlotter:
                 id, meta['pretty_name'], meta['pretty_version'],
                 meta['pretty_variable'], meta['mu']))
         capt = '\n and \n'.join(ds_parts)
-
         if tc:
             capt = 'Other Data:\n' + capt
-
         return capt
 
     @staticmethod
@@ -540,7 +538,7 @@ class QA4SMPlotter:
         if not values:
             return None
         # put all Variables in the same dataframe
-        values = pd.concat(values)
+        values = pd.concat(values, axis=1)
         # create plot
         fig, ax = self._boxplot_definition(metric=metric,
                                            df=values,
@@ -952,12 +950,6 @@ class QA4SMPlotter:
         ax : matplotlib.axes.Axes
         """
 
-
-        counter = np.random.randint(0, 1000)
-        # if isinstance(df, pd.DataFrame):
-            # df.to_csv(os.path.join(os.getcwd(), f"{counter}_input_meta_single_df.csv"))
-
-
         values = []
         for data, Var, var_ci in self._yield_values(metric=metric,
                                                     stats=False,
@@ -966,21 +958,14 @@ class QA4SMPlotter:
         if not values:
             raise PlotterError(f"No valid values for {metric}")
         values = pd.concat(values, axis=1)
-        if values.shape[1] > 3:
-            print(f"\n\n\n\n\nWarning: Too many datasets for {metric} to plot\n\n\n\n\n")
-            print(values)
 
-        # values.to_csv(os.path.join(os.getcwd(), f"{counter}_values_concatenated_df.csv"))
         # override values from metric
         if df is not None:
             values = df
-            # values.to_csv(os.path.join(os.getcwd(), f"{counter}_values_is now_df_df.csv"))
 
         # get meta and select only metric values with metadata available
         meta_values = self.img.metadata[metadata].values.dropna()
         values = values.reindex(index=meta_values.index)
-        # values.to_csv(os.path.join(os.getcwd(), f"{counter}_values_for_boxplot_metadata_df.csv"))
-
 
         unit_ref = self.ref['short_name']
         _, _, _, scl_meta = Var.get_varmeta()
@@ -989,10 +974,19 @@ class QA4SMPlotter:
         mu = globals._metric_description[metric].format(
             globals.get_metric_units(unit_ref))
 
+        # For tca with > 3 datasets, it can be that the same metric comes
+        # from different combinations of datasets, in that case take average
+        # the different versions
+        for col in np.unique(values.columns):
+            loc = np.where(values.columns == col)[0]
+            if len(loc) == 1:
+                continue
+            else:
+                colmean = values.pop(col).mean(axis=1, skipna=True)
+                values[col] = colmean
 
 
         out = plm.boxplot_metadata(df=values,
-                                   counter = counter,
                                    metadata_values=meta_values,
                                    ax_label=Var.Metric.pretty_name + mu,
                                    axis=axis,
