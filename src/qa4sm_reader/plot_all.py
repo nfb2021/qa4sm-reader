@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import warnings
-from typing import Union
+from typing import Union, List, Tuple
 
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter, QA4SMCompPlotter
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_all(filepath: str,
-             temporal_sub_windows: list = None,
+             temporal_sub_windows: List[str] = None,
              metrics: list = None,
              extent: tuple = None,
              out_dir: str = None,
@@ -21,7 +21,7 @@ def plot_all(filepath: str,
              save_metadata: Union[str, bool] = 'never',
              save_csv: bool = True,
              engine: str = 'h5netcdf',
-             **plotting_kwargs) -> tuple:
+             **plotting_kwargs) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
     Creates boxplots for all metrics and map plots for all variables.
     Saves the output in a folder-structure.
@@ -30,6 +30,8 @@ def plot_all(filepath: str,
     ----------
     filepath : str
         path to the *.nc file to be processed.
+    temporal_sub_windows : List[str], optional (default: None)
+        List of temporal sub-windows to be processed. If None, all periods present are automatically extracted from the file.
     metrics : set or list, optional (default: None)
         metrics to be plotted. If None, all metrics with data are plotted
     extent : tuple, optional (default: None)
