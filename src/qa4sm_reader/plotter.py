@@ -468,7 +468,7 @@ class QA4SMPlotter:
                                scale = globals.watermark_logo_scale,
                                )
 
-    def _save_plot(self, out_name: str, out_types: str = 'png') -> list:
+    def _save_plot(self, out_name: str, out_types: Optional[Union[List[str], str]] = 'png') -> list:
         """
         Save plot with name to self.out_dir
 
@@ -476,8 +476,8 @@ class QA4SMPlotter:
         ----------
         out_name: str
             name of output file
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
 
         Returns
         -------
@@ -502,7 +502,7 @@ class QA4SMPlotter:
                       metric: str,
                       period: str = None,
                       out_name: str = None,
-                      out_types: str = 'png',
+                      out_types: Optional[Union[List[str], str]] = 'png',
                       save_files: bool = False,
                       **plotting_kwargs) -> Union[list, None]:
         """
@@ -516,8 +516,8 @@ class QA4SMPlotter:
             into one plot.
         out_name: str
             name of output file
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for _boxplot_definition function
@@ -553,7 +553,7 @@ class QA4SMPlotter:
                                             period=period)
         # save or return plotting objects
         if save_files:
-            fnames = self._save_plot(out_name, out_types=out_types)
+            fnames.extend(self._save_plot(out_name, out_types=out_types))
             plt.close('all')
 
             return fnames
@@ -565,7 +565,7 @@ class QA4SMPlotter:
                    metric: str,
                    period: str = None,
                    out_name: str = None,
-                   out_types: str = 'png',
+                   out_types: Optional[Union[List[str], str]] = 'png',
                    save_files: bool = False,
                    **plotting_kwargs) -> list:
         """
@@ -579,8 +579,8 @@ class QA4SMPlotter:
             into one plot.
         out_name: str
             name of output file
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for _boxplot_definition function
@@ -632,10 +632,7 @@ class QA4SMPlotter:
                 save_name = out_name
             # save or return plotting objects
             if save_files:
-                # if period:
-                #     save_name = f'{period}_{save_name}'
-                fns = self._save_plot(save_name, out_types=out_types)
-                fnames.extend(fns)
+                fnames.extend(self._save_plot(save_name, out_types=out_types))
                 plt.close('all')
 
         if save_files:
@@ -645,7 +642,7 @@ class QA4SMPlotter:
         self,
         metric: str,
         period: str = None,
-        out_types: str = 'png',
+        out_types: Optional[Union[List[str], str]] = 'png',
         save_files: bool = False,
     ) -> Union[list, None]:
         """
@@ -657,8 +654,8 @@ class QA4SMPlotter:
         ----------
         metric : str
             metric that is collected from the file for all datasets.
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
 
@@ -689,10 +686,8 @@ class QA4SMPlotter:
                                             period=period)
             # save or return plotting objects
             if save_files:
-                # if period:
-                #     out_name = f'{period}_{out_name}'
                 fnames.extend(self._save_plot(out_name, out_types=out_types))
-            plt.close('all')
+                plt.close('all')
 
         if fnames:
             return fnames
@@ -701,7 +696,7 @@ class QA4SMPlotter:
         self,
         Var,
         period: str = None,
-        out_types: str = 'png',
+        out_types: Optional[Union[List[str], str]] = 'png',
         save_files: bool = False,
         compute_dpi: bool = True,
         **style_kwargs,
@@ -716,8 +711,8 @@ class QA4SMPlotter:
             Var in the image to make the map for.
         out_name: str
             name of output file
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
         compute_dpi : bool, optional. Default is True.
@@ -734,6 +729,7 @@ class QA4SMPlotter:
         -------
         fnames: list of file names with all the extensions
         """
+        fnames = []
         ref_meta, mds_meta, other_meta, scl_meta = Var.get_varmeta()
         metric = Var.metric
         ref_grid_stepsize = self.img.ref_dataset_grid_stepsize
@@ -811,10 +807,8 @@ class QA4SMPlotter:
 
         # save file or just return the image
         if save_files:
-            # if period:
-            #     save_name = f'{period}_{save_name}'
-            fnames = self._save_plot(save_name, out_types=out_types)
-
+            fnames.extend(self._save_plot(save_name, out_types=out_types))
+            plt.close('all')
             return fnames
 
         else:
@@ -823,7 +817,7 @@ class QA4SMPlotter:
     def mapplot_metric(self,
                        metric: str,
                        period: str = None,
-                       out_types: str = 'png',
+                       out_types: Optional[Union[List[str], str]] = 'png',
                        save_files: bool = False,
                        **plotting_kwargs) -> list:
         """
@@ -833,8 +827,8 @@ class QA4SMPlotter:
         ----------
         metric : str
             Name of a metric. File is searched for variables for that metric.
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
         save_files: bool, optional. Default is False
             wether to save the file in the output directory
         plotting_kwargs: arguments for mapplot function
@@ -860,7 +854,7 @@ class QA4SMPlotter:
                 continue
             if save_files:
                 fnames.extend(fns)
-                plt.close('all')
+        plt.close('all')
 
         if fnames:
             return fnames
@@ -868,7 +862,7 @@ class QA4SMPlotter:
     def plot_metric(self,
                     metric: str,
                     period: str = None,
-                    out_types: str = 'png',
+                    out_types: Optional[Union[List[str], str]] = 'png',
                     save_all: bool = True,
                     **plotting_kwargs) -> tuple:
         """
@@ -878,8 +872,8 @@ class QA4SMPlotter:
         ----------
         metric: str
             name of the metric
-        out_types: str or list
-            extensions which the files should be saved in
+        out_types: str or list of str, Optional
+            extensions which the files should be saved in. Default is 'png'
         save_all: bool, optional. Default is True.
             all plotted images are saved to the output directory
         plotting_kwargs: arguments for mapplot function.
@@ -1081,7 +1075,7 @@ class QA4SMPlotter:
                       metadata: str,
                       metadata_discrete: str = None,
                       save_file: bool = False,
-                      out_types: str = 'png',
+                      out_types: Optional[Union[List[str], str]] = 'png',
                       period: str = None,
                       **plotting_kwargs):
         """
@@ -1089,13 +1083,19 @@ class QA4SMPlotter:
         metric.
 
         Parameters
-        __________
+        ----------
         metric : str
             name of metric to plot
         metadata : str
             name of metadata to subdivide the metric results
         metadata_discrete : str
             name of the metadata of the type 'discrete'
+        save_file : bool, optional
+            whether to save the plot to the output directory. Default is False
+        out_types : str or list of str, optional
+            extensions which the files should be saved in. Default is 'png'
+        period: str, optional
+            temporal sub-window to use
 
         Retrun
         ------
@@ -1103,6 +1103,7 @@ class QA4SMPlotter:
             the boxplot
         ax : matplotlib.axes.Axes
         """
+        fnames = []
         if metadata_discrete is None:
             fig, ax = self.meta_single(metric=metric,
                                        metadata=metadata,
@@ -1147,8 +1148,9 @@ class QA4SMPlotter:
                 metric, "_and_".join(metadata_tuple))
             if period:
                 out_name = f'{period}_{out_name}'
-            out_name = self._save_plot(out_name, out_types=out_types)
-            return out_name
+            fnames.extend(self._save_plot(out_name, out_types=out_types))
+            plt.close('all')
+            return fnames
 
         else:
             return fig, ax
@@ -1156,7 +1158,7 @@ class QA4SMPlotter:
     def plot_save_metadata(
         self,
         metric,
-        out_types: str = 'png',
+        out_types: Optional[Union[List[str], str]] = 'png',
         meta_boxplot_min_samples: int = 5,
         period: str = None,
     ):
@@ -1171,8 +1173,8 @@ class QA4SMPlotter:
         ----------
         metric : str
             name of metric
-        out_types: str or list, optional
-            extensions which the files should be saved in
+        out_types: str or list of str, optional
+            extensions which the files should be saved in. Default is 'png'
         meta_boxplot_min_samples: int, optional
             minimum number of samples per bin required to plot a metadata boxplot
 
@@ -1684,7 +1686,7 @@ class QA4SMCompPlotter:
 
     def plot_cbp(self,
                  chosen_metric: str,
-                 out_name: Optional[str] = None) -> matplotlib.figure.Figure:
+                 out_name: Optional[Union[List, List[str]]] = None) -> matplotlib.figure.Figure:
         """
         Plot a Clustered Boxplot for a chosen metric
 
@@ -1692,6 +1694,8 @@ class QA4SMCompPlotter:
         ----------
         chosen_metric : str
             name of the metric
+        out_name : str or list of str, optional
+            name of the output file. Default is None
 
         Returns
         -------
@@ -1831,14 +1835,14 @@ class QA4SMCompPlotter:
             ['y_labelsize'],
         )
 
-        spth = f"{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = chosen_metric, filetype = '.png')}"
+        spth = [Path(f"{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = chosen_metric, filetype = '.png')}")]
         if out_name:
             spth = out_name
 
-        cbp_fig.fig.savefig(
-            fname=spth,
+        [cbp_fig.fig.savefig(
+            fname=outname,
             dpi=fig_kwargs['dpi'],
             bbox_inches=fig_kwargs['bbox_inches'],
-        )
+        ) for outname in spth]
 
         return cbp_fig.fig
