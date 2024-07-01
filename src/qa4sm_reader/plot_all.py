@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
+# %%
+# # -*- coding: utf-8 -*-
 import os
 import warnings
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict
 from itertools import chain
 
 import pandas as pd
@@ -10,6 +11,7 @@ from qa4sm_reader.img import QA4SMImg, extract_periods
 import qa4sm_reader.globals as globals
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import PosixPath, Path
 
 
 def plot_all(filepath: str,
@@ -152,16 +154,15 @@ def plot_all(filepath: str,
         for available_metric in cbp.metric_kinds_available:
             if available_metric in metrics.keys(
             ) and available_metric not in metrics_not_to_plot:
-                spth = os.path.join(
-                    out_dir, 'comparison_boxplots',
-                    f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = available_metric, filetype = out_type)}'
-                )
+                spth = [Path(out_dir) / 'comparison_boxplots' /
+                        f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=available_metric, filetype=_out_type)}'
+                        for _out_type in out_type]
                 _fig = cbp.plot_cbp(
                     chosen_metric=available_metric,
                     out_name=spth,
                 )
                 plt.close(_fig)
-                fnames_cbplot.append(spth)
+                fnames_cbplot.extend(spth)
 
     return fnames_bplot, fnames_mapplot, fnames_csv, fnames_cbplot
 
@@ -190,21 +191,29 @@ def get_img_stats(
 
     return table
 
-
+# %%
 if __name__ == '__main__':
+
     # out = plot_all(
     # '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/a461826a-8236-4b44-8ecc-22e7447ce963/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    # out_dir='/tmp/local_france_bulk55',
-    # save_metadata='threshold',
+    # out_dir='/tmp/local_france_bulk661',
+    # # save_metadata='threshold',
+    # out_type = ['png', 'svg'],
     # # temporal_sub_windows=np.array([globals.DEFAULT_TSW])
     # )
 
     out = plot_all(
     '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/eb210e72-281f-4d9b-ab2a-07f0c9188aaf/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    out_dir='/tmp/local_france_season55',
+    out_dir='/tmp/local_france_season66',
     save_metadata='threshold',
+    out_type = ['png', 'svg'],
     # temporal_sub_windows=['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW],
     # temporal_sub_windows=np.array(['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW])
     )
 
-    print(len(out))
+
+
+    print(out[-1])
+    # print(sort_filenames_to_filetypes(out))
+
+# %%
