@@ -58,6 +58,7 @@ MANIFEST
 # tests/test_data
 tests/test_data/old
 tests/test_results
+tests/test_qa4sm_data
 
 # personal testing stuff
 test.py
