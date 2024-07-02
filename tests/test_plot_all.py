@@ -25,7 +25,7 @@ def test_plot_all(plotdir):
     """Plot all - including metadata based plots - to temporary directory and count files"""
     testfile = '0-ISMN.soil_moisture_with_1-C3S.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'metadata', testfile)
+                                 'test_qa4sm_data', 'metadata', testfile)
 
     pa.plot_all(
         filepath=testfile_path,

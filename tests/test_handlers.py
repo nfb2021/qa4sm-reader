@@ -12,7 +12,7 @@ from qa4sm_reader.handlers import QA4SMDatasets, QA4SMVariable, QA4SMMetric, \
 @pytest.fixture
 def basic_attributes():
     testfile = os.path.join(
-        os.path.dirname(__file__), 'test_data', 'basic',
+        os.path.dirname(__file__), 'test_qa4sm_data', 'basic',
         '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc'
     )
     ds = xr.open_dataset(testfile)
@@ -22,7 +22,7 @@ def basic_attributes():
 @pytest.fixture
 def tc_attributes():
     testfile = os.path.join(
-        os.path.dirname(__file__), 'test_data', 'tc',
+        os.path.dirname(__file__), 'test_qa4sm_data', 'tc',
         '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc')
     ds = xr.open_dataset(testfile)
     return ds.attrs
@@ -31,7 +31,7 @@ def tc_attributes():
 @pytest.fixture
 def ci_attributes():
     testfile = os.path.join(
-        os.path.dirname(__file__), 'test_data', 'tc',
+        os.path.dirname(__file__), 'test_qa4sm_data', 'tc',
         "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc"
     )
     ds = xr.open_dataset(testfile)
@@ -40,7 +40,7 @@ def ci_attributes():
 
 #@pytest.fixture
 #def metadata_attributes():
-#    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'metadata',
+#    testfile = os.path.join(os.path.dirname(__file__), 'test_qa4sm_data', 'metadata',
 #                            "0-ISMN.soil_moisture_with_1-C3S.sm.nc")
 #    ds = xr.open_dataset(testfile)
 #    return ds.attrs
@@ -101,7 +101,7 @@ def basic_metrics(basic_attributes):
 
 
 def test_grid_stepsize():
-    testfile = os.path.join(os.path.dirname(__file__), 'test_data', 'basic',
+    testfile = os.path.join(os.path.dirname(__file__), 'test_qa4sm_data', 'basic',
                             '0-SMAP.soil_moisture_with_1-C3S.sm.nc')
     attrs = xr.open_dataset(testfile).attrs
 
@@ -193,7 +193,7 @@ def test_others(datasets):
     assert len(datasets.others) == 5
 
 
-def test_dataset_metadata(datasets):
+def test_qa4sm_dataset_metadata(datasets):
     meta_ref = datasets.dataset_metadata(6)[1]  # shape (id, {names})
     also_meta_ref = datasets._dc_names(5)
     assert meta_ref == also_meta_ref

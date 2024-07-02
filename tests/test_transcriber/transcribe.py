@@ -1,5 +1,5 @@
-from transcriber.intra_annual_temp_windows import TemporalSubWindowsCreator, NewSubWindow
-from transcriber.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber
+from test_transcriber.transcriber.intra_annual_temp_windows import TemporalSubWindowsCreator, NewSubWindow
+from test_transcriber.transcriber.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber
 
 from pathlib import Path, PosixPath
 import os
@@ -22,7 +22,7 @@ class TestDataTranscriber:
                  transcribed_nc_dir_name: Optional[str]=None,
                  *args, **kwargs):
         if not test_data_pth:
-            test_data_pth = Path.cwd() / 'tests' / 'test_data'
+            test_data_pth = Path.cwd()  / 'test_data'
         self.test_data_pth = test_data_pth
 
         self.temp_sub_wdw_instance = temporal_sub_windows
@@ -55,6 +55,7 @@ class TestDataTranscriber:
                 # pass
 
         print(f"All .nc files have been copied to '{restructured_files_root}'.")
+        print(f'{os.path.exists(restructured_files_root)=}')
         return list(restructured_files_root.glob('**/*.nc'))
 
     def encoding_params(self, ds: xr.Dataset, compression: str, complevel: int) -> Dict:

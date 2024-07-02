@@ -27,7 +27,7 @@ def plotdir():
 def basic_plotter(plotdir):
     testfile = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'basic', testfile)
+                                 'test_qa4sm_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -38,7 +38,7 @@ def basic_plotter(plotdir):
 def basic_plotter_double(plotdir):
     testfile = '0-GLDAS.SoilMoi0_10cm_inst_with_1-C3S.sm_with_2-SMOS.Soil_Moisture.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'basic', testfile)
+                                 'test_qa4sm_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -49,7 +49,7 @@ def basic_plotter_double(plotdir):
 def irrgrid_plotter(plotdir):
     testfile = '0-SMAP.soil_moisture_with_1-C3S.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'basic', testfile)
+                                 'test_qa4sm_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -60,7 +60,7 @@ def irrgrid_plotter(plotdir):
 def barplot_plotter(plotdir):
     testfile = '0-ASCAT.sm_with_1-GLDAS.SoilMoi0_10cm_inst.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'basic', testfile)
+                                 'test_qa4sm_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -71,7 +71,7 @@ def barplot_plotter(plotdir):
 def ref_scaling_ds_plotter(plotdir):
     testfile = '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'basic', testfile)
+                                 'test_qa4sm_data', 'basic', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -90,7 +90,7 @@ def tc_ci_plotter(plotdir):
     testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined." \
                "sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc"
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'tc', testfile)
+                                 'test_qa4sm_data', 'tc', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -101,7 +101,7 @@ def tc_ci_plotter(plotdir):
 def tc_plotter(plotdir):
     testfile = '3-GLDAS.SoilMoi0_10cm_inst_with_1-C3S.sm_with_2-SMOS.Soil_Moisture.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'tc', testfile)
+                                 'test_qa4sm_data', 'tc', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -112,7 +112,7 @@ def tc_plotter(plotdir):
 def meta_plotter(plotdir):
     testfile = '0-ISMN.soil_moisture_with_1-C3S.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_data', 'metadata', testfile)
+                                 'test_qa4sm_data', 'metadata', testfile)
     img = QA4SMImg(testfile_path)
     plotter = QA4SMPlotter(img, plotdir)
 
@@ -549,7 +549,7 @@ def test_output_dpi():
                                 "e.g. the maximum resolution in km"
 
 
-test_data = [
+test_qa4sm_data = [
     ('ISMN', None, 'point'),
     ('C3S', 0.25, 'deg'),
     ('C3S_combined', 0.25, 'deg'),
@@ -572,7 +572,7 @@ test_data = [
 
 @pytest.mark.parametrize(
     "dataset,dataset_res_should,dataset_units_should",
-    test_data,
+    test_qa4sm_data,
 )
 def test_globals_resolutions(dataset, dataset_res_should,
                              dataset_units_should):
