@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 def single_img():
     testfile = '3-ERA5_LAND.swvl1_with_1-C3S.sm_with_2-ASCAT.sm.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_qa4sm_data', 'tc', testfile)
+                                 'test_data', 'tc', testfile)
     return QA4SMComparison(testfile_path)
 
 
@@ -30,7 +30,7 @@ def double_img_paths():
     first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
     second = '0-ISMN.soil moisture_with_1-C3S.sm-overlap.nc'
     testfile_paths = [
-        os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_qa4sm_data',
+        os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data',
                      'comparing', i) for i in [first, second]
     ]
     # initialized with intersection
@@ -136,7 +136,7 @@ def double_paths_nonoverlap():
     first = '0-ISMN.soil moisture_with_1-C3S.sm.nc'
     second = '0-ISMN.soil moisture_with_1-C3S.sm-nonoverlap.nc'
     testfile_paths = [
-        os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_qa4sm_data',
+        os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data',
                      'comparing', i) for i in [first, second]
     ]
     # initialize the comparison with intersection and check that no error is raised

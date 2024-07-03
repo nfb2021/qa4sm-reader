@@ -1,9 +1,14 @@
 import xarray as xr
 import numpy as np
-from test_transcriber.transcriber.intra_annual_temp_windows import TemporalSubWindowsCreator
-from test_transcriber.transcriber.qa4sm_globals import METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, IMPLEMENTED_COMPRESSIONS, ALLOWED_COMPRESSION_LEVELS, INTRA_ANNUAL_METRIC_TEMPLATE, INTRA_ANNUAL_TCOL_METRIC_TEMPLATE, TEMPORAL_SUB_WINDOW_SEPARATOR, DEFAULT_TSW, TEMPORAL_SUB_WINDOW_NC_COORD_NAME, MAX_NUM_DS_PER_VAL_RUN, DATASETS
 from typing import Any, List, Dict, Optional, Union, Tuple
 import os
+
+from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator
+from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
+                                    IMPLEMENTED_COMPRESSIONS, ALLOWED_COMPRESSION_LEVELS, \
+                                    INTRA_ANNUAL_METRIC_TEMPLATE, INTRA_ANNUAL_TCOL_METRIC_TEMPLATE, \
+                                    TEMPORAL_SUB_WINDOW_SEPARATOR, DEFAULT_TSW, TEMPORAL_SUB_WINDOW_NC_COORD_NAME, \
+                                    MAX_NUM_DS_PER_VAL_RUN, DATASETS
 
 class Pytesmo2Qa4smResultsTranscriber:
     """
@@ -482,3 +487,26 @@ class Pytesmo2Qa4smResultsTranscriber:
             print(
                 f'\n\nRe-compression failed. Compression has to be {IMPLEMENTED_COMPRESSIONS} and compression levels other than {ALLOWED_COMPRESSION_LEVELS} are not supported. Continue without re-compression.\n\n'
             )
+
+
+    @staticmethod
+    def get_tsws_from_ncfile(ncfile: str) -> Union[List[str], None]:
+        """
+        Get the temporal sub-windows from a NetCDF file.
+
+        Parameters
+        ----------
+        ncfile : str
+            The path to the NetCDF file.
+
+        Returns
+        -------
+        List[str]
+            The temporal sub-windows.
+        """
+
+        with xr.open_dataset(ncfile) as ds:
+            try:
+                return list(ds[TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values)
+            except KeyError:
+                return None

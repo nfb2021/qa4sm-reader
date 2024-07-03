@@ -8,7 +8,6 @@ import warnings
 import cartopy.crs as ccrs
 import matplotlib
 import matplotlib.colors as cl
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 
@@ -328,28 +327,101 @@ def get_metric_units(dataset, raise_error=False):
 
             return "n.a."
 
-
-# label name for all metrics
-_metric_name = {  # from /qa4sm/validator/validation/globals.py
+COMMON_METRICS = {
     'R': 'Pearson\'s r',
     'p_R': 'Pearson\'s r p-value',
-    'rho': 'Spearman\'s ρ',
-    'p_rho': 'Spearman\'s ρ p-value',
     'RMSD': 'Root-mean-square deviation',
     'BIAS': 'Bias (difference of means)',
     'n_obs': '# observations',
     'urmsd': 'Unbiased root-mean-square deviation',
     'RSS': 'Residual sum of squares',
-    'tau': 'Kendall rank correlation',
-    'p_tau': 'Kendall tau p-value',
     'mse': 'Mean square error',
     'mse_corr': 'Mean square error correlation',
     'mse_bias': 'Mean square error bias',
     'mse_var': 'Mean square error variance',
+}
+
+TC_METRICS = {
     'snr': 'Signal-to-noise ratio',
     'err_std': 'Error standard deviation',
     'beta': 'TC scaling coefficient',
+}
+
+READER_EXCLUSIVE_METRICS = {
+    'rho': 'Spearman\'s ρ',
+    'p_rho': 'Spearman\'s ρ p-value',
+    'tau': 'Kendall rank correlation',
+    'p_tau': 'Kendall tau p-value',
     'status': 'Validation errors'
+}
+
+QA4SM_EXCLUSIVE_METRICS = {
+    'rho': 'Spearman\'s rho',
+    'p_rho': 'Spearman\'s rho p-value',
+    'status': '# status',
+}
+
+_metric_name = {**COMMON_METRICS, **READER_EXCLUSIVE_METRICS, **TC_METRICS}
+
+METRICS = {**COMMON_METRICS, **QA4SM_EXCLUSIVE_METRICS}
+
+NON_METRICS = [
+    'gpi',
+    'lon',
+    'lat',
+    'clay_fraction',
+    'climate_KG',
+    'climate_insitu',
+    'elevation',
+    'instrument',
+    'latitude',
+    'lc_2000',
+    'lc_2005',
+    'lc_2010',
+    'lc_insitu',
+    'longitude',
+    'network',
+    'organic_carbon',
+    'sand_fraction',
+    'saturation',
+    'silt_fraction',
+    'station',
+    'timerange_from',
+    'timerange_to',
+    'variable',
+    'instrument_depthfrom',
+    'instrument_depthto',
+    'frm_class',
+]
+
+METADATA_TEMPLATE = {
+    'other_ref': None,
+    'ismn_ref': {
+        'clay_fraction': np.float32([np.nan]),
+        'climate_KG': np.array([' ' * 256]),
+        'climate_insitu': np.array([' ' * 256]),
+        'elevation': np.float32([np.nan]),
+        'instrument': np.array([' ' * 256]),
+        'latitude': np.float32([np.nan]),
+        'lc_2000': np.float32([np.nan]),
+        'lc_2005': np.float32([np.nan]),
+        'lc_2010': np.float32([np.nan]),
+        'lc_insitu': np.array([' ' * 256]),
+        'longitude': np.float32([np.nan]),
+        'network': np.array([' ' * 256]),
+        'organic_carbon': np.float32([np.nan]),
+        'sand_fraction': np.float32([np.nan]),
+        'saturation': np.float32([np.nan]),
+        'silt_fraction': np.float32([np.nan]),
+        'station': np.array([' ' * 256]),
+        'timerange_from': np.array([' ' * 256]),
+        'timerange_to': np.array([' ' * 256]),
+        'variable': np.array([' ' * 256]),
+        'instrument_depthfrom': np.float32([np.nan]),
+        'instrument_depthto': np.float32([np.nan]),
+        # only available for FRM4SM ISMN version(s)
+        'frm_class': np.array([' ' * 256]),
+    }
 }
 
 # BACKUPS
@@ -635,7 +707,7 @@ metadata = {
     "climate_insitu": ("climate in-situ", climate_classes, "classes", None),
     "elevation": ("elevation", None, "continuous", "[m]"),
     "instrument": ("instrument type", None, "discrete",
-                   None),  # todo: improve labels (too packed)
+                   None),  #todo: improve labels (too packed)
     "lc_2000": ("land cover class (2000)", lc_classes, "classes", None),
     "lc_2005": ("land cover class (2005)", lc_classes, "classes", None),
     "lc_2010": ("land cover class (2010)", lc_classes, "classes", None),
@@ -673,12 +745,45 @@ METRIC_TEMPLATE = '_between_{ds1}_and_{ds2}'
 METRIC_CI_TEMPLATE = '{metric}_ci_{bound}_between_{ds1}_and_{ds2}_{ending}'
 
 
-#$$
 # intra-annual valdiation metric related settings
 # =====================================================
 
-PERIOD_COORDINATE_NAME = 'tsw' # name of the period coordinate in the netcdf file (Temporal Sub-Window)
-DEFAULT_TSW = 'bulk'
+DEFAULT_TSW = 'bulk' # default temporal sub-window (in the case of no temporal sub-windowing)
+TEMPORAL_SUB_WINDOW_NC_COORD_NAME = 'tsw' # name of the period coordinate in the netcdf file (Temporal Sub-Window)
+
+TEMPORAL_SUB_WINDOW_SEPARATOR = '|'
+
+INTRA_ANNUAL_METRIC_TEMPLATE = ["{tsw}", TEMPORAL_SUB_WINDOW_SEPARATOR,
+                                "{metric}"]  #$$
+
+INTRA_ANNUAL_TCOL_METRIC_TEMPLATE = ["{tsw}", TEMPORAL_SUB_WINDOW_SEPARATOR,
+                                "{metric}", "_", "{number}-{dataset}",
+                                "_between_"]
+
+# default temporal sub windows
+TEMPORAL_SUB_WINDOWS = {
+    "seasons": {
+        "S1": [[12, 1], [2, 28]],
+        "S2": [[3, 1], [5, 31]],
+        "S3": [[6, 1], [8, 31]],
+        "S4": [[9, 1], [11, 30]],
+    },
+    "months": {
+        "Jan": [[1, 1], [1, 31]],
+        "Feb": [[2, 1], [2, 28]],
+        "Mar": [[3, 1], [3, 31]],
+        "Apr": [[4, 1], [4, 30]],
+        'May': [[5, 1], [5, 31]],
+        "Jun": [[6, 1], [6, 30]],
+        "Jul": [[7, 1], [7, 31]],
+        "Aug": [[8, 1], [8, 31]],
+        "Sep": [[9, 1], [9, 30]],
+        "Oct": [[10, 1], [10, 31]],
+        "Nov": [[11, 1], [11, 30]],
+        "Dec": [[12, 1], [12, 31]],
+    }
+}
+
 CLUSTERED_BOX_PLOT_STYLE = {
     'fig_params': {
         'title_fontsize': 20,
@@ -696,3 +801,35 @@ CLUSTERED_BOX_PLOT_STYLE = {
 }
 
 CLUSTERED_BOX_PLOT_SAVENAME = 'comparison_boxplot_{metric}.{filetype}'
+
+
+
+# netCDF transcription related settings
+# =====================================================
+IMPLEMENTED_COMPRESSIONS = ['zlib']
+
+ALLOWED_COMPRESSION_LEVELS = [None, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+BAD_METRICS = ['time']
+
+DATASETS = [
+    'C3S_combined',
+    'ISMN',
+    'GLDAS',
+    'SMAP_L3',
+    'ASCAT',
+    'ESA_CCI_SM_combined',
+    'ESA_CCI_SM_active',
+    'ESA_CCI_SM_passive',
+    'SMOS_IC',
+    'ERA5',
+    'ERA5_LAND',
+    'CGLS_CSAR_SSM1km',
+    'CGLS_SCATSAR_SWI1km',
+    'SMOS_L3',
+    'SMOS_L2',
+    'SMAP_L2',
+    'SMOS_SBPCA',
+]
+
+MAX_NUM_DS_PER_VAL_RUN = 6

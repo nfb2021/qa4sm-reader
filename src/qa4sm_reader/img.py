@@ -2,6 +2,7 @@
 from qa4sm_reader import globals
 import qa4sm_reader.handlers as hdl
 from qa4sm_reader.plotting_methods import _format_floats, combine_soils, combine_depths, average_non_additive
+from qa4sm_reader.utils import transcribe
 from pathlib import Path
 import warnings
 
@@ -9,6 +10,7 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 from typing import Union, Tuple, Optional
+from pathlib import PosixPath
 
 def extract_periods(filepath) -> np.array:
     """Automatically extract the periods from a provided netCDF file. If none are found, return None. \
@@ -17,11 +19,11 @@ def extract_periods(filepath) -> np.array:
         normal QA4SM run as provided by qa4sm.eu. This code is kept for special use-cases and for potential \
         future development."""
     with xr.open_dataset(filepath) as dataset:
-        if globals.PERIOD_COORDINATE_NAME in dataset.dims:
-            return dataset[globals.PERIOD_COORDINATE_NAME].values
+        if globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME in dataset.dims:
+            return dataset[globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values
 
         else:
-            warnings.warn(f"No temporal sub-windows found in the file. Check that the file is a QA4SM validation file and make sure that the dimension associated with the temporal sub-windows is named `{globals.PERIOD_COORDINATE_NAME}`.")
+            warnings.warn(f"No temporal sub-windows found in the file. Check that the file is a QA4SM validation file and make sure that the dimension associated with the temporal sub-windows is named `{globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME}`.")
             return np.array([None])
 class SpatialExtentError(Exception):
     """Class to handle errors derived from the spatial extent of validations"""
@@ -109,7 +111,11 @@ class QA4SMImg(object):
             engine=engine,
         )
 
-        selection = {globals.PERIOD_COORDINATE_NAME: period}  # allows for flexible loading of both the dimension and temproal sub-window
+        if not globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME in dataset.dims:
+            dataset = transcribe(self.filepath)
+
+
+        selection = {globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME: period}  # allows for flexible loading of both the dimension and temproal sub-window
         ds = dataset.sel(selection)
         # drop non-spatial variables (e.g.'time')
         if globals.time_name in ds.variables:

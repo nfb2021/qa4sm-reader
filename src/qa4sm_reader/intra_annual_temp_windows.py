@@ -1,6 +1,8 @@
+from qa4sm_reader.globals import TEMPORAL_SUB_WINDOWS, DEFAULT_TSW
+
 from pytesmo.validation_framework.metric_calculators_adapters import TsDistributor
 from pytesmo.time_series.grouping import YearlessDatetime
-from test_transcriber.transcriber.qa4sm_globals import TEMPORAL_SUB_WINDOWS, DEFAULT_TSW
+
 from typing import Optional, List, Tuple, Dict, Union
 import os
 from datetime import datetime

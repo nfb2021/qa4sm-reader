@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple, Dict, Any, Union
 
 import matplotlib
 import matplotlib.axes
+from matplotlib.figure import Figure
 
 
 class MixinVarmeta:

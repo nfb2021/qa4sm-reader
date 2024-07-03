@@ -13,7 +13,7 @@ from qa4sm_reader import globals
 def testfile_path():
     testfile = '0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc'
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_qa4sm_data', 'basic', testfile)
+                                 'test_data', 'basic', testfile)
 
     return testfile_path
 
@@ -30,7 +30,7 @@ def img(testfile_path):
 def ci_img():
     testfile = "0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI.nc"
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_qa4sm_data', 'tc', testfile)
+                                 'test_data', 'tc', testfile)
     img = QA4SMImg(testfile_path, ignore_empty=False)
 
     return img
@@ -40,7 +40,7 @@ def ci_img():
 def metadata_img():
     testfile = "0-ISMN.soil_moisture_with_1-C3S.sm.nc"
     testfile_path = os.path.join(os.path.dirname(__file__), '..', 'tests',
-                                 'test_qa4sm_data', 'metadata', testfile)
+                                 'test_data', 'metadata', testfile)
     img = QA4SMImg(testfile_path, ignore_empty=False)
 
     return img
@@ -71,10 +71,7 @@ def test_load_vars(img):
     Vars = img._load_vars()
     assert len(Vars) == len(img.varnames)
     Metr_Vars = img._load_vars(only_metrics=True)
-    correction_for_tsw_dim = 0
-    if globals.PERIOD_COORDINATE_NAME in img.varnames:
-        correction_for_tsw_dim = 1
-    assert len(Metr_Vars) == len(Vars) - 21 - correction_for_tsw_dim
+    assert len(Metr_Vars) == len(Vars) - 22
 
 
 def test_iter_vars(img):
@@ -124,13 +121,16 @@ def test_ds2df(img):
 
 def test_metric_df(img):
     df = img.metric_df(['R'])
+    print(list(df.columns))
     assert list(df.columns) == [
         'R_between_0-ERA5_LAND_and_1-C3S_combined',
         'R_ci_lower_between_0-ERA5_LAND_and_1-C3S_combined',
         'R_ci_upper_between_0-ERA5_LAND_and_1-C3S_combined',
         'R_between_0-ERA5_LAND_and_2-SMOS_IC',
         'R_ci_lower_between_0-ERA5_LAND_and_2-SMOS_IC',
-        'R_ci_upper_between_0-ERA5_LAND_and_2-SMOS_IC', 'idx'
+        'R_ci_upper_between_0-ERA5_LAND_and_2-SMOS_IC',
+        globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME,
+        'idx',
     ]
 
 

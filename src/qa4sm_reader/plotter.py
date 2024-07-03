@@ -1429,7 +1429,7 @@ class QA4SMCompPlotter:
 
         temp_sub_wins_names = [
             tsw
-            for tsw in self.ds.coords[globals.PERIOD_COORDINATE_NAME].values
+            for tsw in self.ds.coords[globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values
             if tsw != globals.DEFAULT_TSW
         ]
 
@@ -1459,7 +1459,7 @@ class QA4SMCompPlotter:
         _data_dict['lon'] = self.ds['lon'].values
         _data_dict['gpi'] = self.ds['gpi'].values
         for tsw in self.tsws_used:
-            selection = {globals.PERIOD_COORDINATE_NAME: tsw}
+            selection = {globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME: tsw}
 
             _data_dict[tsw] = self.ds[specific_metric].sel(
                 selection).values.astype(np.float32)
