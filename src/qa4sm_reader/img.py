@@ -12,19 +12,6 @@ import pandas as pd
 from typing import Union, Tuple, Optional
 from pathlib import PosixPath
 
-def extract_periods(filepath) -> np.array:
-    """Automatically extract the periods from a provided netCDF file. If none are found, return None. \
-        Function is called if neither the 'bulk' case, \
-        nor any temporal sub-winwods were explicitly specified but instead 'None'. This should not occur in a \
-        normal QA4SM run as provided by qa4sm.eu. This code is kept for special use-cases and for potential \
-        future development."""
-    with xr.open_dataset(filepath) as dataset:
-        if globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME in dataset.dims:
-            return dataset[globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values
-
-        else:
-            warnings.warn(f"No temporal sub-windows found in the file. Check that the file is a QA4SM validation file and make sure that the dimension associated with the temporal sub-windows is named `{globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME}`.")
-            return np.array([None])
 class SpatialExtentError(Exception):
     """Class to handle errors derived from the spatial extent of validations"""
     pass
