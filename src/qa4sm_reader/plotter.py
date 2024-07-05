@@ -22,7 +22,7 @@ from qa4sm_reader import plotting_methods as plm
 from qa4sm_reader.plotting_methods import ClusteredBoxPlot, patch_styling
 from qa4sm_reader.exceptions import PlotterError
 import qa4sm_reader.handlers as hdl
-from qa4sm_reader.utils import note
+from qa4sm_reader.utils import note, filter_out_self_combination_tcmetric_vars
 
 
 class QA4SMPlotter:
@@ -311,6 +311,10 @@ class QA4SMPlotter:
         """
         Vars = self.img._iter_vars(type="metric",
                                    filter_parms={"metric": metric})
+
+        if metric in globals.TC_METRICS:
+            Vars = filter_out_self_combination_tcmetric_vars(Vars)
+
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
             # changes if it's a common-type Var
@@ -1429,7 +1433,7 @@ class QA4SMCompPlotter:
 
         temp_sub_wins_names = [
             tsw
-            for tsw in self.ds.coords[globals.PERIOD_COORDINATE_NAME].values
+            for tsw in self.ds.coords[globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values
             if tsw != globals.DEFAULT_TSW
         ]
 
@@ -1459,7 +1463,7 @@ class QA4SMCompPlotter:
         _data_dict['lon'] = self.ds['lon'].values
         _data_dict['gpi'] = self.ds['gpi'].values
         for tsw in self.tsws_used:
-            selection = {globals.PERIOD_COORDINATE_NAME: tsw}
+            selection = {globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME: tsw}
 
             _data_dict[tsw] = self.ds[specific_metric].sel(
                 selection).values.astype(np.float32)

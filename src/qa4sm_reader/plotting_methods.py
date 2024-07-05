@@ -38,7 +38,7 @@ from shapely.geometry import Polygon, Point
 import warnings
 import os
 from collections import namedtuple
-from scipy.ndimage import zoom
+
 
 cconfig['data_dir'] = os.path.join(os.path.dirname(__file__), 'cartopy')
 

@@ -1,17 +1,17 @@
 # %%
 # # -*- coding: utf-8 -*-
 import os
-import warnings
 from typing import Union, List, Tuple, Dict
 from itertools import chain
 
 import pandas as pd
 from qa4sm_reader.plotter import QA4SMPlotter, QA4SMCompPlotter
-from qa4sm_reader.img import QA4SMImg, extract_periods
+from qa4sm_reader.img import QA4SMImg
+from qa4sm_reader.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber
 import qa4sm_reader.globals as globals
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import PosixPath, Path
+from pathlib import Path
 
 
 def plot_all(filepath: str,
@@ -88,7 +88,7 @@ def plot_all(filepath: str,
     # initialise image and plotter
     fnames_bplot, fnames_mapplot, fnames_csv = [], [], []
     if temporal_sub_windows is None:
-        periods = extract_periods(filepath)
+        periods = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(filepath)
     else:
         periods = np.array(temporal_sub_windows)
 
@@ -190,30 +190,3 @@ def get_img_stats(
     table = img.stats_df()
 
     return table
-
-# %%
-if __name__ == '__main__':
-
-    # out = plot_all(
-    # '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/a461826a-8236-4b44-8ecc-22e7447ce963/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    # out_dir='/tmp/local_france_bulk661',
-    # # save_metadata='threshold',
-    # out_type = ['png', 'svg'],
-    # # temporal_sub_windows=np.array([globals.DEFAULT_TSW])
-    # )
-
-    out = plot_all(
-    '/home/nbader/Documents/QA4SM_tasks/jira-744/qa4sm/output/eb210e72-281f-4d9b-ab2a-07f0c9188aaf/0-ISMN.soil_moisture_with_1-C3S_combined.sm_with_2-SMOS_L3.Soil_Moisture_with_3-ERA5.swvl1.nc',
-    out_dir='/tmp/local_france_season66',
-    save_metadata='threshold',
-    out_type = ['png', 'svg'],
-    # temporal_sub_windows=['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW],
-    # temporal_sub_windows=np.array(['S1','S2', 'S3', 'S4', globals.DEFAULT_TSW])
-    )
-
-
-
-    print(out[-1])
-    # print(sort_filenames_to_filetypes(out))
-
-# %%
