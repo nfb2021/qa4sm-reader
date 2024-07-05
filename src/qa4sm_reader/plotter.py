@@ -22,7 +22,7 @@ from qa4sm_reader import plotting_methods as plm
 from qa4sm_reader.plotting_methods import ClusteredBoxPlot, patch_styling
 from qa4sm_reader.exceptions import PlotterError
 import qa4sm_reader.handlers as hdl
-from qa4sm_reader.utils import note
+from qa4sm_reader.utils import note, filter_out_self_combination_tcmetric_vars
 
 
 class QA4SMPlotter:
@@ -311,6 +311,10 @@ class QA4SMPlotter:
         """
         Vars = self.img._iter_vars(type="metric",
                                    filter_parms={"metric": metric})
+
+        if metric in globals.TC_METRICS:
+            Vars = filter_out_self_combination_tcmetric_vars(Vars)
+
         for n, Var in enumerate(Vars):
             values = Var.values[Var.varname]
             # changes if it's a common-type Var

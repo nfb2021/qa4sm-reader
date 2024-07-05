@@ -6,11 +6,9 @@ from qa4sm_reader.utils import transcribe
 from pathlib import Path
 import warnings
 
-import numpy as np
 import xarray as xr
 import pandas as pd
 from typing import Union, Tuple, Optional
-from pathlib import PosixPath
 
 class SpatialExtentError(Exception):
     """Class to handle errors derived from the spatial extent of validations"""

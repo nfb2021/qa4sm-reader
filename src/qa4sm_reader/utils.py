@@ -1,6 +1,10 @@
 from functools import wraps
-from typing import Any, Callable, TypeVar, Union
+from typing import Any, Callable, TypeVar, Union, Dict, List
+from re import match as regex_match
+import qa4sm_reader.globals
+from qa4sm_reader.handlers import QA4SMVariable
 from qa4sm_reader.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber
+import qa4sm_reader.globals as globals
 import xarray as xr
 from pathlib import PosixPath
 
@@ -58,3 +62,23 @@ def transcribe(file_path: Union[str, PosixPath]) ->  Union[None, xr.Dataset]:
 
     if transcriber.exists:
         return transcriber.get_transcribed_dataset()
+
+
+def filter_out_self_combination_tcmetric_vars(variables: List[QA4SMVariable]) -> List[QA4SMVariable]:
+    """
+    Filters out the 'self-combination' temporal collocation metric varriables, referring to variables that \
+        match the pattern: {METRIC}_{DATASET_A}_between_{DATASET_A}_and_{WHATEVER}. The occurence of these \
+            metric vars is a consequence of reference dataset tcol metric vas being written to the file
+
+    Parameters
+    ----------
+    variables : List[QA4SMVariable]
+        list of variables to be filtered
+
+    Returns
+    -------
+    List[QA4SMVariable]
+        the filtered list of variables
+    """
+
+    return [var for var in variables if var.metric_ds != var.ref_ds]

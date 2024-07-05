@@ -1,7 +1,6 @@
 # %%
 # # -*- coding: utf-8 -*-
 import os
-import warnings
 from typing import Union, List, Tuple, Dict
 from itertools import chain
 
@@ -12,7 +11,7 @@ from qa4sm_reader.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber
 import qa4sm_reader.globals as globals
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import PosixPath, Path
+from pathlib import Path
 
 
 def plot_all(filepath: str,
