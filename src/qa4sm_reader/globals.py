@@ -64,8 +64,8 @@ watermark_logo_offset_map_plots = (0, -0.15)
 watermark_logo_offset_bar_plots = (0, -0.1)
 watermark_logo_offset_box_plots = (0, -0.15)
 watermark_logo_pth = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__)))), 'static', 'images', 'logo',
+    os.path.dirname(
+        os.path.abspath(__file__)), 'static', 'images', 'logo',
     'QA4SM_logo_long.png')
 
 # === filename template ===

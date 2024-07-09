@@ -590,7 +590,8 @@ def add_logo_to_figure(fig: matplotlib.figure.Figure,
         fig.add_subplot(111)
 
     if not os.path.exists(logo_path):
-        warnings.warn("No logo found at the specified path")
+        warnings.warn(f"No logo found at the specified path: '{logo_path}'. Skipping logo addition.")
+        print(f"No logo found at the specified path: '{logo_path}'. Skipping logo addition.")
         return
 
     with cbook.get_sample_data(logo_path) as file:
