@@ -12,7 +12,7 @@ def test_get_version():
     assert qa4sm_reader.__version__ != 'unknown'
 
 def test_transcribe_all_testfiles():
-    # check if all test files can be transcribed for subsequent tests
+    # check if all test files can be transcribed for subsequent tests. proper testing of the transcription is done in test_netcdf_transcription.py
     TEST_FILE_ROOT = Path(Path(os.path.dirname(os.path.abspath(__file__))).parent, 'tests', 'test_data')
     test_files = glob(str(TEST_FILE_ROOT / '**/*.nc'), recursive=True)
 
