@@ -601,3 +601,7 @@ def test_average_non_additive():
     # Included in the standard interval
     assert 0.5 < avg < 0.7
     assert avg != np.mean(values)
+
+
+def test_logo_exists():
+    assert os.path.exists(os.path.join(os.path.dirname(__file__), '..', 'qa4sm_reader', 'static', 'images', 'logo', 'logo.png'))

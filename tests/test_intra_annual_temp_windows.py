@@ -67,6 +67,7 @@ def additional_temp_sub_window():
 #------------------------- Tests for TemporalSubwindowsDefault class -----------------------------------------------------------------------
 
 class TemporalSubWindowsConcrete(TemporalSubWindowsDefault):
+    # used to test the abstract class TemporalSubWindowsDefault
     def _get_available_temp_sub_wndws(self):
         return {"seasons": {"S1": [[12, 1], [2, 28]], "S2": [[3, 1], [5, 31]]}}
 

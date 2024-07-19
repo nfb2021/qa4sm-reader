@@ -6,3 +6,13 @@
     Read more about conftest.py under:
     https://pytest.org/latest/plugins.html
 """
+
+def pytest_collection_modifyitems(items):
+    # Move the test_utils::test_transcribe to the beginning of the list, as it is required for transcribing test files for other tests
+    first_test = None
+    for item in items:
+        if item.name == "test_transcribe":
+            first_test = item
+            break
+    if first_test:
+        items.insert(0, items.pop(items.index(first_test)))
