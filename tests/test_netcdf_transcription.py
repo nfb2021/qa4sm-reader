@@ -113,6 +113,7 @@ def test_keep_pytesmo_ncfile(bulk_case_file):
 
     assert Path(bulk_case_file.parent, bulk_case_file.name + '.old').exists()
 
+    os.remove(Path(bulk_case_file.parent, bulk_case_file.name + '.old'))
 
 
 
