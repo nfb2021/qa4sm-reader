@@ -604,4 +604,4 @@ def test_average_non_additive():
 
 
 def test_logo_exists():
-    assert os.path.exists(os.path.join(os.path.dirname(__file__), '..', 'qa4sm_reader', 'static', 'images', 'logo', 'logo.png'))
+    assert os.path.exists(os.path.join(os.path.dirname(__file__), '..', 'src', 'qa4sm_reader', 'static', 'images', 'logo', 'QA4SM_logo_long.png'))
