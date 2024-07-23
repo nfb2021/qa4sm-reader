@@ -11,6 +11,15 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
+class InvalidTemporalSubWindowError(Exception):
+    '''Exception raised when an invalid temporal sub-window is provided.'''
+
+    def __init__(self, tsw, valid_tsw):
+        super().__init__(
+            f'The provided temporal sub-window ({tsw}) is invalid. Please provide one of these valid temporal sub-windows: {valid_tsw}.'
+        )
+
+
 class TemporalSubWindowsDefault(ABC):
     '''
     Class to load default temporal sub-window definitions from the `validator.validation.globals` file.
@@ -166,6 +175,8 @@ class TemporalSubWindowsCreator(TemporalSubWindowsDefault):
                 f'Invalid custom file path. Please provide a valid JSON file containing the temporal sub-window definitions.'
             )
         elif self.temporal_sub_window_type not in self.available_temp_sub_wndws:
+            raise InvalidTemporalSubWindowError(self.temporal_sub_window_type,
+                                                self.available_temp_sub_wndws)
             raise KeyError(
                 f'Invalid temporal sub-window type. Available types are: {self.available_temp_sub_wndws}'
             )

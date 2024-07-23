@@ -1,33 +1,203 @@
 import os
+from tkinter import N
 import pytest
 from copy import deepcopy
 from datetime import datetime
 import xarray as xr
 import shutil
 from pathlib import Path
-
-from qa4sm_reader.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber
-from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, NewSubWindow
+from glob import glob
+from typing import Generator, Union, Optional, Tuple, List, Callable
+import logging
+import inspect
 import tempfile
-import qa4sm_reader.globals as qr_globals
+
+from qa4sm_reader.netcdf_transcription import Pytesmo2Qa4smResultsTranscriber, TemporalSubWindowMismatchError
+from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, NewSubWindow, InvalidTemporalSubWindowError
+import qa4sm_reader.globals as globals
+from qa4sm_reader.utils import log_function_call
+
+log_file_path = Path(
+    __file__).parent.parent / '.logs' / "test_netcdf_transcription.log"
+if not log_file_path.parent.exists():
+    log_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    filename=str(log_file_path))
+
+
+#------------------Fixtures------------------
+@pytest.fixture(scope="module")
+def tmp_paths():
+    '''Fixture to keep track of temporary directories created during a test run and clean them up after the test run'''
+    paths = []
+    yield paths
+
+    for path in paths:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.fixture
-def bulk_case_file(TEST_DATA_DIR: Path) -> Path:
-    testfile =  Path('basic', '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc')
+def monthly_tsws() -> TemporalSubWindowsCreator:
+    return TemporalSubWindowsCreator(temporal_sub_window_type='months',
+                                     overlap=0,
+                                     custom_file=None)
 
-    src = TEST_DATA_DIR / testfile
-    assert src.exists()
 
-    tmpdir = Path(tempfile.mkdtemp()) / testfile.parent
-    tmpdir.mkdir(parents=True, exist_ok=True)
+@pytest.fixture
+def monthly_tsws_incl_bulk(monthly_tsws) -> TemporalSubWindowsCreator:
+    bulk_wndw = NewSubWindow('bulk', datetime(1950, 1, 1),
+                             datetime(2020, 1, 1))
+    return monthly_tsws.add_temp_sub_wndw(bulk_wndw, insert_as_first_wndw=True)
 
-    dst = tmpdir / testfile.name
 
-    shutil.copy(src, dst)
-    return dst
+@pytest.fixture
+def seasonal_tsws() -> TemporalSubWindowsCreator:
+    return TemporalSubWindowsCreator(temporal_sub_window_type='seasons',
+                                     overlap=0,
+                                     custom_file=None)
+
+
+@pytest.fixture
+def seasonal_tsws_incl_bulk() -> TemporalSubWindowsCreator:
+    seasonal_tsws = TemporalSubWindowsCreator(
+        temporal_sub_window_type='seasons', overlap=0, custom_file=None)
+    bulk_wndw = NewSubWindow('bulk', datetime(1950, 1, 1),
+                             datetime(2020, 1, 1))
+    seasonal_tsws.add_temp_sub_wndw(bulk_wndw, insert_as_first_wndw=True)
+    return seasonal_tsws
+
+@pytest.fixture
+def seasonal_pytesmo_file(TEST_DATA_DIR) -> Path:
+    return Path(TEST_DATA_DIR / 'intra_annual' / 'seasonal' / '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI_tsw_seasons_pytesmo.nc')
+
+@pytest.fixture
+def seasonal_qa4sm_file(TEST_DATA_DIR) -> Path:
+    return Path(TEST_DATA_DIR / 'intra_annual' / 'seasonal' / '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI_tsw_seasons_qa4sm.nc')
+
+@pytest.fixture
+def monthly_pytesmo_file(TEST_DATA_DIR) -> Path:
+    return Path(TEST_DATA_DIR / 'intra_annual' / 'months' / '0-ISMN.soil_moisture_with_1-C3S.sm_tsw_months_pytesmo.nc')
+
+@pytest.fixture
+def monthly_qa4sm_file(TEST_DATA_DIR) -> Path:
+    return Path(TEST_DATA_DIR / 'intra_annual' / 'months' / '0-ISMN.soil_moisture_with_1-C3S.smCI_tsw_months_qa4sm.nc')
+
+
+#------------------Helper functions------------------------
+
+
+@log_function_call
+def get_tmp_whole_test_data_dir(
+        TEST_DATA_DIR: Path, tmp_paths: List[Path]) -> Tuple[Path, List[Path]]:
+    '''Copy the whole test data directory to a temporary directory and return the path to the temporary directory
+
+    Parameters
+    ----------
+
+    TEST_DATA_DIR: Path
+        The path to the test data directory
+    tmp_paths: List[Path]
+        **Don't modify this list directly. Keeps track of created tmp dirs during a test run**
+
+    Returns
+    -------
+
+    Tuple[Path, List[Path]]
+        A tuple containing the path to the temporary directory and the list of temporary directories that have been created during the test
+        '''
+    if isinstance(TEST_DATA_DIR, str):
+        TEST_DATA_DIR = Path(TEST_DATA_DIR)
+    temp_dir = Path(tempfile.mkdtemp())
+    shutil.copytree(TEST_DATA_DIR, temp_dir / TEST_DATA_DIR.name)
+
+    return temp_dir / TEST_DATA_DIR.name, tmp_paths
+
+
+@log_function_call
+def get_tmp_single_test_file(test_file: Path,
+                             tmp_paths: List[Path]) -> Tuple[Path, List[Path]]:
+    '''Copy a single test file to a temporary directory and return the path to the temporary file
+
+    Parameters
+    ----------
+
+    TEST_DATA_DIR: Path
+        The path to the test data directory
+    tmp_paths: List[Path]
+        **Don't modify this list directly. Keeps track of created tmp files during a test run**
+
+    Returns
+    -------
+
+    Tuple[Path, List[Path]]
+        A tuple containing the path to the temporary file and the list of temporary files that have been created during the test
+        '''
+    if isinstance(test_file, str):
+        test_file = Path(test_file)
+    temp_dir = Path(tempfile.mkdtemp())
+    temp_file_path = temp_dir / test_file.name
+    shutil.copy(test_file, temp_file_path)
+    return temp_file_path, tmp_paths
+
+
+@log_function_call
+def run_test_transcriber(
+    ncfile: Path,
+    intra_annual_slices: Union[None, TemporalSubWindowsCreator],
+    keep_pytesmo_ncfile: bool,
+    write_outfile: Optional[bool] = True
+) -> Tuple[Pytesmo2Qa4smResultsTranscriber, xr.Dataset]:
+    '''Run a test on the transcriber with the given parameters
+
+    Parameters
+    ----------
+
+    ncfile: Path
+        The path to the netcdf file to be transcribed
+    intra_annual_slices: Union[None, TemporalSubWindowsCreator]
+        The temporal sub-windows to be used for the transcription
+    keep_pytesmo_ncfile: bool
+        Whether to keep the original pytesmo nc file
+    write_outfile: Optional[bool]
+        Whether to write the transcribed dataset to a new netcdf file. Default is True
+
+    Returns
+    -------
+    Tuple[Pytesmo2Qa4smResultsTranscriber, xr.Dataset]
+        A tuple containing the transcriber instance and the transcribed dataset'''
+
+    transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=ncfile,
+        intra_annual_slices=intra_annual_slices,
+        keep_pytesmo_ncfile=keep_pytesmo_ncfile)
+
+    logging.info(f"{transcriber=}")
+
+    assert transcriber.exists
+
+    transcriber.output_file_name = ncfile
+    transcribed_ds = transcriber.get_transcribed_dataset()
+
+    assert isinstance(transcribed_ds, xr.Dataset)
+
+    if write_outfile:
+        transcriber.write_to_netcdf(transcriber.output_file_name)
+        assert Path(transcriber.output_file_name).exists()
+
+    if keep_pytesmo_ncfile:
+        assert Path(ncfile.parent,
+                    ncfile.name + globals.OLD_NCFILE_SUFFIX).exists()
+    else:
+        assert not Path(ncfile.parent,
+                        ncfile.name + globals.OLD_NCFILE_SUFFIX).exists()
+
+    return transcriber, transcribed_ds
+
 
 #------------------Check that all required consts are defined------------------
+@log_function_call
 def test_qr_globals_attributes():
     attributes = [
         'METRICS', 'TC_METRICS', 'NON_METRICS', 'METADATA_TEMPLATE',
@@ -38,24 +208,24 @@ def test_qr_globals_attributes():
         'DATASETS', 'TEMPORAL_SUB_WINDOWS'
     ]
 
-    assert any(attr in dir(qr_globals) for attr in attributes)
+    assert any(attr in dir(globals) for attr in attributes)
 
-    assert 'zlib' in qr_globals.IMPLEMENTED_COMPRESSIONS
+    assert 'zlib' in globals.IMPLEMENTED_COMPRESSIONS
 
-    assert qr_globals.ALLOWED_COMPRESSION_LEVELS == [None, *list(range(10))]
+    assert globals.ALLOWED_COMPRESSION_LEVELS == [None, *list(range(10))]
 
-    assert qr_globals.INTRA_ANNUAL_METRIC_TEMPLATE == [
-        "{tsw}", qr_globals.TEMPORAL_SUB_WINDOW_SEPARATOR, "{metric}"
+    assert globals.INTRA_ANNUAL_METRIC_TEMPLATE == [
+        "{tsw}", globals.TEMPORAL_SUB_WINDOW_SEPARATOR, "{metric}"
     ]
 
-    assert qr_globals.INTRA_ANNUAL_TCOL_METRIC_TEMPLATE == qr_globals.INTRA_ANNUAL_TCOL_METRIC_TEMPLATE == [
-        "{tsw}", qr_globals.TEMPORAL_SUB_WINDOW_SEPARATOR, "{metric}", "_",
+    assert globals.INTRA_ANNUAL_TCOL_METRIC_TEMPLATE == globals.INTRA_ANNUAL_TCOL_METRIC_TEMPLATE == [
+        "{tsw}", globals.TEMPORAL_SUB_WINDOW_SEPARATOR, "{metric}", "_",
         "{number}-{dataset}", "_between_"
     ]
 
-    assert len(qr_globals.TEMPORAL_SUB_WINDOW_SEPARATOR) == 1
+    assert len(globals.TEMPORAL_SUB_WINDOW_SEPARATOR) == 1
 
-    assert qr_globals.TEMPORAL_SUB_WINDOWS == {
+    assert globals.TEMPORAL_SUB_WINDOWS == {
         "seasons": {
             "S1": [[12, 1], [2, 28]],
             "S2": [[3, 1], [5, 31]],
@@ -82,57 +252,180 @@ def test_qr_globals_attributes():
 # ------------------Test Pytesmo2Qa4smResultsTranscriber-------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------
 
-#-------------------Test instantiation of Pytesmo2Qa4smResultsTranscriber and basic functionalities------------
+#------------Test instantiation of Pytesmo2Qa4smResultsTranscriber, attrs and basic functionalities------------
 
+
+@log_function_call
 def test_on_non_existing_file():
-    transcriber = Pytesmo2Qa4smResultsTranscriber(
-        pytesmo_results='non_existing.nc',
-        intra_annual_slices=None,
-        keep_pytesmo_ncfile=False
+    with pytest.raises(FileNotFoundError):
+        transcriber = Pytesmo2Qa4smResultsTranscriber(
+            pytesmo_results='non_existing.nc',
+            intra_annual_slices=None,
+            keep_pytesmo_ncfile=False)
+
+
+@log_function_call
+def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
+                                    tmp_paths,
+                                    TEST_DATA_DIR,
+                                    test_file: Optional[Path] = None):
+    logging.info(
+        f'test_faulty_intra_annual_slices: {seasonal_tsws_incl_bulk=}, {tmp_paths=}, {TEST_DATA_DIR=}, {test_file=}'
     )
+    if test_file is None:
+        test_file = Path(TEST_DATA_DIR / 'basic' /
+                         '0-ISMN.soil moisture_with_1-C3S.sm.nc')
 
-    assert not transcriber.exists
+    # Test that the transcriber raises an InvalidTemporalSubWindowError when the intra_annual_slices parameter is neither None nor a TemporalSubWindowsCreator instance
+    tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+    with pytest.raises(InvalidTemporalSubWindowError):
+        run_test_transcriber(tmp_test_file,
+                             intra_annual_slices='faulty',
+                             keep_pytesmo_ncfile=False)
 
-def test_keep_pytesmo_ncfile(bulk_case_file):
-    transcriber = Pytesmo2Qa4smResultsTranscriber(
-        pytesmo_results=str(bulk_case_file),
-        intra_annual_slices=None,
-        keep_pytesmo_ncfile=True)
+    # Test that the transcriber raises an InvalidTemporalSubWindowError when the intra_annual_slices parameter is a faulty TemporalSubWindowsCreator instance
+    tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+    with pytest.raises(InvalidTemporalSubWindowError):
+        run_test_transcriber(
+            tmp_test_file,
+            intra_annual_slices=TemporalSubWindowsCreator('gibberish'),
+            keep_pytesmo_ncfile=False)
 
-    assert transcriber.exists
-
-
-    transcriber.output_file_name = bulk_case_file
-    transcribed_ds = transcriber.get_transcribed_dataset()
-
-    assert isinstance(transcribed_ds, xr.Dataset)
-
-    transcriber.write_to_netcdf(transcriber.output_file_name)
-
-    assert transcriber.output_file_name.exists()
-
-    assert Path(bulk_case_file.parent, bulk_case_file.name + '.old').exists()
-
-    os.remove(Path(bulk_case_file.parent, bulk_case_file.name + '.old'))
-
-
-
+    # Test that the transcriber raises a TemporalSubWindowMismatchError when the intra_annual_slices parameter is a TemporalSubWindowsCreator instance that does not match the temporal sub-windows in the pytesmo_results file
+    tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+    with pytest.raises(TemporalSubWindowMismatchError):
+        run_test_transcriber(tmp_test_file,
+                             intra_annual_slices=seasonal_tsws_incl_bulk,
+                             keep_pytesmo_ncfile=False)
 
 
-#-------------------Test default case (= no temporal sub-windows)----------------------------------------------
+@log_function_call
+def test_keep_pytesmo_ncfile(TEST_DATA_DIR, test_file: Optional[Path] = None):
+    if test_file is None:
+        test_file = Path(TEST_DATA_DIR / 'basic' /
+                         '0-ISMN.soil moisture_with_1-C3S.sm.nc')
+    tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+    run_test_transcriber(tmp_test_file,
+                         intra_annual_slices=None,
+                         keep_pytesmo_ncfile=True)
 
-def test_bulk_case_transcription(bulk_case_file):
+
+@log_function_call
+def test_dont_keep_pytesmo_ncfile(TEST_DATA_DIR,
+                                  test_file: Optional[Path] = None):
+    if test_file is None:
+        test_file = Path(TEST_DATA_DIR / 'basic' /
+                         '0-ISMN.soil moisture_with_1-C3S.sm.nc')
+    tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+    run_test_transcriber(tmp_test_file,
+                         intra_annual_slices=None,
+                         keep_pytesmo_ncfile=False)
+
+
+@log_function_call
+def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
+    if test_file is None:
+        test_file = Path(TEST_DATA_DIR / 'basic' /
+                         '0-ISMN.soil moisture_with_1-C3S.sm.nc')
+    tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+    transcriber, _ = run_test_transcriber(tmp_test_file,
+                                          intra_annual_slices=None,
+                                          keep_pytesmo_ncfile=False,
+                                          write_outfile=True)
+
+    # only zlib compression is implemented so far, with compression levels 0-9
+    with pytest.raises(NotImplementedError):
+        transcriber.compress(transcriber.output_file_name, 'not_implemented',
+                             0)
+        transcriber.compress(transcriber.output_file_name, 'zlib', -1)
+        transcriber.compress(transcriber.output_file_name, 'not_implemented',
+                             -1)
+
+    # test the case of a non-existing file
+    assert not transcriber.compress('non_existing_file.nc', 'zlib', 0)
+
+    # test successful compression with zlib and compression level 9
+    assert transcriber.compress(transcriber.output_file_name, 'zlib', 9)
+
+    # test successful compression with defaults
+    assert transcriber.compress(transcriber.output_file_name)
+
+
+@log_function_call
+def test_class_attrs(seasonal_pytesmo_file, seasonal_qa4sm_file, monthly_pytesmo_file, monthly_qa4sm_file):
     ...
+
+#-------------------Test default case (= no temporal sub-windows)--------------------------------------------
+
+
+@log_function_call
+def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
+    # Test transcription of all original test data nc files (== bulk case files)
+    tmp_test_data_dir, _ = get_tmp_whole_test_data_dir(TEST_DATA_DIR,
+                                                       tmp_paths)
+    nc_files = [
+        Path(x)
+        for x in glob(str(tmp_test_data_dir / '**/*.nc'), recursive=True)
+        if 'intra_annual' not in x
+    ]
+    logging.info(f"Found {len(nc_files)} .nc files for transcription.")
+
+    for ncf in nc_files:
+        run_test_transcriber(ncf,
+                             intra_annual_slices=None,
+                             keep_pytesmo_ncfile=False,
+                             write_outfile=True)
+        logging.info(f"Successfully transcribed file: {ncf}")
+
+    if tmp_test_data_dir.exists():
+        shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
+
 
 
 if __name__ == '__main__':
-    transcriber = Pytesmo2Qa4smResultsTranscriber(
-        pytesmo_results='non_existing.nc',
-        intra_annual_slices=None,
-        keep_pytesmo_ncfile=True
-    )
 
-print(os.path.join(
-        os.path.dirname(__file__), 'test_data', 'basic',
-        '6-ISMN.soil moisture_with_1-C3S.sm_with_2-C3S.sm_with_3-SMOS.Soil_Moisture_with_4-SMAP.soil_moisture_with_5-ASCAT.sm.nc'
-    ))
+    TEST_DATA_DIR = Path(__file__).parent / 'test_data'
+
+    # test_bulk_case_transcription(TEST_DATA_DIR, [])
+
+    # monthly_tsws = TemporalSubWindowsCreator(temporal_sub_window_type='months',
+    #                                  overlap=0,
+    #                                  custom_file=None)
+    # bulk_wndw = NewSubWindow('bulk', datetime(1950, 1, 1),
+    #                          datetime(2020, 1, 1))
+    # monthly_tsws.add_temp_sub_wndw(bulk_wndw, insert_as_first_wndw=True)
+    # test_faulty_intra_annual_slices(monthly_tsws, [], TEST_DATA_DIR, test_file = None )
+
+    # test_ncfile_compression(TEST_DATA_DIR, test_file=None)
+
+    print(Pytesmo2Qa4smResultsTranscriber.__dict__.keys())
+
+
+    dirs = ['/tmp/qa4sm_reader_tsw_test_data_seasons', '/tmp/qa4sm_reader_tsw_test_data_months']
+
+
+    ias_seasons = TemporalSubWindowsCreator('seasons')
+    ias_months = TemporalSubWindowsCreator('months')
+
+    bulk_case = NewSubWindow(globals.DEFAULT_TSW, datetime(1900, 1, 1), datetime(2000, 1, 1))
+
+    ias_seasons.add_temp_sub_wndw(bulk_case, insert_as_first_wndw=True)
+    ias_months.add_temp_sub_wndw(bulk_case, insert_as_first_wndw=True)
+
+    for dir in dirs:
+        tmp_dir, _ = get_tmp_whole_test_data_dir(dir, [])
+        nc_files = [
+            Path(x)
+            for x in glob(str(tmp_dir / '**/*.nc'), recursive=True)
+            if 'intra_annual' not in x
+        ]
+        if 'seasons' in dir:
+            ias = ias_seasons
+        else:
+            ias = ias_months
+        for ncf in nc_files:
+            print(f"Transcribing {ncf}")
+            transcriber, tds = run_test_transcriber(ncf,
+                                intra_annual_slices=ias,
+                                keep_pytesmo_ncfile=False,
+                                write_outfile=True)

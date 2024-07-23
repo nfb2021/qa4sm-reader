@@ -9,7 +9,7 @@ from datetime import datetime
 from pytesmo.validation_framework.metric_calculators_adapters import TsDistributor
 from pytesmo.time_series.grouping import YearlessDatetime
 
-from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsDefault, TemporalSubWindowsCreator, NewSubWindow
+from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsDefault, TemporalSubWindowsCreator, NewSubWindow, InvalidTemporalSubWindowError
 
 
 @pytest.fixture
@@ -66,17 +66,25 @@ def additional_temp_sub_window():
 
 #------------------------- Tests for TemporalSubwindowsDefault class -----------------------------------------------------------------------
 
+
 class TemporalSubWindowsConcrete(TemporalSubWindowsDefault):
     # used to test the abstract class TemporalSubWindowsDefault
     def _get_available_temp_sub_wndws(self):
         return {"seasons": {"S1": [[12, 1], [2, 28]], "S2": [[3, 1], [5, 31]]}}
 
+
 def test_initialization():
     temp_sub_windows = TemporalSubWindowsConcrete(custom_file='test.json')
     assert temp_sub_windows.custom_file == 'test.json'
 
+
 def test_load_json_data(tmp_path):
-    test_data = {"seasons": {"S1": [[12, 1], [2, 28]], "S2": [[3, 1], [5, 31]]}}
+    test_data = {
+        "seasons": {
+            "S1": [[12, 1], [2, 28]],
+            "S2": [[3, 1], [5, 31]]
+        }
+    }
     test_file = tmp_path / "test.json"
     with open(test_file, 'w') as f:
         json.dump(test_data, f)
@@ -85,10 +93,16 @@ def test_load_json_data(tmp_path):
     loaded_data = temp_sub_windows._load_json_data(test_file)
     assert loaded_data == test_data
 
+
 def test_get_available_temp_sub_wndws():
     temp_sub_windows = TemporalSubWindowsConcrete()
     available_windows = temp_sub_windows._get_available_temp_sub_wndws()
-    assert available_windows == {"seasons": {"S1": [[12, 1], [2, 28]], "S2": [[3, 1], [5, 31]]}}
+    assert available_windows == {
+        "seasons": {
+            "S1": [[12, 1], [2, 28]],
+            "S2": [[3, 1], [5, 31]]
+        }
+    }
 
 
 #------------------------- Tests for NewSubWindow class -----------------------------------------------------------------------
@@ -128,7 +142,7 @@ def test_faulty_new_sub_window():
 #------------------------- Tests for TemporalSubWindowsCreator class ----------------------------------------------------------
 
 
-def test_default_montnhly_sub_windows_attributes(
+def test_default_monthly_sub_windows_attributes(
         default_monthly_sub_windows_no_overlap,
         default_seasonal_sub_windows_no_overlap):
     assert default_monthly_sub_windows_no_overlap.temporal_sub_window_type == "months"
@@ -265,7 +279,7 @@ def test_default_seasonal_sub_windows_attributes(
 
 def test_faulty_temporal_sub_windows_creator():
     # temporal_sub_window_type must be either 'months' or 'seasons'
-    with pytest.raises(KeyError):
+    with pytest.raises(InvalidTemporalSubWindowError):
         TemporalSubWindowsCreator(
             temporal_sub_window_type="not-a-default-value",
             overlap=0,
