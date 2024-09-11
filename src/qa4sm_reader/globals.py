@@ -358,8 +358,8 @@ READER_EXCLUSIVE_METRICS = {
 QA4SM_EXCLUSIVE_METRICS = {
     'rho': 'Spearman\'s rho',
     'p_rho': 'Spearman\'s rho p-value',
-    'tau': 'Kendall rank correlation',
-    'p_tau': 'Kendall tau p-value',
+    # 'tau': 'Kendall rank correlation',        # currently QA4SM is hardcoded not to calculate kendall tau
+    # 'p_tau': 'Kendall tau p-value',           # needs to be changed once tau is calculated again
     'status': '# status',
 }
 

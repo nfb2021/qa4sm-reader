@@ -1,4 +1,3 @@
-import pytest
 import os
 from pathlib import Path
 from glob import glob
@@ -14,7 +13,10 @@ def test_get_version():
 def test_transcribe_all_testfiles():
     # check if all test files can be transcribed for subsequent tests. proper testing of the transcription is done in test_netcdf_transcription.py
     TEST_FILE_ROOT = Path(Path(os.path.dirname(os.path.abspath(__file__))).parent, 'tests', 'test_data')
-    test_files = glob(str(TEST_FILE_ROOT / '**/*.nc'), recursive=True)
+    test_files = [
+        x for x in glob(str(TEST_FILE_ROOT / '**/*.nc'), recursive=True)
+        if 'intra_annual' not in Path(x).parts
+    ]   # ignore the dedicated intra-annual test files for now, as they will be tested separately in depth
 
     assert len(test_files) == 13
 
