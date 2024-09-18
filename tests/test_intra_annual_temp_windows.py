@@ -224,11 +224,6 @@ def test_default_monthly_sub_windows_attributes(
         'Jan: 01-01 to 01-31, Feb: 02-01 to 02-28, Mar: 03-01 to 03-31, Apr: 04-01 to 04-30, May: 05-01 to 05-31, Jun: 06-01 to 06-30, Jul: 07-01 to 07-31, Aug: 08-01 to 08-31, Sep: 09-01 to 09-30, Oct: 10-01 to 10-31, Nov: 11-01 to 11-30, Dec: 12-01 to 12-31'
     }
 
-    # default_seasonal_sub_windows_no_overlap.custom_temporal_sub_windows
-
-    # default_sub_windows = TemporalSubWindowsDefault(custom_file="test.json")
-    # assert isinstance(default_sub_windows, TemporalSubWindowsDefault)
-
 
 def test_default_seasonal_sub_windows_attributes(
         default_seasonal_sub_windows_no_overlap):
