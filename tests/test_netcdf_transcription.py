@@ -408,6 +408,20 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     with xr.open_dataset(monthly_qa4sm_file) as f:
         expected_monthly_ds = f
 
+    #!NOTE: pytesmo/QA4SM offer the possibility to calculate Kendall's tau, but currently this metric is deactivated.
+    #!      Therefore, no tau related metrics will be transcribed to the QA4SM file, even though they might be present in the pytesmo file.
+
+    # drop the tau related metrics from the expected datasets
+    for var in expected_seasonal_ds.data_vars:
+        if 'tau' in var:
+            logging.info(f"Dropping variable {var} from expected dataset")
+            expected_seasonal_ds = expected_seasonal_ds.drop_vars(var)
+
+    for var in expected_monthly_ds.data_vars:
+        if 'tau' in var:
+            logging.info(f"Dropping variable {var} from expected dataset")
+            expected_monthly_ds = expected_monthly_ds.drop_vars(var)
+
     assert None == xr.testing.assert_equal(monthly_transcribed_ds, expected_monthly_ds) # returns None if the datasets are equal
     assert None == xr.testing.assert_equal(seasonal_transcribed_ds, expected_seasonal_ds) # returns None if the datasets are equal
 
