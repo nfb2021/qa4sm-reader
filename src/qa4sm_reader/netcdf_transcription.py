@@ -5,6 +5,7 @@ import numpy as np
 from typing import Any, List, Dict, Optional, Union, Tuple
 import os
 import calendar
+import time
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -12,7 +13,6 @@ from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_T
                                     INTRA_ANNUAL_METRIC_TEMPLATE, INTRA_ANNUAL_TCOL_METRIC_TEMPLATE, \
                                     TEMPORAL_SUB_WINDOW_SEPARATOR, DEFAULT_TSW, TEMPORAL_SUB_WINDOW_NC_COORD_NAME, \
                                     MAX_NUM_DS_PER_VAL_RUN, DATASETS, OLD_NCFILE_SUFFIX
-from qa4sm_reader.utils import safe_rename
 
 class TemporalSubWindowMismatchError(Exception):
     '''Exception raised when the temporal sub-windows provided do not match the ones present in the provided netCDF file.'''
@@ -21,6 +21,31 @@ class TemporalSubWindowMismatchError(Exception):
         super().__init__(
             f'The temporal sub-windows provided ({provided}) do not match the ones present in the provided netCDF file ({expected}).'
         )
+
+
+def safe_rename(src, dst, retries=5, delay=3):
+    '''
+    Rename a file, retrying if it fails due to a PermissionError.
+
+    Parameters
+    ----------
+    src : str
+        path to the file to be renamed
+    dst : str
+        new path for the file
+    retries : int
+        number of retries
+    delay : int
+        delay in seconds between retries
+        '''
+    for i in range(retries):
+        try:
+            os.rename(src, dst)
+            return  # Successfully renamed
+        except PermissionError:
+            time.sleep(delay)  # Wait for the file to be released
+    raise PermissionError(f"Could not rename {src} after {retries} attempts")
+
 
 
 class Pytesmo2Qa4smResultsTranscriber:

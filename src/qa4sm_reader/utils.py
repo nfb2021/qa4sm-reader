@@ -99,27 +99,3 @@ def filter_out_self_combination_tcmetric_vars(variables: List[QA4SMVariable]) ->
     """
 
     return [var for var in variables if var.metric_ds != var.ref_ds]
-
-
-def safe_rename(src, dst, retries=5, delay=3):
-    '''
-    Rename a file, retrying if it fails due to a PermissionError.
-
-    Parameters
-    ----------
-    src : str
-        path to the file to be renamed
-    dst : str
-        new path for the file
-    retries : int
-        number of retries
-    delay : int
-        delay in seconds between retries
-        '''
-    for i in range(retries):
-        try:
-            os.rename(src, dst)
-            return  # Successfully renamed
-        except PermissionError:
-            time.sleep(delay)  # Wait for the file to be released
-    raise PermissionError(f"Could not rename {src} after {retries} attempts")
