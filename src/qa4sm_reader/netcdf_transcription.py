@@ -1,3 +1,4 @@
+from venv import logger
 from matplotlib.pylab import f
 import xarray as xr
 import numpy as np
@@ -450,12 +451,25 @@ class Pytesmo2Qa4smResultsTranscriber:
                 os.rename(self.pytesmo_ncfile,
                       self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
             except PermissionError as e:
-                print(f'Could not rename the original pytesmo results file. {e}')
+                logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
                 self.pytesmo_results.close()
                 os.rename(self.pytesmo_ncfile,
                          self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                logger.info(
+                    f'Original pytesmo results file renamed to {self.pytesmo_ncfile + OLD_NCFILE_SUFFIX}'
+                )
         else:
-            os.remove(self.pytesmo_ncfile)
+            try:
+                os.remove(self.pytesmo_ncfile)
+            except PermissionError as e:
+                logger.info(
+                    f'Could not remove the original pytesmo results file. {e}. Trying to close the file and remove it.'
+                )
+                self.pytesmo_results.close()
+                os.remove(self.pytesmo_ncfile)
+                logger.info(
+                    f'Original pytesmo results file removed: {self.pytesmo_ncfile}'
+                )
         self.transcribed_dataset.to_netcdf(
             path=path,
             mode=mode,
