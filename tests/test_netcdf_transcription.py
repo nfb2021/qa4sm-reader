@@ -281,25 +281,27 @@ def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
     # Test that the transcriber raises an InvalidTemporalSubWindowError when the intra_annual_slices parameter is neither None nor a TemporalSubWindowsCreator instance
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
     with pytest.raises(InvalidTemporalSubWindowError):
-        run_test_transcriber(tmp_test_file,
+        _, ds = run_test_transcriber(tmp_test_file,
                              intra_annual_slices='faulty',
                              keep_pytesmo_ncfile=False)
-
+        ds.close()
     # Test that the transcriber raises an InvalidTemporalSubWindowError when the intra_annual_slices parameter is a faulty TemporalSubWindowsCreator instance
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
+
     with pytest.raises(InvalidTemporalSubWindowError):
-        run_test_transcriber(
+        _, ds = run_test_transcriber(
             tmp_test_file,
             intra_annual_slices=TemporalSubWindowsCreator('gibberish'),
             keep_pytesmo_ncfile=False)
+        ds.close()
 
     # Test that the transcriber raises a TemporalSubWindowMismatchError when the intra_annual_slices parameter is a TemporalSubWindowsCreator instance that does not match the temporal sub-windows in the pytesmo_results file
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
     with pytest.raises(TemporalSubWindowMismatchError):
-        run_test_transcriber(tmp_test_file,
+        _, ds = run_test_transcriber(tmp_test_file,
                              intra_annual_slices=seasonal_tsws_incl_bulk,
                              keep_pytesmo_ncfile=False)
-
+        ds.close()
 
 @log_function_call
 def test_keep_pytesmo_ncfile(TEST_DATA_DIR, test_file: Optional[Path] = None):
@@ -307,9 +309,10 @@ def test_keep_pytesmo_ncfile(TEST_DATA_DIR, test_file: Optional[Path] = None):
         test_file = Path(TEST_DATA_DIR / 'basic' /
                          '0-ISMN.soil moisture_with_1-C3S.sm.nc')
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
-    run_test_transcriber(tmp_test_file,
+    _, ds = run_test_transcriber(tmp_test_file,
                          intra_annual_slices=None,
                          keep_pytesmo_ncfile=True)
+    ds.close()
 
 
 @log_function_call
@@ -319,10 +322,10 @@ def test_dont_keep_pytesmo_ncfile(TEST_DATA_DIR,
         test_file = Path(TEST_DATA_DIR / 'basic' /
                          '0-ISMN.soil moisture_with_1-C3S.sm.nc')
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
-    run_test_transcriber(tmp_test_file,
+    _, ds = run_test_transcriber(tmp_test_file,
                          intra_annual_slices=None,
                          keep_pytesmo_ncfile=False)
-
+    ds.close()
 
 @log_function_call
 def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
@@ -330,7 +333,7 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
         test_file = Path(TEST_DATA_DIR / 'basic' /
                          '0-ISMN.soil moisture_with_1-C3S.sm.nc')
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
-    transcriber, _ = run_test_transcriber(tmp_test_file,
+    transcriber, ds = run_test_transcriber(tmp_test_file,
                                           intra_annual_slices=None,
                                           keep_pytesmo_ncfile=False,
                                           write_outfile=True)
@@ -352,6 +355,7 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
     # test successful compression with defaults
     assert transcriber.compress(transcriber.output_file_name)
 
+    ds.close()
 
 @log_function_call
 def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, monthly_pytesmo_file, monthly_qa4sm_file):
