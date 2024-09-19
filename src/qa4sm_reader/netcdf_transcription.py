@@ -1,3 +1,4 @@
+from traceback import print_tb
 from venv import logger
 from matplotlib.pylab import f
 import xarray as xr
@@ -6,6 +7,7 @@ from typing import Any, List, Dict, Optional, Union, Tuple
 import os
 import calendar
 import time
+import shutil
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -46,7 +48,22 @@ def safe_rename(src, dst, retries=5, delay=3):
             time.sleep(delay)  # Wait for the file to be released
     raise PermissionError(f"Could not rename {src} after {retries} attempts")
 
+def close_open_files():
+    process = psutil.Process(os.getpid())  # Get current process
+    open_files = process.open_files()
 
+    if open_files:
+        print(f"Found {len(open_files)} open file(s):")
+        for f in open_files:
+            print(f"Closing file: {f.path}")
+            try:
+                # Try closing the file descriptor
+                os.close(f.fd)
+            except OSError as e:
+                print(f"Error closing file {f.path}: {e}")
+
+    # Run garbage collection to ensure resources are released
+    gc.collect()
 
 class Pytesmo2Qa4smResultsTranscriber:
     """
@@ -475,16 +492,22 @@ class Pytesmo2Qa4smResultsTranscriber:
                 os.rename(self.pytesmo_ncfile,
                       self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
             except PermissionError as e:
-                logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
-                # Ensure the file is properly closed
-                if hasattr(self.pytesmo_results, "close"):
-                    self.pytesmo_results.close()
+                shutil.copy(self.pytesmo_ncfile, self.pytesmo_ncfile +
+                        OLD_NCFILE_SUFFIX)
+                os.remove(self.pytesmo_ncfile)
+                # logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
+                # # Ensure the file is properly closed
+                # if hasattr(self.pytesmo_results, "close"):
+                #     print('Closing the pytesmo results file.')
+                #     self.pytesmo_results.close()
 
-                # Retry the rename with a delay
-                safe_rename(self.pytesmo_ncfile, self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
-                logger.info(
-                    f'Original pytesmo results file renamed to {self.pytesmo_ncfile + OLD_NCFILE_SUFFIX}'
-                )
+                # close_open_files()
+
+                # # Retry the rename with a delay
+                # safe_rename(self.pytesmo_ncfile, self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                # logger.info(
+                #     f'Original pytesmo results file renamed to {self.pytesmo_ncfile + OLD_NCFILE_SUFFIX}'
+                # )
         else:
             try:
                 os.remove(self.pytesmo_ncfile)
@@ -720,3 +743,15 @@ class Pytesmo2Qa4smResultsTranscriber:
             tsws = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_pytesmo_ncfile(
                 ncfile)
         return sort_tsws(tsws)
+
+
+if __name__ == '__main__':
+    pth = '/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc'
+
+    transcriber = Pytesmo2Qa4smResultsTranscriber(pytesmo_results=pth,
+                                                    intra_annual_slices=None,
+                                                    keep_pytesmo_ncfile = True
+                                                  )
+    ds = transcriber.get_transcribed_dataset()
+    print('writing to netcdf')
+    transcriber.write_to_netcdf(path='/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc.new')

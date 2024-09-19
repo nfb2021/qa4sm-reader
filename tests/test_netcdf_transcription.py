@@ -357,6 +357,35 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
 
     ds.close()
 
+#-------------------Test default case (= no temporal sub-windows)--------------------------------------------
+
+@log_function_call
+def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
+    # Test transcription of all original test data nc files (== bulk case files)
+    tmp_test_data_dir, _ = get_tmp_whole_test_data_dir(TEST_DATA_DIR,
+                                                       tmp_paths)
+    nc_files = [
+        Path(x)
+        for x in glob(str(tmp_test_data_dir / '**/*.nc'), recursive=True)
+        if 'intra_annual' not in x
+    ]
+    logging.info(f"Found {len(nc_files)} .nc files for transcription.")
+
+    for ncf in nc_files:
+        _, ds = run_test_transcriber(ncf,
+                             intra_annual_slices=None,
+                             keep_pytesmo_ncfile=False,
+                             write_outfile=True)
+        logging.info(f"Successfully transcribed file: {ncf}")
+        ds.close()
+
+    if tmp_test_data_dir.exists():
+        shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
+
+
+#-------------------------------------------Test with intra-annual metrics---------------------------------------------
+
+
 @log_function_call
 def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, monthly_pytesmo_file, monthly_qa4sm_file):
     '''
@@ -461,33 +490,6 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     monthly_transcribed_ds.close()
 
 
-#-------------------Test default case (= no temporal sub-windows)--------------------------------------------
-
-@log_function_call
-def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
-    # Test transcription of all original test data nc files (== bulk case files)
-    tmp_test_data_dir, _ = get_tmp_whole_test_data_dir(TEST_DATA_DIR,
-                                                       tmp_paths)
-    nc_files = [
-        Path(x)
-        for x in glob(str(tmp_test_data_dir / '**/*.nc'), recursive=True)
-        if 'intra_annual' not in x
-    ]
-    logging.info(f"Found {len(nc_files)} .nc files for transcription.")
-
-    for ncf in nc_files:
-        _, ds = run_test_transcriber(ncf,
-                             intra_annual_slices=None,
-                             keep_pytesmo_ncfile=False,
-                             write_outfile=True)
-        logging.info(f"Successfully transcribed file: {ncf}")
-        ds.close()
-
-    if tmp_test_data_dir.exists():
-        shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
-
-
-#-------------------------------------------Test for correct plotting output-------------------------------------------
 #TODO: refactoring
 @log_function_call
 def test_plotting(seasonal_qa4sm_file, monthly_qa4sm_file, tmp_paths):
