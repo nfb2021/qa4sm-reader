@@ -5,7 +5,6 @@ import numpy as np
 from typing import Any, List, Dict, Optional, Union, Tuple
 import os
 import calendar
-import warnings
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -13,7 +12,7 @@ from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_T
                                     INTRA_ANNUAL_METRIC_TEMPLATE, INTRA_ANNUAL_TCOL_METRIC_TEMPLATE, \
                                     TEMPORAL_SUB_WINDOW_SEPARATOR, DEFAULT_TSW, TEMPORAL_SUB_WINDOW_NC_COORD_NAME, \
                                     MAX_NUM_DS_PER_VAL_RUN, DATASETS, OLD_NCFILE_SUFFIX
-
+from qa4sm_reader.utils import safe_rename
 
 class TemporalSubWindowMismatchError(Exception):
     '''Exception raised when the temporal sub-windows provided do not match the ones present in the provided netCDF file.'''
@@ -452,9 +451,12 @@ class Pytesmo2Qa4smResultsTranscriber:
                       self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
             except PermissionError as e:
                 logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
-                self.pytesmo_results.close()
-                os.rename(self.pytesmo_ncfile,
-                         self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                # Ensure the file is properly closed
+                if hasattr(self.pytesmo_results, "close"):
+                    self.pytesmo_results.close()
+
+                # Retry the rename with a delay
+                safe_rename(self.pytesmo_ncfile, self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
                 logger.info(
                     f'Original pytesmo results file renamed to {self.pytesmo_ncfile + OLD_NCFILE_SUFFIX}'
                 )
@@ -686,10 +688,10 @@ class Pytesmo2Qa4smResultsTranscriber:
             return ([DEFAULT_TSW]
                     if bulk_present else []) + _presorted + custom_tsws
 
-        with xr.open_dataset(ncfile) as ds:
-            tsws = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_qa4sm_ncfile(
+
+        tsws = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_qa4sm_ncfile(
+            ncfile)
+        if not tsws:
+            tsws = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_pytesmo_ncfile(
                 ncfile)
-            if not tsws:
-                tsws = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_pytesmo_ncfile(
-                    ncfile)
-            return sort_tsws(tsws)
+        return sort_tsws(tsws)
