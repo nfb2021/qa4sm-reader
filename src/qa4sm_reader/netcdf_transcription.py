@@ -1,3 +1,4 @@
+from matplotlib.pylab import f
 import xarray as xr
 import numpy as np
 from typing import Any, List, Dict, Optional, Union, Tuple
@@ -445,8 +446,14 @@ class Pytesmo2Qa4smResultsTranscriber:
 
         """
         if self.keep_pytesmo_ncfile:
-            os.rename(self.pytesmo_ncfile,
+            try:
+                os.rename(self.pytesmo_ncfile,
                       self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+            except PermissionError as e:
+                print(f'Could not rename the original pytesmo results file. {e}')
+                self.pytesmo_results.close()
+                os.rename(self.pytesmo_ncfile,
+                         self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
         else:
             os.remove(self.pytesmo_ncfile)
         self.transcribed_dataset.to_netcdf(

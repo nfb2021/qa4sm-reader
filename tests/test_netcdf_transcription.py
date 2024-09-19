@@ -457,6 +457,9 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
                 assert monthly_transcribed_ds[coord].attrs[attr] == expected_monthly_ds[coord].attrs[attr], f"Attributes for coordinate {coord} do not match in monthly dataset: '{monthly_transcribed_ds[coord].attrs[attr]}' =! '{expected_monthly_ds[coord].attrs[attr]}'"
 
 
+    seasonal_transcribed_ds.close()
+    monthly_transcribed_ds.close()
+
 
 #-------------------Test default case (= no temporal sub-windows)--------------------------------------------
 
@@ -473,11 +476,12 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
     logging.info(f"Found {len(nc_files)} .nc files for transcription.")
 
     for ncf in nc_files:
-        run_test_transcriber(ncf,
+        _, ds = run_test_transcriber(ncf,
                              intra_annual_slices=None,
                              keep_pytesmo_ncfile=False,
                              write_outfile=True)
         logging.info(f"Successfully transcribed file: {ncf}")
+        ds.close()
 
     if tmp_test_data_dir.exists():
         shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
