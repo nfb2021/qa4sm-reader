@@ -8,7 +8,6 @@ import os
 import calendar
 import time
 import shutil
-import psutil
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -53,6 +52,7 @@ def safe_rename(src, dst, retries=5, delay=3):
 
 def check_file_locks(file_path):
     """Check and close if any processes are holding locks on the specified file."""
+    import psutil
     current_process = psutil.Process(os.getpid())  # Get the current process
 
     # Iterate over all open file descriptors for the process
@@ -72,6 +72,7 @@ def close_open_nc_files():
     Closes any open file descriptors associated with the current process.
     Uses psutil to find and close open nc file descriptors.
     """
+    import psutil
     current_process = psutil.Process(os.getpid())  # Get the current process
 
     # Iterate over all open file descriptors for the process
