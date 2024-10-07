@@ -105,13 +105,6 @@ jobs:
           conda --version
           conda init cmd.exe
 
-      # Manually install mamba to ensure it's available
-      - name: Install Mamba Manually
-        shell: cmd
-        run: |
-          conda install -n base -c conda-forge mamba
-          mamba --version
-
       # Activate the desired environment (qa4sm_reader)
       - name: Activate Environment
         shell: cmd
