@@ -99,6 +99,10 @@ jobs:
           mamba-version: "*"
           activate-environment: base  # Start with base environment
           auto-activate-base: true  # Ensure the base environment is activated
+          remove-profiles: true
+          conda-solver: libmamba
+          clean-patched-environment-file: true
+          run-post: true
 
       # Verify conda is correctly installed
       - name: Verify Conda Installation
