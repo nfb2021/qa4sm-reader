@@ -8,6 +8,7 @@ import os
 import calendar
 import time
 import shutil
+import psutil
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -50,22 +51,39 @@ def safe_rename(src, dst, retries=5, delay=3):
     raise PermissionError(f"Could not rename {src} after {retries} attempts")
 
 
-def close_open_files():
-    process = psutil.Process(os.getpid())  # Get current process
-    open_files = process.open_files()
+def check_file_locks(file_path):
+    """Check and close if any processes are holding locks on the specified file."""
+    current_process = psutil.Process(os.getpid())  # Get the current process
 
-    if open_files:
-        print(f"Found {len(open_files)} open file(s):")
-        for f in open_files:
-            print(f"Closing file: {f.path}")
+    # Iterate over all open file descriptors for the process
+    for fd_info in current_process.open_files():
+        if fd_info.path.endswith(('.nc', '.hdf5')):
             try:
-                # Try closing the file descriptor
-                os.close(f.fd)
-            except OSError as e:
-                print(f"Error closing file {f.path}: {e}")
+                os.close(fd_info.fd)  # Attempt to close the file descriptor
+                print(f"Closed file descriptor: {fd_info.path}")
+            except Exception as e:
+                print(
+                    f"Could not close file descriptor: {fd_info.path}. Error: {e}"
+                )
 
-    # Run garbage collection to ensure resources are released
-    gc.collect()
+
+def close_open_nc_files():
+    """
+    Closes any open file descriptors associated with the current process.
+    Uses psutil to find and close open nc file descriptors.
+    """
+    current_process = psutil.Process(os.getpid())  # Get the current process
+
+    # Iterate over all open file descriptors for the process
+    for fd_info in current_process.open_files():
+        if fd_info.path.endswith(('.nc', '.hdf5')):
+            try:
+                os.close(fd_info.fd)  # Attempt to close the file descriptor
+                print(f"Closed file descriptor: {fd_info.path}")
+            except Exception as e:
+                print(
+                    f"Could not close file descriptor: {fd_info.path}. Error: {e}"
+                )
 
 
 class Pytesmo2Qa4smResultsTranscriber:
@@ -460,10 +478,7 @@ class Pytesmo2Qa4smResultsTranscriber:
                         mode: Optional[str] = 'w',
                         format: Optional[str] = 'NETCDF4',
                         engine: Optional[str] = 'netcdf4',
-                        encoding: Optional[dict] = {
-                            "zlib": True,
-                            "complevel": 5
-                        },
+                        encoding: Optional[dict] = None,
                         compute: Optional[bool] = True,
                         **kwargs) -> str:
         """
@@ -490,45 +505,45 @@ class Pytesmo2Qa4smResultsTranscriber:
         -------
         str
             The path to the NetCDF file.
-
         """
+        # Default encoding applied to all variables
+        if encoding is None:
+            encoding = {
+                var: {
+                    "zlib": True,
+                    "complevel": 5
+                }
+                for var in self.transcribed_dataset.data_vars
+            }
         if self.keep_pytesmo_ncfile:
             try:
+                self.pytesmo_results.close()
                 os.rename(self.pytesmo_ncfile,
                           self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
             except PermissionError as e:
                 shutil.copy(self.pytesmo_ncfile,
                             self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
                 self.pytesmo_results.close()
-                os.remove(self.pytesmo_ncfile)
-                # logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
-                # # Ensure the file is properly closed
-                # if hasattr(self.pytesmo_results, "close"):
-                #     print('Closing the pytesmo results file.')
-                #     self.pytesmo_results.close()
+                retry_count = 5
+                for i in range(retry_count):
+                    try:
+                        os.remove(self.pytesmo_ncfile)
+                        break
+                    except PermissionError:
+                        if i < retry_count - 1:
+                            time.sleep(1)  # Wait for 1 second before retrying
+                        else:
+                            raise z
 
-                # close_open_files()
+        # Ensure the dataset is closed
+        if isinstance(self.transcribed_dataset, xr.Dataset):
+            self.transcribed_dataset.close()
 
-                # # Retry the rename with a delay
-                # safe_rename(self.pytesmo_ncfile, self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
-                # logger.info(
-                #     f'Original pytesmo results file renamed to {self.pytesmo_ncfile + OLD_NCFILE_SUFFIX}'
-                # )
-        else:
-            try:
-                os.remove(self.pytesmo_ncfile)
-            except PermissionError as e:
-                logger.info(
-                    f'Could not remove the original pytesmo results file. {e}. Trying to close the file and remove it.'
-                )
-                self.pytesmo_results.close()
-                os.remove(self.pytesmo_ncfile)
-                logger.info(
-                    f'Original pytesmo results file removed: {self.pytesmo_ncfile}'
-                )
+        # Write the transcribed dataset to a new NetCDF file
         self.transcribed_dataset.to_netcdf(
             path=path,
             mode=mode,
+            encoding=encoding,
         )
 
         return path
@@ -751,7 +766,7 @@ class Pytesmo2Qa4smResultsTranscriber:
 
 
 if __name__ == '__main__':
-    pth = '/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc'
+    pth = '/tmp/qa4sm/basic/0-ISMN.soil moisture_with_1-C3S.sm.nc'
 
     transcriber = Pytesmo2Qa4smResultsTranscriber(pytesmo_results=pth,
                                                   intra_annual_slices=None,
@@ -759,6 +774,4 @@ if __name__ == '__main__':
     ds = transcriber.get_transcribed_dataset()
     print('writing to netcdf')
     transcriber.write_to_netcdf(
-        path=
-        '/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc.new'
-    )
+        path='/tmp/qa4sm/basic/0-ISMN.soil moisture_with_1-C3S.sm.nc.new')

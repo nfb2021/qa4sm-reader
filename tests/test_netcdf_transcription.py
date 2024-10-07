@@ -667,3 +667,12 @@ def test_plotting(seasonal_qa4sm_file, monthly_qa4sm_file, tmp_paths):
             tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'
         ).is_file(
         ), f"{tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'} does not exist"
+
+
+if __name__ == '__main__':
+    test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil moisture_with_1-C3S.sm.nc')
+    transcriber, ds = run_test_transcriber(test_file,
+                                           intra_annual_slices=None,
+                                           keep_pytesmo_ncfile=True)
+    transcriber.pytesmo_results.close()
+    ds.close()
