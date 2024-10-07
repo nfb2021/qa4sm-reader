@@ -92,7 +92,7 @@ jobs:
       # Use specific version of Miniconda instead of "latest"
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'Miniconda3-py310_24.7.1-0-Windows-x86_64.exe'  # Use specific Miniconda version
+          miniconda-version: 'latest'
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           environment-file: ${{ matrix.ymlfile }}
