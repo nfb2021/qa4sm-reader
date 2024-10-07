@@ -16,6 +16,7 @@ from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_T
                                     TEMPORAL_SUB_WINDOW_SEPARATOR, DEFAULT_TSW, TEMPORAL_SUB_WINDOW_NC_COORD_NAME, \
                                     MAX_NUM_DS_PER_VAL_RUN, DATASETS, OLD_NCFILE_SUFFIX
 
+
 class TemporalSubWindowMismatchError(Exception):
     '''Exception raised when the temporal sub-windows provided do not match the ones present in the provided netCDF file.'''
 
@@ -48,6 +49,7 @@ def safe_rename(src, dst, retries=5, delay=3):
             time.sleep(delay)  # Wait for the file to be released
     raise PermissionError(f"Could not rename {src} after {retries} attempts")
 
+
 def close_open_files():
     process = psutil.Process(os.getpid())  # Get current process
     open_files = process.open_files()
@@ -64,6 +66,7 @@ def close_open_files():
 
     # Run garbage collection to ensure resources are released
     gc.collect()
+
 
 class Pytesmo2Qa4smResultsTranscriber:
     """
@@ -410,6 +413,8 @@ class Pytesmo2Qa4smResultsTranscriber:
         except AttributeError:
             pass
 
+        self.pytesmo_results.close()
+
         return self.transcribed_dataset
 
     def build_outname(self, root: str, keys: List[Tuple[str]]) -> str:
@@ -490,10 +495,10 @@ class Pytesmo2Qa4smResultsTranscriber:
         if self.keep_pytesmo_ncfile:
             try:
                 os.rename(self.pytesmo_ncfile,
-                      self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                          self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
             except PermissionError as e:
-                shutil.copy(self.pytesmo_ncfile, self.pytesmo_ncfile +
-                        OLD_NCFILE_SUFFIX)
+                shutil.copy(self.pytesmo_ncfile,
+                            self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
                 self.pytesmo_results.close()
                 os.remove(self.pytesmo_ncfile)
                 # logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
@@ -737,7 +742,6 @@ class Pytesmo2Qa4smResultsTranscriber:
             return ([DEFAULT_TSW]
                     if bulk_present else []) + _presorted + custom_tsws
 
-
         tsws = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_qa4sm_ncfile(
             ncfile)
         if not tsws:
@@ -750,9 +754,11 @@ if __name__ == '__main__':
     pth = '/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc'
 
     transcriber = Pytesmo2Qa4smResultsTranscriber(pytesmo_results=pth,
-                                                    intra_annual_slices=None,
-                                                    keep_pytesmo_ncfile = True
-                                                  )
+                                                  intra_annual_slices=None,
+                                                  keep_pytesmo_ncfile=True)
     ds = transcriber.get_transcribed_dataset()
     print('writing to netcdf')
-    transcriber.write_to_netcdf(path='/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc.new')
+    transcriber.write_to_netcdf(
+        path=
+        '/tmp/tmpny4owu38/0-ERA5_LAND.swvl1_with_1-C3S_combined.sm_with_2-SMOS_IC.Soil_Moisture.nc.new'
+    )

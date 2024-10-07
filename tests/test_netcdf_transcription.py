@@ -18,7 +18,6 @@ import qa4sm_reader.globals as globals
 from qa4sm_reader.utils import log_function_call
 import qa4sm_reader.plot_all as pa
 
-
 log_file_path = Path(
     __file__).parent.parent / '.logs' / "test_netcdf_transcription.log"
 if not log_file_path.parent.exists():
@@ -70,21 +69,33 @@ def seasonal_tsws_incl_bulk() -> TemporalSubWindowsCreator:
     seasonal_tsws.add_temp_sub_wndw(bulk_wndw, insert_as_first_wndw=True)
     return seasonal_tsws
 
+
 @pytest.fixture
 def seasonal_pytesmo_file(TEST_DATA_DIR) -> Path:
-    return Path(TEST_DATA_DIR / 'intra_annual' / 'seasonal' / '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI_tsw_seasons_pytesmo.nc')
+    return Path(
+        TEST_DATA_DIR / 'intra_annual' / 'seasonal' /
+        '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI_tsw_seasons_pytesmo.nc'
+    )
+
 
 @pytest.fixture
 def seasonal_qa4sm_file(TEST_DATA_DIR) -> Path:
-    return Path(TEST_DATA_DIR / 'intra_annual' / 'seasonal' / '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI_tsw_seasons_qa4sm.nc')
+    return Path(
+        TEST_DATA_DIR / 'intra_annual' / 'seasonal' /
+        '0-ERA5.swvl1_with_1-ESA_CCI_SM_combined.sm_with_2-ESA_CCI_SM_combined.sm_with_3-ESA_CCI_SM_combined.sm_with_4-ESA_CCI_SM_combined.sm.CI_tsw_seasons_qa4sm.nc'
+    )
+
 
 @pytest.fixture
 def monthly_pytesmo_file(TEST_DATA_DIR) -> Path:
-    return Path(TEST_DATA_DIR / 'intra_annual' / 'monthly' / '0-ISMN.soil_moisture_with_1-C3S.sm_tsw_months_pytesmo.nc')
+    return Path(TEST_DATA_DIR / 'intra_annual' / 'monthly' /
+                '0-ISMN.soil_moisture_with_1-C3S.sm_tsw_months_pytesmo.nc')
+
 
 @pytest.fixture
 def monthly_qa4sm_file(TEST_DATA_DIR) -> Path:
-    return Path(TEST_DATA_DIR / 'intra_annual' / 'monthly' / '0-ISMN.soil_moisture_with_1-C3S.sm_tsw_months_qa4sm.nc')
+    return Path(TEST_DATA_DIR / 'intra_annual' / 'monthly' /
+                '0-ISMN.soil_moisture_with_1-C3S.sm_tsw_months_qa4sm.nc')
 
 
 #------------------Helper functions------------------------
@@ -282,8 +293,8 @@ def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
     with pytest.raises(InvalidTemporalSubWindowError):
         _, ds = run_test_transcriber(tmp_test_file,
-                             intra_annual_slices='faulty',
-                             keep_pytesmo_ncfile=False)
+                                     intra_annual_slices='faulty',
+                                     keep_pytesmo_ncfile=False)
         ds.close()
     # Test that the transcriber raises an InvalidTemporalSubWindowError when the intra_annual_slices parameter is a faulty TemporalSubWindowsCreator instance
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
@@ -298,10 +309,12 @@ def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
     # Test that the transcriber raises a TemporalSubWindowMismatchError when the intra_annual_slices parameter is a TemporalSubWindowsCreator instance that does not match the temporal sub-windows in the pytesmo_results file
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
     with pytest.raises(TemporalSubWindowMismatchError):
-        _, ds = run_test_transcriber(tmp_test_file,
-                             intra_annual_slices=seasonal_tsws_incl_bulk,
-                             keep_pytesmo_ncfile=False)
+        _, ds = run_test_transcriber(
+            tmp_test_file,
+            intra_annual_slices=seasonal_tsws_incl_bulk,
+            keep_pytesmo_ncfile=False)
         ds.close()
+
 
 @log_function_call
 def test_keep_pytesmo_ncfile(TEST_DATA_DIR, test_file: Optional[Path] = None):
@@ -309,9 +322,10 @@ def test_keep_pytesmo_ncfile(TEST_DATA_DIR, test_file: Optional[Path] = None):
         test_file = Path(TEST_DATA_DIR / 'basic' /
                          '0-ISMN.soil moisture_with_1-C3S.sm.nc')
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
-    _, ds = run_test_transcriber(tmp_test_file,
-                         intra_annual_slices=None,
-                         keep_pytesmo_ncfile=True)
+    transcriber, ds = run_test_transcriber(tmp_test_file,
+                                           intra_annual_slices=None,
+                                           keep_pytesmo_ncfile=True)
+    transcriber.pytesmo_results.close()
     ds.close()
 
 
@@ -323,9 +337,10 @@ def test_dont_keep_pytesmo_ncfile(TEST_DATA_DIR,
                          '0-ISMN.soil moisture_with_1-C3S.sm.nc')
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
     _, ds = run_test_transcriber(tmp_test_file,
-                         intra_annual_slices=None,
-                         keep_pytesmo_ncfile=False)
+                                 intra_annual_slices=None,
+                                 keep_pytesmo_ncfile=False)
     ds.close()
+
 
 @log_function_call
 def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
@@ -334,9 +349,9 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
                          '0-ISMN.soil moisture_with_1-C3S.sm.nc')
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
     transcriber, ds = run_test_transcriber(tmp_test_file,
-                                          intra_annual_slices=None,
-                                          keep_pytesmo_ncfile=False,
-                                          write_outfile=True)
+                                           intra_annual_slices=None,
+                                           keep_pytesmo_ncfile=False,
+                                           write_outfile=True)
 
     # only zlib compression is implemented so far, with compression levels 0-9
     with pytest.raises(NotImplementedError):
@@ -357,7 +372,9 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
 
     ds.close()
 
+
 #-------------------Test default case (= no temporal sub-windows)--------------------------------------------
+
 
 @log_function_call
 def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
@@ -373,9 +390,9 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
 
     for ncf in nc_files:
         _, ds = run_test_transcriber(ncf,
-                             intra_annual_slices=None,
-                             keep_pytesmo_ncfile=False,
-                             write_outfile=True)
+                                     intra_annual_slices=None,
+                                     keep_pytesmo_ncfile=False,
+                                     write_outfile=True)
         logging.info(f"Successfully transcribed file: {ncf}")
         ds.close()
 
@@ -387,7 +404,8 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
 
 
 @log_function_call
-def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, monthly_pytesmo_file, monthly_qa4sm_file):
+def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file,
+                                    monthly_pytesmo_file, monthly_qa4sm_file):
     '''
     Test the transcription of the test files with the correct temporal sub-windows and the correct output nc files'''
 
@@ -398,7 +416,9 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     assert monthly_qa4sm_file.exists
 
     # instantiate proper TemporalSubWindowsCreator instances for the corresponding test files
-    bulk_tsw = NewSubWindow('bulk', datetime(1900, 1, 1), datetime(2000, 1, 1)) # if ever the default changes away from 'bulk, this will need to be taken into account
+    bulk_tsw = NewSubWindow(
+        'bulk', datetime(1900, 1, 1), datetime(2000, 1, 1)
+    )  # if ever the default changes away from 'bulk, this will need to be taken into account
 
     seasons_tsws = TemporalSubWindowsCreator('seasons')
     seasons_tsws.add_temp_sub_wndw(bulk_tsw, insert_as_first_wndw=True)
@@ -407,21 +427,22 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     monthly_tsws.add_temp_sub_wndw(bulk_tsw, insert_as_first_wndw=True)
 
     # make sure the above defined temporal sub-windows are indeed the ones on the expected output nc files
-    assert seasons_tsws.names == Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(seasonal_qa4sm_file)
-    assert monthly_tsws.names == Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(monthly_qa4sm_file)
-
+    assert seasons_tsws.names == Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(
+        seasonal_qa4sm_file)
+    assert monthly_tsws.names == Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(
+        monthly_qa4sm_file)
 
     # instantiate transcribers for the test files
     seasonal_transcriber = Pytesmo2Qa4smResultsTranscriber(
         pytesmo_results=seasonal_pytesmo_file,
         intra_annual_slices=seasons_tsws,
-        keep_pytesmo_ncfile=False)  # deletion or keeping of the original pytesmo nc file only triggers when the transcriber is written to a new file, which is not the case here
+        keep_pytesmo_ncfile=False
+    )  # deletion or keeping of the original pytesmo nc file only triggers when the transcriber is written to a new file, which is not the case here
 
     monthly_transcriber = Pytesmo2Qa4smResultsTranscriber(
         pytesmo_results=monthly_pytesmo_file,
         intra_annual_slices=monthly_tsws,
         keep_pytesmo_ncfile=False)
-
 
     assert seasonal_transcriber.exists
     assert monthly_transcriber.exists
@@ -448,20 +469,29 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     # drop the tau related metrics from the expected datasets
     for var in expected_seasonal_ds.data_vars:
         if 'tau' in var:
-            logging.info(f"Dropping variable {var} from expected seasonal dataset")
+            logging.info(
+                f"Dropping variable {var} from expected seasonal dataset")
             expected_seasonal_ds = expected_seasonal_ds.drop_vars(var)
 
     for var in expected_monthly_ds.data_vars:
         if 'tau' in var:
-            logging.info(f"Dropping variable {var} from expected monthly dataset")
+            logging.info(
+                f"Dropping variable {var} from expected monthly dataset")
             expected_monthly_ds = expected_monthly_ds.drop_vars(var)
 
-    assert None == xr.testing.assert_equal(monthly_transcribed_ds, expected_monthly_ds) # returns None if the datasets are equal
-    assert None == xr.testing.assert_equal(seasonal_transcribed_ds, expected_seasonal_ds) # returns None if the datasets are equal
+    assert None == xr.testing.assert_equal(
+        monthly_transcribed_ds,
+        expected_monthly_ds)  # returns None if the datasets are equal
+    assert None == xr.testing.assert_equal(
+        seasonal_transcribed_ds,
+        expected_seasonal_ds)  # returns None if the datasets are equal
 
     # the method above does not check attrs of the datasets, so we do it here
     # Creation date and qa4sm_reader might differ, so we exclude them from the comparison
-    datasets = [monthly_transcribed_ds, expected_monthly_ds, seasonal_transcribed_ds, expected_seasonal_ds]
+    datasets = [
+        monthly_transcribed_ds, expected_monthly_ds, seasonal_transcribed_ds,
+        expected_seasonal_ds
+    ]
     attrs_to_be_excluded = ['date_created', 'qa4sm_version']
     for ds in datasets:
         for attr in attrs_to_be_excluded:
@@ -474,18 +504,29 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     # Compare the coordinate attributes
     for coord in seasonal_transcribed_ds.coords:
         for attr in seasonal_transcribed_ds[coord].attrs:
-            if isinstance(seasonal_transcribed_ds[coord].attrs[attr], (list, np.ndarray)):
-                assert np.array_equal(seasonal_transcribed_ds[coord].attrs[attr], expected_seasonal_ds[coord].attrs[attr]), f"Attributes for coordinate {coord} do not match in seasonal dataset"
+            if isinstance(seasonal_transcribed_ds[coord].attrs[attr],
+                          (list, np.ndarray)):
+                assert np.array_equal(
+                    seasonal_transcribed_ds[coord].attrs[attr],
+                    expected_seasonal_ds[coord].attrs[attr]
+                ), f"Attributes for coordinate {coord} do not match in seasonal dataset"
             else:
-                assert seasonal_transcribed_ds[coord].attrs[attr] == expected_seasonal_ds[coord].attrs[attr], f"Attributes for coordinate {coord} do not match in seasonal dataset: '{seasonal_transcribed_ds[coord].attrs[attr]}' =! '{expected_seasonal_ds[coord].attrs[attr]}'"
+                assert seasonal_transcribed_ds[coord].attrs[
+                    attr] == expected_seasonal_ds[coord].attrs[
+                        attr], f"Attributes for coordinate {coord} do not match in seasonal dataset: '{seasonal_transcribed_ds[coord].attrs[attr]}' =! '{expected_seasonal_ds[coord].attrs[attr]}'"
 
     for coord in monthly_transcribed_ds.coords:
         for attr in monthly_transcribed_ds[coord].attrs:
-            if isinstance(monthly_transcribed_ds[coord].attrs[attr], (list, np.ndarray)):
-                assert np.array_equal(monthly_transcribed_ds[coord].attrs[attr], expected_monthly_ds[coord].attrs[attr]), f"Attributes for coordinate {coord} do not match in monthly dataset"
+            if isinstance(monthly_transcribed_ds[coord].attrs[attr],
+                          (list, np.ndarray)):
+                assert np.array_equal(
+                    monthly_transcribed_ds[coord].attrs[attr],
+                    expected_monthly_ds[coord].attrs[attr]
+                ), f"Attributes for coordinate {coord} do not match in monthly dataset"
             else:
-                assert monthly_transcribed_ds[coord].attrs[attr] == expected_monthly_ds[coord].attrs[attr], f"Attributes for coordinate {coord} do not match in monthly dataset: '{monthly_transcribed_ds[coord].attrs[attr]}' =! '{expected_monthly_ds[coord].attrs[attr]}'"
-
+                assert monthly_transcribed_ds[coord].attrs[
+                    attr] == expected_monthly_ds[coord].attrs[
+                        attr], f"Attributes for coordinate {coord} do not match in monthly dataset: '{monthly_transcribed_ds[coord].attrs[attr]}' =! '{expected_monthly_ds[coord].attrs[attr]}'"
 
     seasonal_transcribed_ds.close()
     monthly_transcribed_ds.close()
@@ -498,78 +539,131 @@ def test_plotting(seasonal_qa4sm_file, monthly_qa4sm_file, tmp_paths):
     Test the plotting of the test files with temporal sub-windows beyond the bulk case (this scenario covered in other tests)
     '''
 
-    tmp_seasonal_file, _ = get_tmp_single_test_file(seasonal_qa4sm_file, tmp_paths)
+    tmp_seasonal_file, _ = get_tmp_single_test_file(seasonal_qa4sm_file,
+                                                    tmp_paths)
     tmp_seasonal_dir = tmp_seasonal_file.parent
 
-    tmp_monthly_file, _ = get_tmp_single_test_file(monthly_qa4sm_file, tmp_paths)
+    tmp_monthly_file, _ = get_tmp_single_test_file(monthly_qa4sm_file,
+                                                   tmp_paths)
     tmp_monthly_dir = tmp_monthly_file.parent
 
     # check the output directories
 
     pa.plot_all(
         filepath=tmp_seasonal_file,
-        temporal_sub_windows=Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(tmp_seasonal_file),
+        temporal_sub_windows=Pytesmo2Qa4smResultsTranscriber.
+        get_tsws_from_ncfile(tmp_seasonal_file),
         out_dir=tmp_seasonal_dir,
         save_all=True,
-        out_type = ['png', 'svg'],
+        out_type=['png', 'svg'],
     )
 
-    metrics_not_plotted = [*globals.metric_groups[0], *globals.metric_groups[3], *globals._metadata_exclude]
+    metrics_not_plotted = [
+        *globals.metric_groups[0], *globals.metric_groups[3],
+        *globals._metadata_exclude
+    ]
 
-    tsw_dirs_expected = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(tmp_seasonal_file)
+    tsw_dirs_expected = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(
+        tmp_seasonal_file)
     if globals.DEFAULT_TSW in tsw_dirs_expected:
-        tsw_dirs_expected.remove(globals.DEFAULT_TSW)   # we're not checking the default case here
+        tsw_dirs_expected.remove(
+            globals.DEFAULT_TSW)  # we're not checking the default case here
 
     for tsw in tsw_dirs_expected:
-        assert Path(tmp_seasonal_dir / tsw).is_dir(), f"{tmp_seasonal_dir / tsw} is not a directory"
+        assert Path(
+            tmp_seasonal_dir /
+            tsw).is_dir(), f"{tmp_seasonal_dir / tsw} is not a directory"
 
         # only metrics and tcol metrics get their dedicated plots for each temporal sub-window
-        for metric in [*list(globals.METRICS.keys()), *list(globals.TC_METRICS.keys())]:
+        for metric in [
+                *list(globals.METRICS.keys()), *list(globals.TC_METRICS.keys())
+        ]:
             if metric in metrics_not_plotted:
                 continue
-            assert Path(tmp_seasonal_dir / tsw / f"{tsw}_boxplot_{metric}.png").exists(), f"{tmp_seasonal_dir / tsw / f'{tsw}_boxplot_{metric}.png'} does not exist"
-            assert Path(tmp_seasonal_dir / tsw / f"{tsw}_boxplot_{metric}.svg").exists(), f"{tmp_seasonal_dir / tsw / f'{tsw}_boxplot_{metric}.svg'} does not exist"
+            assert Path(
+                tmp_seasonal_dir / tsw / f"{tsw}_boxplot_{metric}.png"
+            ).exists(
+            ), f"{tmp_seasonal_dir / tsw / f'{tsw}_boxplot_{metric}.png'} does not exist"
+            assert Path(
+                tmp_seasonal_dir / tsw / f"{tsw}_boxplot_{metric}.svg"
+            ).exists(
+            ), f"{tmp_seasonal_dir / tsw / f'{tsw}_boxplot_{metric}.svg'} does not exist"
 
-        assert Path(tmp_seasonal_dir / tsw / f'{tsw}_statistics_table.csv').is_file(), f"{tmp_seasonal_dir / tsw / f'{tsw}_statistics_table.csv'} does not exist"
-
+        assert Path(
+            tmp_seasonal_dir / tsw / f'{tsw}_statistics_table.csv'
+        ).is_file(
+        ), f"{tmp_seasonal_dir / tsw / f'{tsw}_statistics_table.csv'} does not exist"
 
     # check intra-annual-metric-exclusive comparison boxplots
     assert Path(tmp_seasonal_dir / 'comparison_boxplots').is_dir()
     for metric in globals.METRICS:
         if metric in metrics_not_plotted:
             continue
-        assert Path(tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='png')).exists(), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='png')} does not exist"
-        assert Path(tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='svg')).exists(), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='svg')} does not exist"
+        assert Path(
+            tmp_seasonal_dir / 'comparison_boxplots' /
+            globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric,
+                                                       filetype='png')
+        ).exists(
+        ), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='png')} does not exist"
+        assert Path(
+            tmp_seasonal_dir / 'comparison_boxplots' /
+            globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric,
+                                                       filetype='svg')
+        ).exists(
+        ), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='svg')} does not exist"
 
     # now check the file with monthly temporal sub-windows and without tcol metrics
 
     pa.plot_all(
         filepath=tmp_monthly_file,
-        temporal_sub_windows=Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(tmp_monthly_file),
+        temporal_sub_windows=Pytesmo2Qa4smResultsTranscriber.
+        get_tsws_from_ncfile(tmp_monthly_file),
         out_dir=tmp_monthly_dir,
         save_all=True,
         save_metadata=True,
-        out_type = ['png', 'svg'],
+        out_type=['png', 'svg'],
     )
 
-    tsw_dirs_expected = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(tmp_monthly_file)
+    tsw_dirs_expected = Pytesmo2Qa4smResultsTranscriber.get_tsws_from_ncfile(
+        tmp_monthly_file)
     if globals.DEFAULT_TSW in tsw_dirs_expected:
         tsw_dirs_expected.remove(globals.DEFAULT_TSW)
 
     for t, tsw in enumerate(tsw_dirs_expected):
-        assert Path(tmp_monthly_dir / tsw).is_dir(), f"{tmp_monthly_dir / tsw} is not a directory"
+        assert Path(
+            tmp_monthly_dir /
+            tsw).is_dir(), f"{tmp_monthly_dir / tsw} is not a directory"
 
         # no tcol metrics present here
         for metric in [*list(globals.METRICS.keys())]:
             if metric in metrics_not_plotted:
                 continue
             # tsw specific plots
-            assert Path(tmp_monthly_dir / tsw / f"{tsw}_boxplot_{metric}.png").exists(), f"{tmp_monthly_dir / tsw / f'{tsw}_boxplot_{metric}.png'} does not exist"
-            assert Path(tmp_monthly_dir / tsw / f"{tsw}_boxplot_{metric}.svg").exists(), f"{tmp_monthly_dir / tsw / f'{tsw}_boxplot_{metric}.svg'} does not exist"
+            assert Path(
+                tmp_monthly_dir / tsw / f"{tsw}_boxplot_{metric}.png"
+            ).exists(
+            ), f"{tmp_monthly_dir / tsw / f'{tsw}_boxplot_{metric}.png'} does not exist"
+            assert Path(
+                tmp_monthly_dir / tsw / f"{tsw}_boxplot_{metric}.svg"
+            ).exists(
+            ), f"{tmp_monthly_dir / tsw / f'{tsw}_boxplot_{metric}.svg'} does not exist"
 
             if t == 0:
                 #comparison boxplots
                 assert Path(tmp_seasonal_dir / 'comparison_boxplots').is_dir()
-                assert Path(tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='png')).exists(), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='png')} does not exist"
-                assert Path(tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='svg')).exists(), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='svg')} does not exist"
-        assert Path(tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv').is_file(), f"{tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'} does not exist"
+                assert Path(
+                    tmp_seasonal_dir / 'comparison_boxplots' /
+                    globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric,
+                                                               filetype='png')
+                ).exists(
+                ), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='png')} does not exist"
+                assert Path(
+                    tmp_seasonal_dir / 'comparison_boxplots' /
+                    globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric,
+                                                               filetype='svg')
+                ).exists(
+                ), f"{tmp_seasonal_dir / 'comparison_boxplots' / globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=metric, filetype='svg')} does not exist"
+        assert Path(
+            tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'
+        ).is_file(
+        ), f"{tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'} does not exist"
