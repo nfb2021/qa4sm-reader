@@ -91,6 +91,11 @@ jobs:
           auto-activate-base: false
       - name: Verify Conda PATH
         run: echo %PATH%
+      - name: Check Mamba Installation
+        shell: cmd
+        run: |
+          conda list mamba
+          mamba --version
       - name: Print environment infos
         shell: cmd
         run: |
