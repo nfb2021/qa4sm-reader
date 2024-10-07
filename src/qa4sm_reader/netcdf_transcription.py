@@ -534,7 +534,7 @@ class Pytesmo2Qa4smResultsTranscriber:
                         if i < retry_count - 1:
                             time.sleep(1)  # Wait for 1 second before retrying
                         else:
-                            raise z
+                            raise e
 
         # Ensure the dataset is closed
         if isinstance(self.transcribed_dataset, xr.Dataset):
