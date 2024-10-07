@@ -74,8 +74,9 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: [ '3.10' ]
-        ymlfile: ["environment.yml"]
+        python-version: ['3.10']
+        ymlfile: ['environment.yml']
+        os: ["windows-latest"]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -89,6 +90,8 @@ jobs:
           mamba-version: "*"
           activate-environment: qa4sm_reader # todo: must match with name in environment.yml
           auto-activate-base: false
+      - name: Verify Conda PATH
+        run: echo %PATH%
       - name: Print environment infos
         shell: cmd
         run: |
