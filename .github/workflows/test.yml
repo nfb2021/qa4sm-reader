@@ -80,23 +80,49 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+
+      # Debug step to echo commands and paths
+      - name: Debug Conda Commands
+        shell: cmd
+        run: |
+          echo Running Conda Command
+          echo C:\Users\runneradmin\miniconda3\condabin\conda.bat
+          echo %PATH%
+
+      # Use specific version of Miniconda instead of "latest"
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'py39_4.9.2'  # Use specific Miniconda version
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           environment-file: ${{ matrix.ymlfile }}
           mamba-version: "*"
-          activate-environment: qa4sm_reader # todo: must match with name in environment.yml
-          auto-activate-base: false
-      - name: Verify Conda PATH
-        run: echo %PATH%
-      - name: Check Mamba Installation
+          activate-environment: base  # Start with base environment
+          auto-activate-base: true  # Ensure the base environment is activated
+
+      # Verify conda is correctly installed
+      - name: Verify Conda Installation
         shell: cmd
         run: |
-          conda list mamba
+          conda --version
+          conda init cmd.exe
+
+      # Manually install mamba to ensure it's available
+      - name: Install Mamba Manually
+        shell: cmd
+        run: |
+          conda install -n base -c conda-forge mamba
           mamba --version
-      - name: Print environment infos
+
+      # Activate the desired environment (qa4sm_reader)
+      - name: Activate Environment
+        shell: cmd
+        run: |
+          conda activate qa4sm_reader
+          conda list
+
+      # Print environment information
+      - name: Print Environment Infos
         shell: cmd
         run: |
           conda info -a
@@ -104,22 +130,30 @@ jobs:
           pip list
           where pip
           where python
+
+      # Export the environment
       - name: Export Environment
         shell: cmd
         run: |
           mkdir artifacts
           filename=env_py${{ matrix.python-version }}_${{ matrix.os }}.yml
           conda env export --no-builds | findstr /v "prefix" > artifacts/%filename%
+
+      # Upload the environment artifact
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Artifacts-py${{ matrix.python-version }}-${{ matrix.os }}
           path: artifacts/*
+
+      # Install package and run tests
       - name: Install package and test
         shell: cmd
         run: |
           pip install -e .
           pytest
+
+      # Upload coverage
       - name: Upload Coverage
         shell: cmd
         run: |
