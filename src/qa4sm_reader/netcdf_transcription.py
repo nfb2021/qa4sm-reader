@@ -494,6 +494,7 @@ class Pytesmo2Qa4smResultsTranscriber:
             except PermissionError as e:
                 shutil.copy(self.pytesmo_ncfile, self.pytesmo_ncfile +
                         OLD_NCFILE_SUFFIX)
+                self.pytesmo_results.close()
                 os.remove(self.pytesmo_ncfile)
                 # logger.info(f'Could not rename the original pytesmo results file. {e}. Trying to close the file and rename it.')
                 # # Ensure the file is properly closed
