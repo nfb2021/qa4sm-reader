@@ -39,14 +39,24 @@ jobs:
           mamba-version: "*"
           activate-environment: qa4sm_reader # todo: must match with name in environment.yml
           auto-activate-base: false
-      - name: Print environment infos
-        shell: ${{ matrix.os == 'windows-latest' && 'cmd' || 'bash' }}
+      - name: Print environment infos (Linux)
+        if: runner.os != 'Windows'
+        shell: bash -l {0}
         run: |
           conda info -a
           conda list
           pip list
           which pip
           which python
+      - name: Print environment infos (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          conda info -a
+          conda list
+          pip list
+          where pip
+          where python
       - name: Export Environment
         shell: bash -l {0}
         run: |
