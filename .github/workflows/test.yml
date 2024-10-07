@@ -97,6 +97,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           environment-file: ${{ matrix.ymlfile }}
           activate-environment: qa4sm_reader # todo: must match with name in environment.yml
+          auto-activate-base: false
 
       # Verify conda is correctly installed
       - name: Verify Conda Installation
@@ -141,6 +142,7 @@ jobs:
       - name: Install package and test
         shell: cmd
         run: |
+          conda activate qa4sm_reader
           pip install -e .
           pytest
 
