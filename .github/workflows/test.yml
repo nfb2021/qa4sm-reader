@@ -127,7 +127,7 @@ jobs:
         shell: cmd
         run: |
           mkdir artifacts
-          filename=env_py${{ matrix.python-version }}_${{ matrix.os }}.yml
+          set filename=env_py${{ matrix.python-version }}_${{ matrix.os }}.yml
           conda env export --no-builds | findstr /v "prefix" > artifacts/%filename%
 
       # Upload the environment artifact
