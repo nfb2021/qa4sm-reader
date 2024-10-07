@@ -445,7 +445,7 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file, 
     #!      Therefore, in a real validation run no tau related metrics will be transcribed to the QA4SM file, even though they might be present in the pytesmo file.
     #!      The "expected results file" for monthly windows does NOT contain the tau related metrics, BUT the one for seasonal windows DOES.
 
-    drop the tau related metrics from the expected datasets
+    # drop the tau related metrics from the expected datasets
     for var in expected_seasonal_ds.data_vars:
         if 'tau' in var:
             logging.info(f"Dropping variable {var} from expected seasonal dataset")
