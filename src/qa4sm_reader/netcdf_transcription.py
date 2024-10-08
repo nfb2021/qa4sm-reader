@@ -1,3 +1,4 @@
+from math import e
 from traceback import print_tb
 from venv import logger
 from matplotlib.pylab import f
@@ -9,6 +10,8 @@ import calendar
 import time
 import shutil
 import tempfile
+import sys
+from pathlib import Path
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -111,6 +114,26 @@ class Pytesmo2Qa4smResultsTranscriber:
                  intra_annual_slices: Union[None,
                                             TemporalSubWindowsCreator] = None,
                  keep_pytesmo_ncfile: Optional[bool] = False):
+
+        self.original_pytesmo_ncfile = str(pytesmo_results)
+
+        # windows workaround
+        # windows keeps a file lock on the original file, which prevents it from being renamed or deleted
+        # to circumvent this, the file is copied to a temporary directory and the copy is used instead
+
+        if sys.platform.startswith("win"):
+            if not isinstance(pytesmo_results, Path):
+                pytesmo_results = Path(pytesmo_results)
+
+            _tmp_dir = Path(tempfile.mkdtemp())
+            tmp_dir = _tmp_dir / pytesmo_results.parent.name
+
+            if not tmp_dir.exists():
+                tmp_dir.mkdir()
+
+            new_pytesmo_results = tmp_dir / pytesmo_results.name
+            shutil.copy(pytesmo_results, new_pytesmo_results)
+            pytesmo_results = str(new_pytesmo_results)
 
         self.pytesmo_ncfile = f'{pytesmo_results}'
         if not os.path.isfile(pytesmo_results):
@@ -520,27 +543,27 @@ class Pytesmo2Qa4smResultsTranscriber:
         # if self.keep_pytesmo_ncfile:
         try:
             self.pytesmo_results.close()
-            os.rename(self.pytesmo_ncfile,
-                      self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
-        # except PermissionError as e:
-        #     shutil.copy(self.pytesmo_ncfile,
-        #                 self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+            os.rename(self.original_pytesmo_ncfile,
+                      self.original_pytesmo_ncfile + OLD_NCFILE_SUFFIX)
         except PermissionError as e:
-            # Ugly workaround for Windows
-            temp_dir = tempfile.mkdtemp()
-            temp_file_path = os.path.join(
-                temp_dir,
-                os.path.basename(self.pytesmo_ncfile) + OLD_NCFILE_SUFFIX)
-            shutil.move(self.pytesmo_ncfile, temp_file_path)
-            # No need to remove the file, it will be deleted when the temp directory is cleaned up
+            shutil.copy(self.original_pytesmo_ncfile,
+                        self.original_pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+        # except PermissionError as e:
+        #     # Ugly workaround for Windows
+        #     temp_dir = tempfile.mkdtemp()
+        #     temp_file_path = os.path.join(
+        #         temp_dir,
+        #         os.path.basename(self.pytesmo_ncfile) + OLD_NCFILE_SUFFIX)
+        #     shutil.move(self.pytesmo_ncfile, temp_file_path)
+        # No need to remove the file, it will be deleted when the temp directory is cleaned up
 
         if not self.keep_pytesmo_ncfile:
             retry_count = 5
             for i in range(retry_count):
                 try:
                     self.pytesmo_results.close()
-                    os.remove(self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
-                    #shutil.rmtree(self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                    os.remove(self.original_pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                    #shutil.rmtree(self.original_pytesmo_ncfile + OLD_NCFILE_SUFFIX)
                     break
                 except PermissionError:
                     if i < retry_count - 1:
