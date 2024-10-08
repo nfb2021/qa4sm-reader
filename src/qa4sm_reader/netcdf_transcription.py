@@ -516,25 +516,26 @@ class Pytesmo2Qa4smResultsTranscriber:
                 }
                 for var in self.transcribed_dataset.data_vars
             }
-        if self.keep_pytesmo_ncfile:
-            try:
-                self.pytesmo_results.close()
-                os.rename(self.pytesmo_ncfile,
-                          self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
-            except PermissionError as e:
-                shutil.copy(self.pytesmo_ncfile,
-                            self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
-                self.pytesmo_results.close()
-                retry_count = 5
-                for i in range(retry_count):
-                    try:
-                        os.remove(self.pytesmo_ncfile)
-                        break
-                    except PermissionError:
-                        if i < retry_count - 1:
-                            time.sleep(1)  # Wait for 1 second before retrying
-                        else:
-                            raise e
+        # if self.keep_pytesmo_ncfile:
+        try:
+            self.pytesmo_results.close()
+            os.rename(self.pytesmo_ncfile,
+                      self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+        except PermissionError as e:
+            shutil.copy(self.pytesmo_ncfile,
+                        self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+
+        if not self.keep_pytesmo_ncfile:
+            retry_count = 5
+            for i in range(retry_count):
+                try:
+                    self.pytesmo_results.close()
+                    os.remove(self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                    #shutil.rmtree(self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+                    break
+                except PermissionError:
+                    if i < retry_count - 1:
+                        time.sleep(1)
 
         # Ensure the dataset is closed
         if isinstance(self.transcribed_dataset, xr.Dataset):
