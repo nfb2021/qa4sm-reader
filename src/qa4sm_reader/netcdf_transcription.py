@@ -8,6 +8,7 @@ import os
 import calendar
 import time
 import shutil
+import tempfile
 
 from qa4sm_reader.intra_annual_temp_windows import TemporalSubWindowsCreator, InvalidTemporalSubWindowError
 from qa4sm_reader.globals import    METRICS, TC_METRICS, NON_METRICS, METADATA_TEMPLATE, \
@@ -521,9 +522,17 @@ class Pytesmo2Qa4smResultsTranscriber:
             self.pytesmo_results.close()
             os.rename(self.pytesmo_ncfile,
                       self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+        # except PermissionError as e:
+        #     shutil.copy(self.pytesmo_ncfile,
+        #                 self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
         except PermissionError as e:
-            shutil.copy(self.pytesmo_ncfile,
-                        self.pytesmo_ncfile + OLD_NCFILE_SUFFIX)
+            # Ugly workaround for Windows
+            temp_dir = tempfile.mkdtemp()
+            temp_file_path = os.path.join(
+                temp_dir,
+                os.path.basename(self.pytesmo_ncfile) + OLD_NCFILE_SUFFIX)
+            shutil.move(self.pytesmo_ncfile, temp_file_path)
+            # No need to remove the file, it will be deleted when the temp directory is cleaned up
 
         if not self.keep_pytesmo_ncfile:
             retry_count = 5
