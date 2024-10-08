@@ -268,7 +268,8 @@ class Pytesmo2Qa4smResultsTranscriber:
         Returns:
         bool: True if the metric name is valid, False otherwise.
         """
-
+        if isinstance(self.intra_annual_slices, TemporalSubWindowsCreator):
+            self.intra_annual_slices = self.intra_annual_slices.names
         valid_prefixes = [
             "".join(
                 template.format(
@@ -543,7 +544,7 @@ class Pytesmo2Qa4smResultsTranscriber:
                 if not np.issubdtype(self.transcribed_dataset[var].dtype,
                                      np.object_)
             }
-            # if sys.platform.startswith("win"):
+
             #     # Explicitly set no compression for 'climate_KG'
             #     encoding['climate_KG'] = {
             #         "zlib": False,
@@ -579,6 +580,16 @@ class Pytesmo2Qa4smResultsTranscriber:
                 except PermissionError:
                     if i < retry_count - 1:
                         time.sleep(1)
+
+        # if sys.platform.startswith("win"):
+        for var in self.transcribed_dataset.data_vars:
+            if self.transcribed_dataset[
+                    var].dtype.kind == 'U':  # Check if the data type is Unicode
+                max_len = self.transcribed_dataset[var].str.len().max().item(
+                )  # Find the maximum string length
+                self.transcribed_dataset[var] = self.transcribed_dataset[
+                    var].astype(
+                        f'S{max_len}')  # Convert to fixed-length ASCII string
 
         # Ensure the dataset is closed
         if isinstance(self.transcribed_dataset, xr.Dataset):

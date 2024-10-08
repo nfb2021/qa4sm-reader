@@ -428,8 +428,8 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
         logging.info(f"Successfully transcribed file: {ncf}")
         ds.close()
 
-    if tmp_test_data_dir.exists():
-        shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
+    # if tmp_test_data_dir.exists():
+    #     shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
 
 
 #-------------------------------------------Test with intra-annual metrics---------------------------------------------
@@ -782,35 +782,75 @@ def test_is_valid_metric_name(seasonal_pytesmo_file, seasonal_tsws_incl_bulk):
         keep_pytesmo_ncfile=False)
 
     # Test valid metric names
+    tsws = mock_tsws.names
+    sep = '|'
+    dataset_combi = '_between_0-ERA5_and_3-ESA_CCI_SM_combined'
+    valid_metrics = globals.METRICS.keys()
+
     valid_metric_names = [
-        'bulk|n_obs',
-        'S1|n_obs',
-        'S2|n_obs',
-        'S3|n_obs',
-        'S4|n_obs',
-        'S1|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
-        'S2|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
-        'S3|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
-        'S4|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
+        f'{tsw}{sep}{metric}{dataset_combi}' for tsw in tsws
+        for metric in valid_metrics
     ]
     for metric_name in valid_metric_names:
         assert mock_transcriber.is_valid_metric_name(metric_name) == True
 
     # Test invalid metric names with metrics that dont even exist
-    invalid_metric_names = [
-        'bulk|number_of_observations',
-        'S1|number_of_observations',
-        'S2|number_of_observations',
-        'S3|number_of_observations',
-        'S4|number_of_observations',
-        'bulk|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
-        'S1|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
-        'S2|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
-        'S3|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
-        'S4|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+    nonsense_metrics = ['nonsense_metric_1', 'nonsense_metric_2']
+    nonsense_metric_names = [
+        f'{tsw}{sep}{metric}{dataset_combi}' for tsw in tsws
+        for metric in nonsense_metrics
     ]
-    for metric_name in invalid_metric_names:
+    for metric_name in nonsense_metric_names:
         assert mock_transcriber.is_valid_metric_name(metric_name) == False
+
+    # Test tcol metric names
+    tcol_metrics = globals.TC_METRICS.keys()
+    tcol_metric_names = [
+        f'{tsw}{sep}{metric}{dataset_combi}' for tsw in tsws
+        for metric in tcol_metrics
+    ]
+    for metric_name in tcol_metric_names:
+        assert mock_transcriber.is_valid_metric_name(metric_name) == False
+
+
+@log_function_call
+def test_is_valid_tcol_metric_name(seasonal_pytesmo_file,
+                                   seasonal_tsws_incl_bulk):
+    # Create a mock cases
+    mock_tsws = seasonal_tsws_incl_bulk
+    mock_transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=seasonal_pytesmo_file,
+        intra_annual_slices=mock_tsws,
+        keep_pytesmo_ncfile=False)
+
+    tcol_metric_names = [
+        'S1|snr_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|snr_2-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|snr_3-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|snr_4-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_4-ESA_CCI_SM_combined',
+    ]  #amongst others
+
+    for metric_name in tcol_metric_names:
+        assert mock_transcriber.is_valid_tcol_metric_name(metric_name) == True
+
+    tcol_metrics_not_transcribed = [
+        'S1|snr_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|snr_ci_lower_2-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|err_std_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|err_std_ci_lower_2-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|beta_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|beta_ci_lower_2-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|snr_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|snr_ci_lower_3-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|err_std_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|err_std_ci_lower_3-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|beta_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|beta_ci_lower_3-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_3-ESA_CCI_SM_combined',
+        'S1|snr_ci_lower_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_4-ESA_CCI_SM_combined',
+    ]
+
+    for metric_name in tcol_metrics_not_transcribed:
+        assert mock_transcriber.is_valid_tcol_metric_name(metric_name) == False
 
 
 if __name__ == '__main__':
@@ -820,3 +860,5 @@ if __name__ == '__main__':
                                            keep_pytesmo_ncfile=True)
     transcriber.pytesmo_results.close()
     ds.close()
+
+    test_bulk_case_transcription()
