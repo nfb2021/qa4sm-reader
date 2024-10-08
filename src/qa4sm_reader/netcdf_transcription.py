@@ -539,6 +539,7 @@ class Pytesmo2Qa4smResultsTranscriber:
                     "complevel": 5
                 }
                 for var in self.transcribed_dataset.data_vars
+                if var not in ['climate_KG']
             }
         # if self.keep_pytesmo_ncfile:
         try:

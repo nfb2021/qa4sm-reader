@@ -393,6 +393,9 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
                                      intra_annual_slices=None,
                                      keep_pytesmo_ncfile=False,
                                      write_outfile=True)
+        assert ds.sel(
+            {globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME:
+             globals.DEFAULT_TSW}) == globals.DEFAULT_TSW
         logging.info(f"Successfully transcribed file: {ncf}")
         ds.close()
 
