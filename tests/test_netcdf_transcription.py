@@ -1,3 +1,4 @@
+from email.policy import default
 import os
 from tkinter import N
 from matplotlib.pylab import f
@@ -769,6 +770,47 @@ def test_get_transcribed_dataset(TEST_DATA_DIR, tmp_paths):
     transcriber.pytesmo_results.close()
     transcriber.transcribed_dataset.close()
     transcribed_dataset.close()
+
+
+@log_function_call
+def test_is_valid_metric_name(seasonal_pytesmo_file, seasonal_tsws_incl_bulk):
+    # Create a mock cases
+    mock_tsws = seasonal_tsws_incl_bulk
+    mock_transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=seasonal_pytesmo_file,
+        intra_annual_slices=mock_tsws,
+        keep_pytesmo_ncfile=False)
+
+    # Test valid metric names
+    valid_metric_names = [
+        'bulk|n_obs',
+        'S1|n_obs',
+        'S2|n_obs',
+        'S3|n_obs',
+        'S4|n_obs',
+        'S1|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
+        'S2|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
+        'S3|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
+        'S4|rho_between_0-ERA5_and_3-ESA_CCI_SM_combined',
+    ]
+    for metric_name in valid_metric_names:
+        assert mock_transcriber.is_valid_metric_name(metric_name) == True
+
+    # Test invalid metric names with metrics that dont even exist
+    invalid_metric_names = [
+        'bulk|number_of_observations',
+        'S1|number_of_observations',
+        'S2|number_of_observations',
+        'S3|number_of_observations',
+        'S4|number_of_observations',
+        'bulk|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S1|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S2|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S3|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+        'S4|important_metric_1-ESA_CCI_SM_combined_between_0-ERA5_and_1-ESA_CCI_SM_combined_and_2-ESA_CCI_SM_combined',
+    ]
+    for metric_name in invalid_metric_names:
+        assert mock_transcriber.is_valid_metric_name(metric_name) == False
 
 
 if __name__ == '__main__':

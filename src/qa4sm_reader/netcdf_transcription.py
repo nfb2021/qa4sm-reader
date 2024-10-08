@@ -248,7 +248,8 @@ class Pytesmo2Qa4smResultsTranscriber:
         Returns:
         bool: True if the metric name is valid, False otherwise.
         """
-
+        if isinstance(self.intra_annual_slices, TemporalSubWindowsCreator):
+            self.intra_annual_slices = self.intra_annual_slices.names
         valid_prefixes = [
             "".join(
                 template.format(tsw=tsw, metric=metric)
@@ -542,14 +543,14 @@ class Pytesmo2Qa4smResultsTranscriber:
                 if not np.issubdtype(self.transcribed_dataset[var].dtype,
                                      np.object_)
             }
-            if sys.platform.startswith("win"):
-                # Explicitly set no compression for 'climate_KG'
-                encoding['climate_KG'] = {
-                    "zlib": False,
-                    "complevel": 0,
-                    "shuffle": False,
-                    "fletcher32": False,
-                }
+            # if sys.platform.startswith("win"):
+            #     # Explicitly set no compression for 'climate_KG'
+            #     encoding['climate_KG'] = {
+            #         "zlib": False,
+            #         "complevel": 0,
+            #         "shuffle": False,
+            #         "fletcher32": False,
+            #     }
         # if self.keep_pytesmo_ncfile:
         try:
             self.pytesmo_results.close()
