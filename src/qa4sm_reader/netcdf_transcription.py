@@ -541,6 +541,14 @@ class Pytesmo2Qa4smResultsTranscriber:
                 for var in self.transcribed_dataset.data_vars
                 if var not in ['climate_KG']
             }
+            if sys.platform.startswith("win"):
+                # Explicitly set no compression for 'climate_KG'
+                encoding['climate_KG'] = {
+                    "zlib": False,
+                    "complevel": 0,
+                    "shuffle": False,
+                    "fletcher32": False,
+                }
         # if self.keep_pytesmo_ncfile:
         try:
             self.pytesmo_results.close()
