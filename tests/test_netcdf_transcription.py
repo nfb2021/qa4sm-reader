@@ -1,5 +1,6 @@
 import os
 from tkinter import N
+from matplotlib.pylab import f
 import pytest
 from copy import deepcopy
 from datetime import datetime
@@ -278,12 +279,12 @@ def test_on_non_existing_file():
 
 
 @log_function_call
-def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
-                                    tmp_paths,
-                                    TEST_DATA_DIR,
-                                    test_file: Optional[Path] = None):
+def test_invalid_temp_subwins(seasonal_tsws_incl_bulk,
+                              tmp_paths,
+                              TEST_DATA_DIR,
+                              test_file: Optional[Path] = None):
     logging.info(
-        f'test_faulty_intra_annual_slices: {seasonal_tsws_incl_bulk=}, {tmp_paths=}, {TEST_DATA_DIR=}, {test_file=}'
+        f'test_invalid_temp_subwins: {seasonal_tsws_incl_bulk=}, {tmp_paths=}, {TEST_DATA_DIR=}, {test_file=}'
     )
     if test_file is None:
         test_file = Path(TEST_DATA_DIR / 'basic' /
@@ -296,6 +297,20 @@ def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
                                      intra_annual_slices='faulty',
                                      keep_pytesmo_ncfile=False)
         ds.close()
+
+
+@log_function_call
+def test_invalid_temporalsubwindowscreator(seasonal_tsws_incl_bulk,
+                                           tmp_paths,
+                                           TEST_DATA_DIR,
+                                           test_file: Optional[Path] = None):
+    logging.info(
+        f'test_invalid_temporalsubwindowscreator: {seasonal_tsws_incl_bulk=}, {tmp_paths=}, {TEST_DATA_DIR=}, {test_file=}'
+    )
+    if test_file is None:
+        test_file = Path(TEST_DATA_DIR / 'basic' /
+                         '0-ISMN.soil moisture_with_1-C3S.sm.nc')
+
     # Test that the transcriber raises an InvalidTemporalSubWindowError when the intra_annual_slices parameter is a faulty TemporalSubWindowsCreator instance
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
 
@@ -305,6 +320,19 @@ def test_faulty_intra_annual_slices(seasonal_tsws_incl_bulk,
             intra_annual_slices=TemporalSubWindowsCreator('gibberish'),
             keep_pytesmo_ncfile=False)
         ds.close()
+
+
+@log_function_call
+def test_temp_subwin_mismatch(seasonal_tsws_incl_bulk,
+                              tmp_paths,
+                              TEST_DATA_DIR,
+                              test_file: Optional[Path] = None):
+    logging.info(
+        f'test_temp_subwin_mismatch: {seasonal_tsws_incl_bulk=}, {tmp_paths=}, {TEST_DATA_DIR=}, {test_file=}'
+    )
+    if test_file is None:
+        test_file = Path(TEST_DATA_DIR / 'basic' /
+                         '0-ISMN.soil moisture_with_1-C3S.sm.nc')
 
     # Test that the transcriber raises a TemporalSubWindowMismatchError when the intra_annual_slices parameter is a TemporalSubWindowsCreator instance that does not match the temporal sub-windows in the pytesmo_results file
     tmp_test_file = get_tmp_single_test_file(test_file, tmp_paths)[0]
@@ -670,6 +698,77 @@ def test_plotting(seasonal_qa4sm_file, monthly_qa4sm_file, tmp_paths):
             tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'
         ).is_file(
         ), f"{tmp_monthly_dir / tsw / f'{tsw}_statistics_table.csv'} does not exist"
+
+
+@log_function_call
+def test_write_to_netcdf_default(TEST_DATA_DIR, tmp_paths):
+    temp_netcdf_file = get_tmp_single_test_file(
+        Path(TEST_DATA_DIR / 'basic' /
+             '0-ISMN.soil moisture_with_1-C3S.sm.nc'), tmp_paths)[0]
+    transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=temp_netcdf_file)
+
+    transcribed_ds = transcriber.get_transcribed_dataset()
+    # Write to NetCDF
+    transcriber.write_to_netcdf(temp_netcdf_file)
+
+    # Check if the file is created
+    assert os.path.exists(temp_netcdf_file)
+
+    # Close the datasets
+    transcriber.pytesmo_results.close()
+    transcriber.transcribed_dataset.close()
+    transcribed_ds.close()
+
+
+@log_function_call
+def test_write_to_netcdf_custom_encoding(TEST_DATA_DIR, tmp_paths):
+    temp_netcdf_file = get_tmp_single_test_file(
+        Path(TEST_DATA_DIR / 'basic' /
+             '0-ISMN.soil moisture_with_1-C3S.sm.nc'), tmp_paths)[0]
+    transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=temp_netcdf_file)
+
+    transcribed_ds = transcriber.get_transcribed_dataset()
+
+    custom_encoding = {
+        str(var): {
+            'zlib': True,
+            'complevel': 1
+        }
+        for var in transcribed_ds.variables
+        if not np.issubdtype(transcribed_ds[var].dtype, np.object_)
+    }
+
+    # Write to NetCDF with custom encoding
+    transcriber.write_to_netcdf(temp_netcdf_file, encoding=custom_encoding)
+
+    # Check if the file is created
+    assert os.path.exists(temp_netcdf_file)
+
+    # Close the datasets
+    transcriber.pytesmo_results.close()
+    transcriber.transcribed_dataset.close()
+    transcribed_ds.close()
+
+
+def test_get_transcribed_dataset(TEST_DATA_DIR, tmp_paths):
+    temp_netcdf_file = get_tmp_single_test_file(
+        Path(TEST_DATA_DIR / 'basic' /
+             '0-ISMN.soil moisture_with_1-C3S.sm.nc'), tmp_paths)[0]
+    transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=temp_netcdf_file)
+
+    # Get the transcribed dataset
+    transcribed_dataset = transcriber.get_transcribed_dataset()
+
+    # Check if the transcribed dataset is an xarray Dataset
+    assert isinstance(transcribed_dataset, xr.Dataset)
+
+    # Close the datasets
+    transcriber.pytesmo_results.close()
+    transcriber.transcribed_dataset.close()
+    transcribed_dataset.close()
 
 
 if __name__ == '__main__':
