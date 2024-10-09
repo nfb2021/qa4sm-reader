@@ -1,23 +1,24 @@
 name: qa4sm_reader
 channels:
-- defaults
-- conda-forge
+    - defaults
+    - conda-forge
 dependencies:
-- xarray
-- netcdf4
-- pandas
-- numpy
-- matplotlib
-- cartopy>=0.21
-- pyproj
-- h5netcdf
-- pip
-- pip:
-    - parse
-    - colorcet
-    - scipy
-    - seaborn
-    - pygeogrids
-    - pytest
-    - pytest-cov
-    - pytesmo
+    - xarray=2023.7.0 # A stable version with good support for NetCDF
+    - netcdf4=1.6.4 # Compatible version with xarray
+    - h5netcdf=1.1.0 # For compatibility with xarray's NetCDF handling
+    - hdf5=1.12.2 # Ensure the same version is used across platforms
+    - pandas=1.5.3 # Known to work well with the xarray version above
+    - numpy=1.24.4
+    - matplotlib=3.7.1
+    - cartopy>=0.21
+    - pyproj
+    - pip
+    - pip:
+          - parse
+          - colorcet
+          - scipy
+          - seaborn
+          - pygeogrids
+          - pytest
+          - pytest-cov
+          - pytesmo
