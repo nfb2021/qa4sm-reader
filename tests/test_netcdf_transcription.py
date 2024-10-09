@@ -428,8 +428,8 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
         logging.info(f"Successfully transcribed file: {ncf}")
         ds.close()
 
-    # if tmp_test_data_dir.exists():
-    #     shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
+    if tmp_test_data_dir.exists():
+        shutil.rmtree(tmp_test_data_dir, ignore_errors=True)
 
 
 #-------------------------------------------Test with intra-annual metrics---------------------------------------------
