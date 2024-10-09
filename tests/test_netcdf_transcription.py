@@ -407,8 +407,10 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
 @log_function_call
 def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
     # Test transcription of all original test data nc files (== bulk case files)
+    logging.info(f"{tmp_paths=}")
     tmp_test_data_dir, _ = get_tmp_whole_test_data_dir(TEST_DATA_DIR,
                                                        tmp_paths)
+    logging.info(f"{_=}")
     nc_files = [
         path for path in Path(tmp_test_data_dir).rglob('*.nc')
         if 'intra_annual' not in str(path)
@@ -850,12 +852,45 @@ def test_is_valid_tcol_metric_name(seasonal_pytesmo_file,
         assert mock_transcriber.is_valid_tcol_metric_name(metric_name) == False
 
 
-if __name__ == '__main__':
-    test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil_moisture_with_1-C3S.sm.nc')
-    transcriber, ds = run_test_transcriber(test_file,
-                                           intra_annual_slices=None,
-                                           keep_pytesmo_ncfile=True)
-    transcriber.pytesmo_results.close()
-    ds.close()
+def test_temporal_sub_windows_checker(seasonal_pytesmo_file,
+                                      seasonal_tsws_incl_bulk, seasonal_tsws):
 
-    test_bulk_case_transcription()
+    mock_transcriber = Pytesmo2Qa4smResultsTranscriber(
+        pytesmo_results=seasonal_pytesmo_file,
+        intra_annual_slices=seasonal_tsws_incl_bulk,
+        keep_pytesmo_ncfile=False)
+
+    #check bulk case
+    bulk_case_tsws = None
+    mock_transcriber.intra_annual_slices = bulk_case_tsws
+
+    assert mock_transcriber.temporal_sub_windows_checker() == (True, [
+        globals.DEFAULT_TSW
+    ])
+
+    # check partially wrong tsws
+    faulty_tsws = seasonal_tsws  # instance of TemporalSubWindowsCreator, but not the same as the one used in the transcriber
+    mock_transcriber.intra_annual_slices = faulty_tsws
+
+    assert mock_transcriber.temporal_sub_windows_checker() == (
+        False, mock_transcriber.provided_tsws)
+
+    # check completely wrong tsws
+    nonsense_tsws = ['faulty', 'tsws', 'and', 'more']
+    mock_transcriber.intra_annual_slices = nonsense_tsws
+
+    with pytest.raises(
+            InvalidTemporalSubWindowError(tsw=mock_transcriber.provided_tsws,
+                                          valid_tsw=seasonal_tsws_incl_bulk)):
+        mock_transcriber.temporal_sub_windows_checker()
+
+
+if __name__ == '__main__':
+    test_file = Path('/tmp/test_dir/0-ISMN.soil_moisture_with_1-C3S.sm.nc')
+    # transcriber, ds = run_test_transcriber(test_file,
+    #                                        intra_annual_slices=None,
+    #                                        keep_pytesmo_ncfile=True)
+    # transcriber.pytesmo_results.close()
+    # ds.close()
+
+    test_bulk_case_transcription(test_file.parent, [])
