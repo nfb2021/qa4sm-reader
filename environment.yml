@@ -3,11 +3,11 @@ channels:
     - defaults
     - conda-forge
 dependencies:
-    - python>=3.8,<3.12 # Specify supported Python versions
+    - python=3.10 # Specify the Python version directly for better resolution
     - xarray=2023.7.0 # Newer version with enhanced features and bug fixes
-    - netcdf4=1.6.4 # Compatible version with the newer xarray
+    - netcdf4=1.6.4=nompi_* # Use the nompi variant to avoid MPI-related issues
     - h5netcdf=1.1.0 # Updated for better compatibility with xarray
-    - hdf5=1.12.2 # Stable version across platforms
+    - hdf5=1.12.2=nompi_* # Use the nompi variant for compatibility
     - pandas=2.0.3 # Compatible with newer xarray versions
     - numpy=1.25.2 # Ensure compatibility with pandas and xarray
     - matplotlib=3.7.2 # Updated to match other dependencies
