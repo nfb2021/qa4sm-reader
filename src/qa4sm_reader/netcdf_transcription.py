@@ -535,15 +535,13 @@ class Pytesmo2Qa4smResultsTranscriber:
         """
         # Default encoding applied to all variables
         if encoding is None:
-            encoding = {
-                str(var): {
-                    'zlib': True,
-                    'complevel': 1
-                }
-                for var in self.transcribed_dataset.variables
+            encoding = {}
+            for var in self.transcribed_dataset.variables:
                 if not np.issubdtype(self.transcribed_dataset[var].dtype,
-                                     np.object_)
-            }
+                              np.object_):
+                    encoding[str(var)] = {'zlib': True, 'complevel': 1}
+                else:
+                    encoding[str(var)] = {'zlib': False}
 
             #     # Explicitly set no compression for 'climate_KG'
             #     encoding['climate_KG'] = {

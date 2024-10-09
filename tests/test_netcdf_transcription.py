@@ -412,7 +412,7 @@ def test_bulk_case_transcription(TEST_DATA_DIR, tmp_paths):
                                                        tmp_paths)
     nc_files = [
         Path(x)
-        for x in glob(str(tmp_test_data_dir / '**/*.nc'), recursive=True)
+        for x in glob(str(tmp_test_data_dir / '**' / '*.nc'), recursive=True)
         if 'intra_annual' not in x
     ]
     logging.info(f"Found {len(nc_files)} .nc files for transcription.")
@@ -851,7 +851,6 @@ def test_is_valid_tcol_metric_name(seasonal_pytesmo_file,
 
     for metric_name in tcol_metrics_not_transcribed:
         assert mock_transcriber.is_valid_tcol_metric_name(metric_name) == False
-
 
 if __name__ == '__main__':
     test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil moisture_with_1-C3S.sm.nc')
