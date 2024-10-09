@@ -8,8 +8,7 @@ from datetime import datetime
 import xarray as xr
 import shutil
 from pathlib import Path
-from glob import glob
-from typing import Generator, Union, Optional, Tuple, List, Callable
+from typing import Union, Optional, Tuple, List
 import logging
 import numpy as np
 import tempfile
@@ -496,7 +495,6 @@ def test_correct_file_transcription(seasonal_pytesmo_file, seasonal_qa4sm_file,
 
     #!NOTE: pytesmo/QA4SM offer the possibility to calculate Kendall's tau, but currently this metric is deactivated.
     #!      Therefore, in a real validation run no tau related metrics will be transcribed to the QA4SM file, even though they might be present in the pytesmo file.
-    #!      The "expected results file" for monthly windows does NOT contain the tau related metrics, BUT the one for seasonal windows DOES.
 
     # drop the tau related metrics from the expected datasets
     for var in expected_seasonal_ds.data_vars:
@@ -703,7 +701,7 @@ def test_plotting(seasonal_qa4sm_file, monthly_qa4sm_file, tmp_paths):
 
 @log_function_call
 def test_write_to_netcdf_default(TEST_DATA_DIR, tmp_paths):
-    temp_netcdf_file = get_tmp_single_test_file(
+    temp_netcdf_file: Path = get_tmp_single_test_file(
         Path(TEST_DATA_DIR / 'basic' /
              '0-ISMN.soil moisture_with_1-C3S.sm.nc'), tmp_paths)[0]
     transcriber = Pytesmo2Qa4smResultsTranscriber(
@@ -714,7 +712,7 @@ def test_write_to_netcdf_default(TEST_DATA_DIR, tmp_paths):
     transcriber.write_to_netcdf(temp_netcdf_file)
 
     # Check if the file is created
-    assert os.path.exists(temp_netcdf_file)
+    assert temp_netcdf_file.exists()
 
     # Close the datasets
     transcriber.pytesmo_results.close()
@@ -724,7 +722,7 @@ def test_write_to_netcdf_default(TEST_DATA_DIR, tmp_paths):
 
 @log_function_call
 def test_write_to_netcdf_custom_encoding(TEST_DATA_DIR, tmp_paths):
-    temp_netcdf_file = get_tmp_single_test_file(
+    temp_netcdf_file: Path = get_tmp_single_test_file(
         Path(TEST_DATA_DIR / 'basic' /
              '0-ISMN.soil moisture_with_1-C3S.sm.nc'), tmp_paths)[0]
     transcriber = Pytesmo2Qa4smResultsTranscriber(
@@ -745,7 +743,7 @@ def test_write_to_netcdf_custom_encoding(TEST_DATA_DIR, tmp_paths):
     transcriber.write_to_netcdf(temp_netcdf_file, encoding=custom_encoding)
 
     # Check if the file is created
-    assert os.path.exists(temp_netcdf_file)
+    assert temp_netcdf_file.exists()
 
     # Close the datasets
     transcriber.pytesmo_results.close()
@@ -853,7 +851,7 @@ def test_is_valid_tcol_metric_name(seasonal_pytesmo_file,
         assert mock_transcriber.is_valid_tcol_metric_name(metric_name) == False
 
 if __name__ == '__main__':
-    test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil moisture_with_1-C3S.sm.nc')
+    test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil_moisture_with_1-C3S.sm.nc')
     transcriber, ds = run_test_transcriber(test_file,
                                            intra_annual_slices=None,
                                            keep_pytesmo_ncfile=True)
