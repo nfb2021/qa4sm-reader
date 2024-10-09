@@ -851,7 +851,7 @@ def test_is_valid_tcol_metric_name(seasonal_pytesmo_file,
 
 
 if __name__ == '__main__':
-    test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil moisture_with_1-C3S.sm.nc')
+    test_file = Path('/tmp/qa4sm/basic/0-ISMN.soil_moisture_with_1-C3S.sm.nc')
     transcriber, ds = run_test_transcriber(test_file,
                                            intra_annual_slices=None,
                                            keep_pytesmo_ncfile=True)

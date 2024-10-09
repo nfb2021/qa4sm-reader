@@ -3,15 +3,16 @@ channels:
     - defaults
     - conda-forge
 dependencies:
-    - xarray=0.21.1 # specify version that handles string data variables on Windows
-    - netcdf4=1.6.4 # specify version
-    - pandas
-    - numpy
-    - matplotlib
+    - python>=3.8,<3.12 # Specify supported Python versions
+    - xarray=0.21.1 # A stable version for handling NetCDF on different platforms
+    - netcdf4=1.6.2 # A compatible version with xarray and hdf5 for most Python versions
+    - h5netcdf=1.0.2 # A stable version for use with xarray
+    - hdf5=1.12.2 # Ensure consistency across platforms
+    - pandas=1.5.3 # Compatible with xarray 0.21.1
+    - numpy=1.23.5 # Stable version compatible with pandas and xarray
+    - matplotlib=3.5.3 # Known to work well with the chosen xarray version
     - cartopy>=0.21
     - pyproj
-    - h5netcdf
-    - hdf5=1.12.2 # specify version
     - pip
     - pip:
           - parse
