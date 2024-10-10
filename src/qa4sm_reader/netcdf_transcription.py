@@ -420,11 +420,11 @@ class Pytesmo2Qa4smResultsTranscriber:
 
         fname = "_with_".join(ds_names)
         ext = "nc"
-        if len(Path(root) / f"{fname}.{ext}") > 255:
+        if len(str(Path(root) / f"{fname}.{ext}")) > 255:
             ds_names = [str(ds[0]) for ds in key]
             fname = "_with_".join(ds_names)
 
-            if len(Path(root) / f"{fname}.{ext}") > 255:
+            if len(str(Path(root) / f"{fname}.{ext}")) > 255:
                 fname = "validation"
         self.outname = Path(root) / f"{fname}.{ext}"
         return self.outname
