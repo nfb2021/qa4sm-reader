@@ -1839,7 +1839,7 @@ class QA4SMCompPlotter:
         legend_handles = []
         for dc_num, (dc_val_name, Var) in enumerate(Vars.items()):
             _df = Var.values  # get the dataframe for the specific metric, potentially with NaNs
-            _df = sanitize_dataframe(_df)  # sanitize the dataframe
+            _df = sanitize_dataframe(_df, keep_empty_cols=True)  # sanitize the dataframe
             bp = cbp_fig.ax_box.boxplot(
                 [_df[col] for col in _df.columns],
                 positions=centers_and_widths[dc_num].centers,
@@ -1913,7 +1913,11 @@ class QA4SMCompPlotter:
 
         def get_valid_gpis(df: pd.DataFrame) -> int:
 
-            return list({x for x in df.count() if x > 0})[0]
+            try:
+                out = list({x for x in df.count() if x > 0})[0]
+            except IndexError: # if all values are NaN
+                out = 0
+            return out
 
         title = title[0:-2] + f'\n for the same {get_valid_gpis(_df)} out of {len(metric_df)} GPIs\n'
 
