@@ -570,7 +570,7 @@ class QA4SMComparison:
             columns=columns,
         )
 
-        table = table.map(plm._format_floats)
+        table = table.applymap(plm._format_floats)
 
         return table
 

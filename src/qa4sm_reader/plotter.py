@@ -119,7 +119,7 @@ class QA4SMPlotter:
         ds_parts = []
         id, meta = mds_meta
         if tc:
-            id, meta = other_meta  # show name of the OTHER dataset
+            id, meta = other_meta   # show name of the OTHER dataset
         if short_caption:
             ds_parts.append(
                 f"{id}-{meta['pretty_name']} ({meta['pretty_version']})")
@@ -414,13 +414,13 @@ class QA4SMPlotter:
 
         # fig.tight_layout()
 
-        plm.add_logo_to_figure(
-            fig=fig,
-            logo_path=globals.watermark_logo_pth,
-            position=globals.watermark_logo_position,
-            offset=globals.watermark_logo_offset_box_plots,
-            scale=globals.watermark_logo_scale,
-        )
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_box_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
+
 
         return fig, ax
 
@@ -465,17 +465,14 @@ class QA4SMPlotter:
         ax.set_title(title, pad=globals.title_pad)
 
         # add watermark
-        plm.add_logo_to_figure(
-            fig=fig,
-            logo_path=globals.watermark_logo_pth,
-            position=globals.watermark_logo_position,
-            offset=globals.watermark_logo_offset_bar_plots,
-            scale=globals.watermark_logo_scale,
-        )
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_bar_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
 
-    def _save_plot(self,
-                   out_name: str,
-                   out_types: Optional[Union[List[str], str]] = 'png') -> list:
+    def _save_plot(self, out_name: str, out_types: Optional[Union[List[str], str]] = 'png') -> list:
         """
         Save plot with name to self.out_dir
 
@@ -767,8 +764,7 @@ class QA4SMPlotter:
             metric=metric,
             ref_short=ref_meta[1]['short_name'],
             ref_grid_stepsize=ref_grid_stepsize,
-            plot_extent=
-            None,  # if None, extent is automatically adjusted (as opposed to img.extent)
+            plot_extent=None,  # if None, extent is automatically adjusted (as opposed to img.extent)
             scl_short=scl_short,
             **style_kwargs)
 
@@ -806,13 +802,12 @@ class QA4SMPlotter:
         # use title for plot, make watermark
         ax.set_title(title, pad=globals.title_pad)
 
-        plm.add_logo_to_figure(
-            fig=fig,
-            logo_path=globals.watermark_logo_pth,
-            position=globals.watermark_logo_position,
-            offset=globals.watermark_logo_offset_map_plots,
-            scale=globals.watermark_logo_scale,
-        )
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_map_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
 
         # save file or just return the image
         if save_files:
@@ -988,6 +983,7 @@ class QA4SMPlotter:
                 colmean = values.pop(col).mean(axis=1, skipna=True)
                 values[col] = colmean
 
+
         out = plm.boxplot_metadata(df=values,
                                    metadata_values=meta_values,
                                    ax_label=Var.Metric.pretty_name + mu,
@@ -1144,13 +1140,12 @@ class QA4SMPlotter:
 
         fig.subplots_adjust(bottom=0.2)
 
-        plm.add_logo_to_figure(
-            fig=fig,
-            logo_path=globals.watermark_logo_pth,
-            position=globals.watermark_logo_position,
-            offset=globals.watermark_logo_offset_metadata_plots,
-            scale=globals.watermark_logo_scale,
-        )
+        plm.add_logo_to_figure(fig = fig,
+                               logo_path = globals.watermark_logo_pth,
+                               position = globals.watermark_logo_position,
+                               offset = globals.watermark_logo_offset_metadata_plots,
+                               scale = globals.watermark_logo_scale,
+                               )
 
         if save_file:
             out_name = self._filenames_lut("metadata").format(
@@ -1236,7 +1231,6 @@ class QA4SMPlotter:
         table.to_csv(path_or_buf=filepath)
 
         return filepath
-
 
 #$$
 class QA4SMCompPlotter:
@@ -1379,10 +1373,10 @@ class QA4SMCompPlotter:
             pattern = globals.METRIC_TEMPLATE.format(
                 ds1=
                 '(?P<ds1>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), \
-                # followed by one or more word characters (\w+)
+                                     # followed by one or more word characters (\w+)
                 ds2=
                 '(?P<ds2>\d+-\w+)',  # matches one or more digits (\d+), followed by a hyphen (-), \
-                # followed by one or more word characters (\w+)
+                                     # followed by one or more word characters (\w+)
             )
 
             match = re.search(pattern, metric_string)
@@ -1438,8 +1432,8 @@ class QA4SMCompPlotter:
         """
 
         temp_sub_wins_names = [
-            tsw for tsw in self.ds.coords[
-                globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values
+            tsw
+            for tsw in self.ds.coords[globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME].values
             if tsw != globals.DEFAULT_TSW
         ]
 
@@ -1507,7 +1501,8 @@ class QA4SMCompPlotter:
     @staticmethod
     @note(
         "This method is redundant, as it yields the same result as `QA4SMCompPlotter.tsws_used()`. \
-        It is kept as a static method for debugging purposes.")
+        It is kept as a static method for debugging purposes."
+    )
     def get_tsws_from_df(df: pd.DataFrame) -> List[str]:
         """
         Get all temporal sub-windows used in the validation from a DataFrame as returned by \
@@ -1693,11 +1688,9 @@ class QA4SMCompPlotter:
 
             yield Var
 
-    def plot_cbp(
-        self,
-        chosen_metric: str,
-        out_name: Optional[Union[List, List[str]]] = None
-    ) -> matplotlib.figure.Figure:
+    def plot_cbp(self,
+                 chosen_metric: str,
+                 out_name: Optional[Union[List, List[str]]] = None) -> matplotlib.figure.Figure:
         """
         Plot a Clustered Boxplot for a chosen metric
 
@@ -1744,7 +1737,6 @@ class QA4SMCompPlotter:
                     unit=Var.metric_ds[1]["mu"])
                 for Var in get_metric_vars(generic_metric).values()
             }
-
         def sanitize_dataframe(df: pd.DataFrame,
                                column_threshold: float = 0.1,
                                row_threshold_fraction: float = 0.8,
@@ -1847,8 +1839,7 @@ class QA4SMCompPlotter:
         legend_handles = []
         for dc_num, (dc_val_name, Var) in enumerate(Vars.items()):
             _df = Var.values  # get the dataframe for the specific metric, potentially with NaNs
-            _df = sanitize_dataframe(
-                _df, keep_empty_cols=True)  # sanitize the dataframe
+            _df = sanitize_dataframe(_df, keep_empty_cols=True)  # sanitize the dataframe
             bp = cbp_fig.ax_box.boxplot(
                 [_df[col] for col in _df.columns],
                 positions=centers_and_widths[dc_num].centers,
@@ -1924,39 +1915,31 @@ class QA4SMCompPlotter:
 
             try:
                 out = list({x for x in df.count() if x > 0})[0]
-            except IndexError:  # if all values are NaN
+            except IndexError: # if all values are NaN
                 out = 0
             return out
 
-        title = title[
-            0:
-            -2] + f'\n for the same {get_valid_gpis(_df)} out of {len(metric_df)} GPIs\n'
+        title = title[0:-2] + f'\n for the same {get_valid_gpis(_df)} out of {len(metric_df)} GPIs\n'
 
         cbp_fig.fig.suptitle(
             title,
             fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
             ['title_fontsize'])
-
+        
         cbp_fig.ax_box.set_ylabel(
             self.create_label(Var),
             fontsize=globals.CLUSTERED_BOX_PLOT_STYLE['fig_params']
             ['y_labelsize'],
         )
 
-        spth = [
-            Path(
-                f"{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = chosen_metric, filetype = 'png')}"
-            )
-        ]
+        spth = [Path(f"{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric = chosen_metric, filetype = 'png')}")]
         if out_name:
             spth = out_name
 
-        [
-            cbp_fig.fig.savefig(
-                fname=outname,
-                dpi=fig_kwargs['dpi'],
-                bbox_inches=fig_kwargs['bbox_inches'],
-            ) for outname in spth
-        ]
+        [cbp_fig.fig.savefig(
+            fname=outname,
+            dpi=fig_kwargs['dpi'],
+            bbox_inches=fig_kwargs['bbox_inches'],
+        ) for outname in spth]
 
         return cbp_fig.fig
