@@ -192,3 +192,13 @@ def get_img_stats(
     table = img.stats_df()
 
     return table
+
+
+if __name__ == '__main__':
+    from pathlib import Path
+
+    pth = Path('/home/nbader/Documents/QA4SM_tasks/jira-744/verification_report/0c4fc00e-3c32-4024-882e-36e4998837c6 (copy)/0-SMAP_L3.soil_moisture_with_1-SMOS_L3.Soil_Moisture_with_2-ERA5_LAND.swvl1.nc')
+    
+    plot_all(filepath=pth,
+             out_dir=pth.parent,
+             out_type='png')
