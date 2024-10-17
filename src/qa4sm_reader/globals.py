@@ -804,7 +804,7 @@ CLUSTERED_BOX_PLOT_STYLE = {
 
 CLUSTERED_BOX_PLOT_SAVENAME = 'comparison_boxplot_{metric}.{filetype}'
 
-CLUSTERD_BOX_PLOT_OUTDIR = 'comparison_boxplots'
+CLUSTERED_BOX_PLOT_OUTDIR = 'comparison_boxplots'
 
 # netCDF transcription related settings
 # =====================================================
