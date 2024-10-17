@@ -1869,7 +1869,7 @@ class QA4SMCompPlotter:
                 [dc_num])
 
             for median in bp['medians']:
-                median.set(color='black', linewidth=2)
+                median.set(color='black', linewidth=1.5)
 
         if self.cbp.no_of_ds >= 3:
             _ncols = 3
@@ -1915,7 +1915,7 @@ class QA4SMCompPlotter:
 
             return list({x for x in df.count() if x > 0})[0]
 
-        title = title[0:-2] + f'\n for the same {get_valid_gpis(_df)} GPIs\n'
+        title = title[0:-2] + f'\n for the same {get_valid_gpis(_df)} out of {len(metric_df)} GPIs\n'
 
         cbp_fig.fig.suptitle(
             title,
