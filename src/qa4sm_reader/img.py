@@ -10,6 +10,7 @@ import xarray as xr
 import pandas as pd
 from typing import Union, Tuple, Optional
 
+
 class SpatialExtentError(Exception):
     """Class to handle errors derived from the spatial extent of validations"""
     pass
@@ -17,6 +18,7 @@ class SpatialExtentError(Exception):
 
 class QA4SMImg(object):
     """A tool to analyze the results of a validation, which are stored in a netCDF file."""
+
     def __init__(self,
                  filepath,
                  period=globals.DEFAULT_TSW,
@@ -72,7 +74,10 @@ class QA4SMImg(object):
             except AttributeError:
                 self.ref_dataset_grid_stepsize = 'nan'
 
-    def _open_ds(self, extent: Optional[Tuple]=None, period:Optional[str]=globals.DEFAULT_TSW, engine:Optional[str]='h5netcdf') -> xr.Dataset:
+    def _open_ds(self,
+                 extent: Optional[Tuple] = None,
+                 period: Optional[str] = globals.DEFAULT_TSW,
+                 engine: Optional[str] = 'h5netcdf') -> xr.Dataset:
         """Open .nc as `xarray.Datset`, with selected extent and period.
 
         Parameters
@@ -99,8 +104,9 @@ class QA4SMImg(object):
         if not globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME in dataset.dims:
             dataset = transcribe(self.filepath)
 
-
-        selection = {globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME: period}  # allows for flexible loading of both the dimension and temproal sub-window
+        selection = {
+            globals.TEMPORAL_SUB_WINDOW_NC_COORD_NAME: period
+        }  # allows for flexible loading of both the dimension and temproal sub-window
         ds = dataset.sel(selection)
         # drop non-spatial variables (e.g.'time')
         if globals.time_name in ds.variables:
@@ -333,7 +339,9 @@ class QA4SMImg(object):
 
         return vars
 
-    def group_metrics(self, metrics: list = None) -> Union[None, Tuple[dict, dict, dict]]:
+    def group_metrics(
+            self,
+            metrics: list = None) -> Union[None, Tuple[dict, dict, dict]]:
         """
         Load and group all metrics from file
 
@@ -550,7 +558,7 @@ class QA4SMImg(object):
         stats_df.set_index('Metric', inplace=True)
         stats_df.sort_values(by='Group', inplace=True)
         # format the numbers for display
-        stats_df = stats_df.applymap(_format_floats)
+        stats_df = stats_df.map(_format_floats)
         stats_df.drop(labels='Group', axis='columns', inplace=True)
 
         return stats_df

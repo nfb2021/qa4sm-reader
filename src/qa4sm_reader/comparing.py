@@ -20,6 +20,7 @@ class QA4SMComparison:
     Class that provides comparison plots and table for a list of netCDF files. As initialising a QA4SMImage can
     take some time, the class can be updated keeping memory of what has already been initialized
     """
+
     def __init__(self,
                  paths: Union[list, str],
                  extent: tuple = None,
@@ -369,9 +370,7 @@ class QA4SMComparison:
                     if self.single_image:
                         id = n
                     col_name = "Val{}: {} ".format(
-                        id,
-                        QA4SMPlotter._box_caption(Var,
-                                                  short_caption=True))
+                        id, QA4SMPlotter._box_caption(Var, short_caption=True))
                     data = data.rename(col_name)
                     varnames["varlist"].append(data)
                     n += 1
@@ -570,7 +569,7 @@ class QA4SMComparison:
             columns=columns,
         )
 
-        table = table.applymap(plm._format_floats)
+        table = table.map(plm._format_floats)
 
         return table
 

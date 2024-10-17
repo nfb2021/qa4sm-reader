@@ -26,7 +26,6 @@ import matplotlib.ticker as mticker
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch, PathPatch
 
-
 from cartopy import config as cconfig
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -38,7 +37,6 @@ from shapely.geometry import Polygon, Point
 import warnings
 import os
 from collections import namedtuple
-
 
 cconfig['data_dir'] = os.path.join(os.path.dirname(__file__), 'cartopy')
 
@@ -323,7 +321,11 @@ def get_plot_extent(df, grid_stepsize=None, grid=False) -> tuple:
     return extent
 
 
-def init_plot(figsize, dpi, add_cbar=None, projection=None, fig_template = None) -> tuple:
+def init_plot(figsize,
+              dpi,
+              add_cbar=None,
+              projection=None,
+              fig_template=None) -> tuple:
     """Initialize mapplot"""
     if not projection:
         projection = globals.crs
@@ -335,7 +337,6 @@ def init_plot(figsize, dpi, add_cbar=None, projection=None, fig_template = None)
         fig = fig_template.fig
         ax_main = fig_template.ax_main
 
-
     if add_cbar:
         gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[19, 1])
         ax_main = fig.add_subplot(gs[0], projection=projection)
@@ -346,6 +347,7 @@ def init_plot(figsize, dpi, add_cbar=None, projection=None, fig_template = None)
         cax = None
 
     return fig, ax_main, cax
+
 
 def get_extend_cbar(metric):
     """
@@ -465,7 +467,6 @@ def style_map(
     return ax
 
 
-
 @note(
     "DeprecationWarning: The function `qa4sm_reader.plotting_methods.make_watermark()` is deprecated and will be removed in the next release. Use `qa4sm_reader.plotting_methods.add_logo_to_figure` instead to add a logo."
 )
@@ -548,13 +549,18 @@ def make_watermark(fig,
     else:
         raise NotImplementedError
 
+
 #$$
-Offset = namedtuple('offset', ['x', 'y']) # helper for offset in add_logo_to_figure
-def add_logo_to_figure(fig: matplotlib.figure.Figure,
-                       logo_path: Optional[str] = globals.watermark_logo_pth,
-                       position: Optional[str] = globals.watermark_logo_position,
-                       offset: Optional[Union[Tuple, Offset]] = (0., -0.15),
-                       scale: Optional[float] = 0.15) -> None:
+Offset = namedtuple('offset',
+                    ['x', 'y'])  # helper for offset in add_logo_to_figure
+
+
+def add_logo_to_figure(
+        fig: matplotlib.figure.Figure,
+        logo_path: Optional[str] = globals.watermark_logo_pth,
+        position: Optional[str] = globals.watermark_logo_position,
+        offset: Optional[Union[Tuple, Offset]] = (0., -0.15),
+        scale: Optional[float] = 0.15) -> None:
     """
     Add a logo to an existing figure. This is done by creating an additional axis in the figure, at the location\
         specified by `position`. The logo is then placed on this axis.
@@ -590,8 +596,12 @@ def add_logo_to_figure(fig: matplotlib.figure.Figure,
         fig.add_subplot(111)
 
     if not os.path.exists(logo_path):
-        warnings.warn(f"No logo found at the specified path: '{logo_path}'. Skipping logo addition.")
-        print(f"No logo found at the specified path: '{logo_path}'. Skipping logo addition.")
+        warnings.warn(
+            f"No logo found at the specified path: '{logo_path}'. Skipping logo addition."
+        )
+        print(
+            f"No logo found at the specified path: '{logo_path}'. Skipping logo addition."
+        )
         return
 
     with cbook.get_sample_data(logo_path) as file:
@@ -610,7 +620,6 @@ def add_logo_to_figure(fig: matplotlib.figure.Figure,
 
     if not isinstance(offset, Offset):
         offset = Offset(*offset)
-
 
     if 'left' in position:
         left = 1 - (logo_width_fig) + offset.x
@@ -1109,7 +1118,7 @@ def bin_classes(
         dictionary with metadata subsets as keys
     """
     classes_lut = globals.metadata[meta_key][1]
-    grouped = metadata_values.applymap(lambda x: classes_lut[x])
+    grouped = metadata_values.map(lambda x: classes_lut[x])
     binned = {}
     for meta_class, meta_df in grouped.groupby(meta_key).__iter__():
         bin_df = df.loc[meta_df.index]
@@ -1387,7 +1396,7 @@ def _dict2df(to_plot_dict: dict, meta_key: str) -> pd.DataFrame:
 
 def add_cat_info(to_plot: pd.DataFrame, metadata_name: str) -> pd.DataFrame:
     """Add info (N, median value) to metadata category labels"""
-    groups = to_plot.groupby(metadata_name)["values"]#
+    groups = to_plot.groupby(metadata_name)["values"]  #
     counts = {}
     for name, group in groups:
         counts[name] = group[~group.index.duplicated(keep='first')].index.size
@@ -1554,7 +1563,6 @@ def boxplot_metadata(
     elif isinstance(to_plot, pd.DataFrame):
         generate_plot = bplot_catplot
 
-
     out = generate_plot(
         to_plot=to_plot,
         y_axis=ax_label,
@@ -1570,20 +1578,22 @@ def boxplot_metadata(
         return fig, axes
 
 
-def mapplot(df: pd.DataFrame,
-            metric: str,
-            ref_short : str,
-            scl_short: Optional[str] = None,
-            ref_grid_stepsize: Optional[float] = None,
-            plot_extent: Optional[Tuple[float, float, float, float]] = None,
-            colormap=None,
-            projection: Optional[ccrs.Projection] = None,
-            add_cbar: Optional[bool] = True,
-            label: Optional[str] = None,
-            figsize: Optional[Tuple[float, float]] = globals.map_figsize,
-            dpi: Optional[int] = globals.dpi_min,
-            diff_map: Optional[bool] = False,
-            **style_kwargs: Dict) -> Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]:
+def mapplot(
+    df: pd.DataFrame,
+    metric: str,
+    ref_short: str,
+    scl_short: Optional[str] = None,
+    ref_grid_stepsize: Optional[float] = None,
+    plot_extent: Optional[Tuple[float, float, float, float]] = None,
+    colormap=None,
+    projection: Optional[ccrs.Projection] = None,
+    add_cbar: Optional[bool] = True,
+    label: Optional[str] = None,
+    figsize: Optional[Tuple[float, float]] = globals.map_figsize,
+    dpi: Optional[int] = globals.dpi_min,
+    diff_map: Optional[bool] = False,
+    **style_kwargs: Dict
+) -> Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]:
     """
         Create an overview map from df using values as color. Plots a scatterplot for ISMN and an image plot for other
         input values.
@@ -1953,6 +1963,7 @@ def average_non_additive(values: Union[pd.Series, np.array],
     # Back transform the result
     return np.tanh(mean)
 
+
 #$$
 class ClusteredBoxPlot:
     """
@@ -2089,15 +2100,16 @@ class ClusteredBoxPlot:
             except AttributeError:
                 pass
 
-        add_logo_to_figure(fig = _fig,
-                        logo_path = globals.watermark_logo_pth,
-                        position = globals.watermark_logo_position,
-                        offset = globals.watermark_logo_offset_comp_plots,
-                        scale = globals.watermark_logo_scale,
-                        )
+        add_logo_to_figure(
+            fig=_fig,
+            logo_path=globals.watermark_logo_pth,
+            position=globals.watermark_logo_position,
+            offset=globals.watermark_logo_offset_comp_plots,
+            scale=globals.watermark_logo_scale,
+        )
 
         return ClusteredBoxPlotContainer(fig=_fig,
-                                        ax_box=ax_box,
-                                        ax_median=ax_median,
-                                        ax_iqr=ax_iqr,
-                                        ax_n=ax_n)
+                                         ax_box=ax_box,
+                                         ax_median=ax_median,
+                                         ax_iqr=ax_iqr,
+                                         ax_n=ax_n)
