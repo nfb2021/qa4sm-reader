@@ -150,13 +150,13 @@ def plot_all(filepath: str,
     metrics_not_to_plot = list(set(chain(globals._metadata_exclude, globals.metric_groups[3], ['n_obs']))) # metadata, tcol metrics, n_obs
     if globals.DEFAULT_TSW in periods and len(periods) > 1:
         cbp = QA4SMCompPlotter(filepath)
-        if not os.path.isdir(os.path.join(out_dir, 'comparison_boxplots')):
-            os.makedirs(os.path.join(out_dir, 'comparison_boxplots'))
+        if not os.path.isdir(os.path.join(out_dir, globals.CLUSTERD_BOX_PLOT_OUTDIR)):
+            os.makedirs(os.path.join(out_dir, globals.CLUSTERD_BOX_PLOT_OUTDIR))
 
         for available_metric in cbp.metric_kinds_available:
             if available_metric in metrics.keys(
             ) and available_metric not in metrics_not_to_plot:
-                spth = [Path(out_dir) / 'comparison_boxplots' /
+                spth = [Path(out_dir) / globals.CLUSTERD_BOX_PLOT_OUTDIR /
                         f'{globals.CLUSTERED_BOX_PLOT_SAVENAME.format(metric=available_metric, filetype=_out_type)}'
                         for _out_type in out_type]
                 _fig = cbp.plot_cbp(
@@ -193,12 +193,3 @@ def get_img_stats(
 
     return table
 
-
-if __name__ == '__main__':
-    from pathlib import Path
-
-    pth = Path('/home/nbader/Documents/QA4SM_tasks/jira-744/verification_report/0c4fc00e-3c32-4024-882e-36e4998837c6 (copy)/0-SMAP_L3.soil_moisture_with_1-SMOS_L3.Soil_Moisture_with_2-ERA5_LAND.swvl1.nc')
-    
-    plot_all(filepath=pth,
-             out_dir=pth.parent,
-             out_type='png')
