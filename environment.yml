@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   # Core dependencies, aligning with the qa4sm environment
-  - python=3.12
+#   - python=3.12
   - xarray=2024.3.0
   - netcdf4
   - pandas
