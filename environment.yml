@@ -3,14 +3,14 @@ channels:
 - defaults
 - conda-forge
 dependencies:
-- xarray
+- xarray>=2024.0.0
 - netcdf4
 - pandas
-- numpy<2
+- numpy
 - matplotlib
-- cartopy>=0.21
+- cartopy>=0.23.0
 - pyproj
-- h5netcdf
+- h5netcdf>=1.4.1
 - pip
 - pip:
     - parse
@@ -21,3 +21,4 @@ dependencies:
     - pytest
     - pytest-cov
     - pytesmo
+    - cftime>=1.6.4
