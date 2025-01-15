@@ -1,17 +1,11 @@
-# This workflow will install Python dependencies and run tests on
-# windows and linux systems with a variety of Python versions
-
-# For more information see:
-# https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
 name: CI/CD
 
 on:
-    push:
-    pull_request:
-    workflow_dispatch:
-    schedule: # only upstream, won't trigger on forks!
-        - cron: '0 0 * * *' # daily
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Daily
 
 jobs:
   build:
@@ -19,26 +13,38 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ '3.8', '3.11', '3.12']
-        os: ["ubuntu-latest"]
-        ymlfile: ["environment.yml"]
+        python-version: ['3.8', '3.11', '3.12']
+        os: ['ubuntu-latest']
+        ymlfile: ['environment.yml']
         include:
-          - os: "windows-latest"
-            python-version: "3.12"
-            ymlfile: "environment.yml"
+          - os: 'windows-latest'
+            python-version: '3.12'
+            ymlfile: 'environment.yml'
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+
       - uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          environment-file: ${{ matrix.ymlfile }}
-          activate-environment: qa4sm_reader # todo: must match with name in environment.yml
-          auto-activate-base: false
-      - name: Print environment infos
+
+      - name: Update Conda and Verify Channels
+        shell: bash -l {0}
+        run: |
+          conda install -y -n base -c conda-forge conda
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+
+      - name: Create or Update Environment
+        shell: bash -l {0}
+        run: |
+          conda env create -f ${{ matrix.ymlfile }} || conda env update -f ${{ matrix.ymlfile }}
+          conda activate qa4sm_reader
+
+      - name: Print Environment Information
         shell: bash -l {0}
         run: |
           conda info -a
@@ -46,18 +52,21 @@ jobs:
           pip list
           which pip
           which python
+
       - name: Export Environment
         shell: bash -l {0}
         run: |
           mkdir -p artifacts
           filename=env_py${{ matrix.python-version }}_${{ matrix.os }}.yml
           conda env export --no-builds | grep -v "prefix" > artifacts/$filename
-      - name: Install package and test
+
+      - name: Install Package and Run Tests
         shell: bash -l {0}
         run: |
           pip install -e .
           pytest
-      - name: Create wheel and dist package
+
+      - name: Create Wheel and Distribution Package
         shell: bash -l {0}
         run: |
           pip install -U setuptools
@@ -67,11 +76,13 @@ jobs:
           python setup.py bdist_wheel --dist-dir artifacts/dist
           ls artifacts/dist
           twine check artifacts/dist/*
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Artifacts-py${{ matrix.python-version }}-${{ matrix.os }}
           path: artifacts/*
+
       - name: Upload Coverage
         shell: bash -l {0}
         run: |
@@ -95,25 +106,27 @@ jobs:
 
   publish-pypi-package:
     name: Publish PyPI 🚀
-    # Will only trigger when Tests have passed on release/tag from the TUW-GEO repository
     if: |
       startsWith(github.ref, 'refs/tags/v') &&
       startsWith(github.repository, 'awst-austria')
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Print environment variables
+      - name: Print Environment Variables
         run: |
           echo "GITHUB_REF = $GITHUB_REF"
           echo "GITHUB_REPOSITORY = $GITHUB_REPOSITORY"
+
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: Artifacts
           pattern: Artifacts-*
           merge-multiple: true
-      - name: Display downloaded files
+
+      - name: Display Downloaded Files
         run: ls -aR
+
       - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.1
         with:
@@ -122,4 +135,4 @@ jobs:
           verify_metadata: true
           packages_dir: Artifacts/dist/
           user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }} # this needs to be uploaded to github actions secrets
+          password: ${{ secrets.PYPI_API_TOKEN }}
