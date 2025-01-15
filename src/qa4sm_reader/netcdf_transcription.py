@@ -209,7 +209,7 @@ class Pytesmo2Qa4smResultsTranscriber:
         ]
         return any(
             tcol_metric_name.startswith(prefix) for prefix in valid_prefixes)
-    
+
     def is_valid_stability_metric_name(self, metric_name):
         """
         Checks if a given stability metric name is valid, based on the defined `globals.INTRA_ANNUAL_METRIC_TEMPLATE`.
@@ -291,13 +291,13 @@ class Pytesmo2Qa4smResultsTranscriber:
 
     def mask_redundant_tsw_values(self) -> None:
         """
-        For all variables starting with 'slope', replace all tsw values ('2010', '2011', etc.) with NaN 
+        For all variables starting with 'slope', replace all tsw values ('2010', '2011', etc.) with NaN
         except for the default tsw.
         """
         slope_vars = [var for var in self.transcribed_dataset if var.startswith("slope")]
 
         for var in slope_vars:
-            if TEMPORAL_SUB_WINDOW_NC_COORD_NAME in self.transcribed_dataset[var].dims:              
+            if TEMPORAL_SUB_WINDOW_NC_COORD_NAME in self.transcribed_dataset[var].dims:
                 mask = self.transcribed_dataset[var][TEMPORAL_SUB_WINDOW_NC_COORD_NAME] == DEFAULT_TSW
                 self.transcribed_dataset[var] = self.transcribed_dataset[var].where(mask, other=np.nan)
 
@@ -334,7 +334,7 @@ class Pytesmo2Qa4smResultsTranscriber:
 
     def get_transcribed_dataset(self) -> xr.Dataset:
         """
-        Get the transcribed dataset, containing all metric and non-metric data provided by the pytesmo results. 
+        Get the transcribed dataset, containing all metric and non-metric data provided by the pytesmo results.
 
 
         Returns
@@ -496,12 +496,11 @@ class Pytesmo2Qa4smResultsTranscriber:
         # Default encoding applied to all variables
         if encoding is None:
             encoding = {}
-            for var in self.transcribed_dataset.variables:
-                if not np.issubdtype(self.transcribed_dataset[var].dtype,
-                                     np.object_):
-                    encoding[str(var)] = {'zlib': True, 'complevel': 1}
-                else:
-                    encoding[str(var)] = {'zlib': False}
+            for var in self.transcribed_dataset.data_vars:  # Restrict to data variables only
+                if not np.issubdtype(self.transcribed_dataset[var].dtype, np.object_):  # Non-object dtype
+                    encoding[var] = {'zlib': True, 'complevel': 5}
+                else:  # Object dtype (e.g., strings)
+                    encoding[var] = {'zlib': False}
 
         try:
             self.pytesmo_results.close()
@@ -522,33 +521,6 @@ class Pytesmo2Qa4smResultsTranscriber:
                 except PermissionError:
                     if i < retry_count - 1:
                         time.sleep(1)
-
-        # for var in self.transcribed_dataset.data_vars:
-        #     # Check if the data type is Unicode (string type)
-        #     if self.transcribed_dataset[var].dtype.kind == 'U':
-        #         # Find the maximum string length in this variable
-        #         max_len = self.transcribed_dataset[var].str.len().max().item()
-        #
-        #         # Create a character array of shape (n, max_len), where n is the number of strings
-        #         char_array = np.array([
-        #             list(s.ljust(max_len))
-        #             for s in self.transcribed_dataset[var].values
-        #         ],
-        #                               dtype=f'S1')
-        #
-        #         # Create a new DataArray for the character array with an extra character dimension
-        #         self.transcribed_dataset[var] = xr.DataArray(
-        #             char_array,
-        #             dims=(self.transcribed_dataset[var].dims[0],
-        #                   f"{var}_char"),
-        #             coords={
-        #                 self.transcribed_dataset[var].dims[0]:
-        #                 self.transcribed_dataset[var].coords[
-        #                     self.transcribed_dataset[var].dims[0]]
-        #             },
-        #             attrs=self.transcribed_dataset[var].
-        #             attrs  # Preserve original attributes if needed
-        #         )
 
         # Ensure the dataset is closed
         if isinstance(self.transcribed_dataset, xr.Dataset):
@@ -746,14 +718,14 @@ class Pytesmo2Qa4smResultsTranscriber:
                     if tsw not in month_order and tsw not in seasons_1_order
                     and tsw not in seasons_2_order
                 ]
-                return customs, list(set(tsw_list) - set(customs))          
+                return customs, list(set(tsw_list) - set(customs))
 
             custom_tsws, tsw_list = get_custom_tsws(tsw_list)
-            
+
             if all(tsw.isdigit() for tsw in custom_tsws):
                 custom_tsws = sorted(custom_tsws, key=int)
 
-            
+
             lens = {len(tsw) for tsw in tsw_list}
 
             if lens == {2} and all(
