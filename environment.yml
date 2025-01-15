@@ -1,25 +1,33 @@
 name: qa4sm_reader
 channels:
-- defaults
-- conda-forge
+  - conda-forge
+  - defaults
 dependencies:
-- xarray>=2024.0.0
-- netcdf4
-- pandas
-- numpy
-- matplotlib
-- cartopy>=0.23.0
-- pyproj
-- h5netcdf>=1.4.1
-- pip
-- python=3.12
-- pip:
-    - parse
-    - colorcet
-    - scipy
-    - seaborn
-    - pygeogrids
-    - pytest
-    - pytest-cov
-    - pytesmo
-    - cftime>=1.6.4
+  # Core dependencies, aligning with the qa4sm environment
+  - python=3.12
+  - xarray=2024.3.0
+  - netcdf4
+  - pandas
+  - numpy
+  - matplotlib-base=3.10.0
+  - cartopy=0.24.0
+  - pyproj=3.7.0
+  - h5netcdf>=1.4.1
+
+  # Additional scientific and data analysis libraries
+  - scipy
+  - cftime>=1.6.4
+  - seaborn
+  - colorcet
+  - pygeogrids
+
+  # Testing and utilities
+  - pytest
+  - pytest-cov
+
+  # Specific Python pip packages from qa4sm
+  - pip:
+      - pytesmo
+      - parse
+      - fsspec
+      - zstandard==0.23.0
