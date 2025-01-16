@@ -557,6 +557,10 @@ class Pytesmo2Qa4smResultsTranscriber:
         None
         """
 
+        # compression does not work sometimes on Windows. Thus, it is disabled
+        if sys.platform.startswith("win"):
+            return None
+
         if compression in IMPLEMENTED_COMPRESSIONS and complevel in ALLOWED_COMPRESSION_LEVELS:
 
             def encoding_params(ds: xr.Dataset, compression: str,
@@ -566,7 +570,7 @@ class Pytesmo2Qa4smResultsTranscriber:
                         compression: True,
                         'complevel': complevel
                     }
-                    for var in ds.variables
+                    for var in ds.data_vars
                     if not np.issubdtype(ds[var].dtype, np.object_)
                 }
 
