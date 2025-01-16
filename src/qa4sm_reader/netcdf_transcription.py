@@ -579,16 +579,34 @@ class Pytesmo2Qa4smResultsTranscriber:
 
         if compression in IMPLEMENTED_COMPRESSIONS and complevel in ALLOWED_COMPRESSION_LEVELS:
 
-            def encoding_params(ds: xr.Dataset, compression: str,
-                                complevel: int) -> dict:
-                return {
-                    str(var): {
-                        compression: True,
-                        'complevel': complevel
-                    }
-                    for var in ds.data_vars
-                    if not np.issubdtype(ds[var].dtype, np.object_)
-                }
+            # def encoding_params(ds: xr.Dataset, compression: str,
+            #                     complevel: int) -> dict:
+            #     return {
+            #         str(var): {
+            #             compression: True,
+            #             'complevel': complevel
+            #         }
+            #         for var in ds.data_vars
+            #         if not np.issubdtype(ds[var].dtype, np.object_)
+            #     }
+
+            def encoding_params(ds: xr.Dataset, compression: str, complevel: int) -> dict:
+                encoding = {}
+
+                for var in ds.data_vars:
+                    var_dtype = ds[var].dtype
+
+                    # Apply compression only to numerical variables
+                    if np.issubdtype(var_dtype, np.number):
+                        encoding[str(var)] = {compression: True, 'complevel': complevel}
+
+                    # Convert Unicode strings to fixed-length byte arrays
+                    elif var_dtype.kind == 'U':  # Unicode string type
+                        max_len = ds[var].str.len().max().item()
+                        encoding[str(var)] = {'dtype': f'S{max_len}'}  # Convert to byte-string
+
+                return encoding
+
 
             try:
                 with xr.open_dataset(path) as ds:

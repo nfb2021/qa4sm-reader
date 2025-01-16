@@ -387,20 +387,21 @@ def test_ncfile_compression(TEST_DATA_DIR, test_file: Optional[Path] = None):
                                            keep_pytesmo_ncfile=False,
                                            write_outfile=True)
 
-    if not sys.platform.startswith("win"):
-        # only zlib compression is implemented so far, with compression levels 0-9
-        with pytest.raises(NotImplementedError):
-            transcriber.compress(transcriber.output_file_name, 'not_implemented',
-                                0)
-            transcriber.compress(transcriber.output_file_name, 'zlib', -1)
-            transcriber.compress(transcriber.output_file_name, 'not_implemented',
-                                -1)
+    # if not sys.platform.startswith("win"):
 
-        # test the case of a non-existing file
-        assert not transcriber.compress('non_existing_file.nc', 'zlib', 0)
+    # only zlib compression is implemented so far, with compression levels 0-9
+    with pytest.raises(NotImplementedError):
+        transcriber.compress(transcriber.output_file_name, 'not_implemented',
+                            0)
+        transcriber.compress(transcriber.output_file_name, 'zlib', -1)
+        transcriber.compress(transcriber.output_file_name, 'not_implemented',
+                            -1)
 
-        # test successful compression with zlib and compression level 9
-        assert transcriber.compress(transcriber.output_file_name, 'zlib', 9)
+    # test the case of a non-existing file
+    assert not transcriber.compress('non_existing_file.nc', 'zlib', 0)
+
+    # test successful compression with zlib and compression level 9
+    assert transcriber.compress(transcriber.output_file_name, 'zlib', 9)
 
     # test successful compression with defaults
     assert transcriber.compress(transcriber.output_file_name)
