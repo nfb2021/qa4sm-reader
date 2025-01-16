@@ -494,14 +494,29 @@ class Pytesmo2Qa4smResultsTranscriber:
             The path to the NetCDF file.
         """
         # Default encoding applied to all variables
+        # if encoding is None:
+        #     encoding = {}
+        #     for var in self.transcribed_dataset.data_vars:
+        #         if not np.issubdtype(self.transcribed_dataset[var].dtype,
+        #                              np.object_):
+        #             encoding[str(var)] = {'zlib': True, 'complevel': 5}
+        #         else:
+        #             encoding[str(var)] = {'zlib': False}
+
         if encoding is None:
             encoding = {}
             for var in self.transcribed_dataset.data_vars:
-                if not np.issubdtype(self.transcribed_dataset[var].dtype,
-                                     np.object_):
+                var_dtype = self.transcribed_dataset[var].dtype
+
+                # Apply compression only to numerical variables
+                if np.issubdtype(var_dtype, np.number):
                     encoding[str(var)] = {'zlib': True, 'complevel': 5}
-                else:
-                    encoding[str(var)] = {'zlib': False}
+
+                # Convert Unicode strings to fixed-length char arrays
+                elif var_dtype.kind == 'U':  # Unicode string type
+                    max_len = self.transcribed_dataset[var].str.len().max().item()
+                    encoding[str(var)] = {'dtype': f'S{max_len}'}  # Convert to byte-string
+
 
         try:
             self.pytesmo_results.close()
